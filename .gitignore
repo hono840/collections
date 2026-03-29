@@ -17,8 +17,12 @@ out/
 .playwright-mcp/
 *.png
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # OS
 .DS_Store
+*.pem
 Thumbs.db
 
 # IDE
