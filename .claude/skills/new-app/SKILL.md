@@ -19,19 +19,28 @@ allowed-tools:
 model: opus
 ---
 
-# /new-app — C-Suite総動員アプリ作成
+# /new-app — C-Suite総動員アプリ作成（委譲型PDCAモデル）
 
 `/new-app $ARGUMENTS` として実行された場合:
 
-C-Suiteチーム全体を統率し、新しいアプリケーションを作成します。以下の7ステッププロセスを厳密に実行してください。**承認ゲートは絶対にスキップしないこと。**
+C-Suiteチーム全体を統率し、新しいアプリケーションを作成します。
+**各C-Suiteは自分で手を動かさず、サブエージェントに委譲してPDCAサイクルを回します。**
+**承認ゲートは絶対にスキップしないこと。**
 
-## ステップ 1: 戦略検証（並列実行）
+## ステップ 1: 戦略検証（並列実行 + 内部PDCA）
 
 2つのエージェントを**並列**で起動:
 
-1. **CSO エージェント**: 「以下の市場機会を評価せよ: $ARGUMENTS。競合トップ5社、それぞれの弱点、差別化の切り口を特定すること。結果を docs/strategy/{app-name}-market-analysis.md に書き出すこと」
+1. **CSO エージェント**: 「以下の市場機会を評価せよ: $ARGUMENTS。
+   market-researcher と competitive-analyst に委譲し、PDCAサイクルを回した上で、
+   最終的な市場分析を apps/{app-name}/docs/strategy/{app-name}-market-analysis.md に書き出すこと。
+   あなた自身は直接調査せず、サブエージェントの成果物をレビュー・改善指示すること」
 
-2. **CPO エージェント**: 「以下の初期プロダクト要件をドラフトせよ: $ARGUMENTS。コアとなるユーザー課題と、何が差別化ポイントになるかに焦点を当てること。docs/product/{app-name}-prd-draft.md に書き出すこと」
+2. **CPO エージェント**: 「以下の初期プロダクト要件をドラフトせよ: $ARGUMENTS。
+   feature-planner に委譲し、PDCAサイクルを回した上で、
+   ドラフトPRDを apps/{app-name}/docs/product/{app-name}-prd-draft.md に書き出すこと。
+   必要に応じて ux-researcher にもUX調査を委譲すること。
+   あなた自身はPRDを書かず、サブエージェントの成果物をレビュー・改善指示すること」
 
 両方の完了を待つ。
 
@@ -46,15 +55,22 @@ Hiroに日本語で簡潔なサマリーを提示:
 
 AskUserQuestion を使用。**承認なしに先に進めないこと。**
 
-## ステップ 3: 詳細計画（並列実行）
+## ステップ 3: 詳細計画（並列実行 + 内部PDCA）
 
 3つのエージェントを**並列**で起動:
 
-1. **CPO エージェント**: 「{app-name} の要件、ユーザーストーリー、受入条件を確定せよ。ドラフトPRDを活用すること。Google Calendarにスプリントマイルストーンを作成すること。docs/product/{app-name}-prd.md および docs/product/{app-name}-stories.md に書き出すこと」
+1. **CPO エージェント**: 「{app-name} の要件、ユーザーストーリー、受入条件を確定せよ。
+   feature-planner に詳細仕様を、ux-researcher にUX調査を委譲し、PDCAサイクルを回した上で
+   確定版を apps/{app-name}/docs/product/ に書き出すこと。
+   Google Calendarにスプリントマイルストーンを作成すること」
 
-2. **CTO エージェント**: 「PRDに基づき {app-name} の技術アーキテクチャを設計せよ。context7 を使用してライブラリ選定を検証すること。docs/product/{app-name}-architecture.md に書き出すこと」
+2. **CTO エージェント**: 「PRDに基づき {app-name} の技術アーキテクチャを設計せよ。
+   code-architect にアーキテクチャ設計を委譲し、PDCAサイクルを回した上で
+   確定版を apps/{app-name}/docs/product/{app-name}-architecture.md に書き出すこと」
 
-3. **CFO エージェント**: 「{app-name} の全コストを見積もれ: ホスティング、API、ドメイン、サードパーティサービス。可能な限り無料枠を活用して最適化すること。docs/finance/{app-name}-costs.md に書き出すこと」
+3. **CFO エージェント**: 「{app-name} の全コストを見積もれ。
+   cost-analyzer にコスト調査を委譲し、PDCAサイクルを回した上で
+   確定版を apps/{app-name}/docs/finance/{app-name}-costs.md に書き出すこと」
 
 全エージェントの完了を待つ。
 
@@ -69,22 +85,31 @@ Hiroに以下を提示:
 
 AskUserQuestion を使用。**承認なしに先に進めないこと。**
 
-## ステップ 5: 実装
+## ステップ 5: 実装（TDD + 委譲型）
 
-CTOが実装をリード:
+**CTO エージェント** を起動:
+「{app-name} を TDD（テスト駆動開発）で実装せよ。
+ 機能単位で以下のサイクルを繰り返すこと:
 
-1. `apps/{app-name}/` ディレクトリ構成を作成
-2. アプリケーションのスキャフォールド（デフォルト: Next.js + TypeScript + Tailwind）
-3. CPOが優先順位付けしたユーザーストーリーに従い機能を実装
-4. 主要機能の完了ごとに code-reviewer エージェントで品質チェックを実施
+ 1. code-architect に設計を委譲 → レビュー → 承認
+ 2. Red: test-writer に受入条件+設計図に基づきテストを先に書かせる（テストは失敗する状態）
+ 3. Green: frontend-developer / backend-developer にテストを通す最小限の実装を委譲
+ 4. Refactor: code-reviewer にリファクタリング提案を委譲 → テストが通り続けることを確認
+ 5. セキュリティ関連は security-auditor に監査を委譲
+ 6. デプロイ準備は devops-engineer に委譲
 
-## ステップ 6: 仕上げ（並列実行）
+ すべてPDCAサイクルを回し、品質基準を満たした成果物のみ承認すること」
+
+## ステップ 6: 仕上げ（並列実行 + 内部PDCA）
 
 2つのエージェントを**並列**で起動:
 
-1. **CMO エージェント**: 「{app-name} の README.md、アプリ名の提案、ローンチ用コピーを作成せよ。マーケティング成果物を docs/marketing/{app-name}-brand.md に書き出すこと」
+1. **CMO エージェント**: 「{app-name} の README.md、アプリ名の提案、ローンチ用コピーを作成せよ。
+   content-creator にコピー制作を委譲し、PDCAサイクルを回した上で確定版を書き出すこと。
+   seo-specialist にSEO最適化を委譲すること」
 
-2. **QA（CPO経由）**: 「CPO: qa-engineer に委任し、{app-name} の全受入条件を検証せよ。合格項目と修正が必要な項目を報告すること」
+2. **CPO エージェント**: 「{app-name} の全受入条件を検証せよ。
+   qa-engineer にE2Eテストを委譲し、PDCAサイクルを回した上で結果を報告すること」
 
 ## ステップ 7: ローンチ準備
 
