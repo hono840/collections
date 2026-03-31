@@ -1,0 +1,103 @@
+name: App Health Check
+
+# 毎日 JST 10:00 (UTC 1:00) に実行
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app:
+          - name: budget-app
+            base_url: https://budget-app-ruddy-two.vercel.app
+            pages:
+              - path: /
+                expect_redirect: /login
+              - path: /login
+              - path: /signup
+              - path: /forgot-password
+
+    steps:
+      - name: Check pages for ${{ matrix.app.name }}
+        id: check
+        run: |
+          failed=0
+          results=""
+
+          pages='${{ toJson(matrix.app.pages) }}'
+          base_url="${{ matrix.app.base_url }}"
+
+          for page in $(echo "$pages" | jq -r '.[] | @base64'); do
+            path=$(echo "$page" | base64 -d | jq -r '.path')
+            expect_redirect=$(echo "$page" | base64 -d | jq -r '.expect_redirect // empty')
+
+            url="${base_url}${path}"
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 30 "$url")
+
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 400 ]; then
+              status="✅"
+            elif [ "$http_code" -eq 308 ] || [ "$http_code" -eq 307 ]; then
+              if [ -n "$expect_redirect" ]; then
+                status="✅ (redirect)"
+              else
+                status="⚠️ unexpected redirect"
+                failed=1
+              fi
+            else
+              status="❌ HTTP $http_code"
+              failed=1
+            fi
+
+            results="${results}\n| ${path} | ${http_code} | ${status} |"
+            echo "${path}: ${http_code} ${status}"
+          done
+
+          echo "failed=$failed" >> $GITHUB_OUTPUT
+          echo "results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$results" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create issue on failure
+        if: steps.check.outputs.failed == '1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = `${{ steps.check.outputs.results }}`;
+            const body = `## ⚠️ Health Check Failed: ${{ matrix.app.name }}
+
+            **日時**: ${new Date().toISOString()}
+            **対象**: ${{ matrix.app.base_url }}
+
+            ### 結果
+
+            | ページ | HTTP Status | 状態 |
+            |--------|------------|------|
+            ${results}
+
+            ### 対応
+
+            - [ ] 原因を調査する
+            - [ ] 修正をデプロイする
+            - [ ] \`/monitor ${{ matrix.app.name }} --full\` でフル評価を実行する
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Health Check Failed: ${{ matrix.app.name }} - ${new Date().toISOString().split('T')[0]}`,
+              body: body,
+              labels: ['health-check', 'bug']
+            });
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Health Check: ${{ matrix.app.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| ページ | HTTP Status | 状態 |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------------|------|" >> $GITHUB_STEP_SUMMARY
+          echo -e "${{ steps.check.outputs.results }}" >> $GITHUB_STEP_SUMMARY
