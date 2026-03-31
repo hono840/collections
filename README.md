@@ -19,19 +19,19 @@ Hiro (CEO / Orchestrator)
 
 ## アプリケーション
 
-| アプリ                          | 説明                                 | 技術スタック                                | ステータス            |
-| ------------------------------- | ------------------------------------ | ------------------------------------------- | --------------------- |
+| アプリ | 説明 | 技術スタック | ステータス |
+|--------|------|------------|-----------|
 | [budget-app](./apps/budget-app) | プライバシーファーストの家計簿アプリ | Next.js, TypeScript, Supabase, Tailwind CSS | MVP完成・デプロイ済み |
 
 ## デフォルト技術スタック
 
-| レイヤー               | 技術                                                  |
-| ---------------------- | ----------------------------------------------------- |
-| フロントエンド         | Next.js (App Router), React, TypeScript, Tailwind CSS |
-| バックエンド           | Supabase (Auth, Database, Storage)                    |
-| テスト                 | Vitest, Playwright                                    |
-| デプロイ               | Vercel                                                |
-| パッケージマネージャー | pnpm                                                  |
+| レイヤー | 技術 |
+|---------|------|
+| フロントエンド | Next.js (App Router), React, TypeScript, Tailwind CSS |
+| バックエンド | Supabase (Auth, Database, Storage) |
+| テスト | Vitest, Playwright |
+| デプロイ | Vercel |
+| パッケージマネージャー | pnpm |
 
 ## ディレクトリ構成
 
@@ -51,24 +51,24 @@ collections/
 
 ## スキル（スラッシュコマンド）
 
-| コマンド                        | 説明                               |
-| ------------------------------- | ---------------------------------- |
-| `/new-app {name} {description}` | C-Suite 総動員でアプリを新規作成   |
-| `/review`                       | CTO + CPO による並列コードレビュー |
-| `/strategy {topic}`             | CSO + CMO + CFO の戦略セッション   |
-| `/standup`                      | 全エリアの進捗チェック             |
+| コマンド | 説明 |
+|---------|------|
+| `/new-app {name} {description}` | C-Suite 総動員でアプリを新規作成 |
+| `/review` | CTO + CPO による並列コードレビュー |
+| `/strategy {topic}` | CSO + CMO + CFO の戦略セッション |
+| `/standup` | 全エリアの進捗チェック |
 
 ## MCP 連携
 
-| MCP             | 用途                           |
-| --------------- | ------------------------------ |
-| Supabase        | DB管理、マイグレーション       |
-| Playwright      | ブラウザ E2E 検証              |
+| MCP | 用途 |
+|-----|------|
+| Supabase | DB管理、マイグレーション |
+| Playwright | ブラウザ E2E 検証 |
 | Chrome DevTools | コンソール検出、パフォーマンス |
-| Vercel          | デプロイ、ログ確認             |
-| context7        | ライブラリドキュメント参照     |
-| Gmail           | アウトリーチ、通知             |
-| Google Calendar | スプリント管理                 |
+| Vercel | デプロイ、ログ確認 |
+| context7 | ライブラリドキュメント参照 |
+| Gmail | アウトリーチ、通知 |
+| Google Calendar | スプリント管理 |
 
 ## セットアップ
 
