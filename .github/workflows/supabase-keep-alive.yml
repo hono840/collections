@@ -1,0 +1,38 @@
+name: Supabase Keep-Alive
+
+# 毎日 JST 9:00 (UTC 0:00) に実行して7日間非アクティブ停止を防ぐ
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - name: budget-app
+            url_secret: SUPABASE_BUDGET_APP_URL
+            key_secret: SUPABASE_BUDGET_APP_ANON_KEY
+
+    steps:
+      - name: Ping ${{ matrix.project.name }}
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets[matrix.project.url_secret] }}/rest/v1/rpc/keep_alive" \
+            -H "apikey: ${{ secrets[matrix.project.key_secret] }}" \
+            -H "Authorization: Bearer ${{ secrets[matrix.project.key_secret] }}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -1)
+
+          echo "Project: ${{ matrix.project.name }}"
+          echo "Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::Keep-alive failed for ${{ matrix.project.name }} (HTTP $http_code)"
+            exit 1
+          fi
