@@ -1,9 +1,9 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Sidebar } from '@/components/layout/sidebar'
-import { BottomNav } from '@/components/layout/bottom-nav'
-import { ToastProvider } from '@/components/ui/toast'
+import { Sidebar } from '@/components/organisms/Sidebar'
+import { BottomNav } from '@/components/organisms/BottomNav'
+import { ToastProvider } from '@/components/atoms/Toast'
 
 async function UserNav() {
   const supabase = await createClient()

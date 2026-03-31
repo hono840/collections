@@ -1,15 +1,7 @@
-import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { QuickExpenseFab } from '@/components/transactions/quick-expense-fab'
-import { RecentTransactions } from '@/components/dashboard/recent-transactions'
-import { MonthlySummaryCard } from '@/components/dashboard/monthly-summary-card'
-import { CategoryBudgetList } from '@/components/dashboard/category-budget-list'
-import { DaysRemainingBadge } from '@/components/dashboard/days-remaining-badge'
-import { MonthNavigator } from '@/components/dashboard/month-navigator'
 import type { MonthlySummary } from '@/types/app'
-import { ArrowRightLeft, BarChart3 } from 'lucide-react'
-import Link from 'next/link'
+import { DashboardTemplate } from '@/components/templates/DashboardTemplate'
 
 export const metadata = {
   title: 'ダッシュボード | Budget App',
@@ -148,67 +140,14 @@ export default async function DashboardPage({
     : 0
 
   return (
-    <div>
-      {/* Header with month navigation */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-          ダッシュボード
-        </h1>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <DaysRemainingBadge
-            days={daysRemaining}
-            isCurrentMonth={isCurrentMonth}
-          />
-          <Suspense fallback={null}>
-            <MonthNavigator />
-          </Suspense>
-        </div>
-      </div>
-
-      {/* Monthly spending card */}
-      <div className="mb-8">
-        <MonthlySummaryCard totalSpent={totalSpent} totalBudget={totalBudget} />
-      </div>
-
-      {/* Category budget progress */}
-      <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-slate-400 dark:text-zinc-500" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">
-            カテゴリ別予算
-          </h2>
-        </div>
-        <CategoryBudgetList summaries={summaries} />
-      </section>
-
-      {/* Recent transactions */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">
-            最近の取引
-          </h2>
-          <Link
-            href="/transactions"
-            className="text-sm font-medium text-brand-600 transition-colors hover:text-brand-700 dark:text-brand-500"
-          >
-            すべて表示
-          </Link>
-        </div>
-
-        {txList.length > 0 ? (
-          <RecentTransactions transactions={txList} categories={catList} />
-        ) : (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 py-12 text-center dark:border-zinc-700">
-            <ArrowRightLeft className="mb-3 h-8 w-8 text-slate-400 dark:text-zinc-500" />
-            <p className="text-sm text-slate-500 dark:text-zinc-400">
-              今月の取引はまだありません
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* FAB */}
-      <QuickExpenseFab categories={catList} />
-    </div>
+    <DashboardTemplate
+      summaries={summaries}
+      totalSpent={totalSpent}
+      totalBudget={totalBudget}
+      recentTransactions={txList}
+      categories={catList}
+      daysRemaining={daysRemaining}
+      isCurrentMonth={isCurrentMonth}
+    />
   )
 }

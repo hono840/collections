@@ -60,6 +60,53 @@ Hiro (CEO / Orchestrator)
 
 上記はデフォルト設定であり、各アプリの要件に応じて変更可能。
 
+## コンポーネント設計パターン: Atomic Design
+
+UIコンポーネントは **Atomic Design** を標準パターンとして採用する。
+
+### 階層定義
+
+| 階層 | 説明 | 例 |
+| --- | --- | --- |
+| **atoms** | 最小単位のUIパーツ。単体で意味を持つ | Button, Input, Label, Icon, Badge |
+| **molecules** | 複数のatomsを組み合わせた機能単位 | SearchBar (Input + Button), FormField (Label + Input) |
+| **organisms** | molecules/atomsを組み合わせた独立セクション | Header, Sidebar, LoginForm, DataTable |
+| **templates** | ページのレイアウト構造。データは含まない | DashboardTemplate, AuthTemplate |
+
+### ディレクトリ規約
+
+```
+src/components/
+├── atoms/
+│   └── Button/
+│       ├── Button.tsx
+│       ├── Button.test.tsx
+│       └── index.ts
+├── molecules/
+│   └── SearchBar/
+│       ├── SearchBar.tsx
+│       ├── SearchBar.test.tsx
+│       └── index.ts
+├── organisms/
+│   └── Header/
+│       ├── Header.tsx
+│       ├── Header.test.tsx
+│       └── index.ts
+└── templates/
+    └── DashboardTemplate/
+        ├── DashboardTemplate.tsx
+        ├── DashboardTemplate.test.tsx
+        └── index.ts
+```
+
+- **PascalCase**: コンポーネント名とディレクトリ名はPascalCase
+- **ディレクトリ単位**: 1コンポーネント = 1ディレクトリ（コンポーネント、テスト、index.tsを同居）
+- **依存方向**: atoms ← molecules ← organisms ← templates（上位は下位に依存するが、逆方向の依存は禁止）
+
+### ページとの関係
+
+`app/` ディレクトリのページコンポーネントは templates を使用してレイアウトし、organisms/molecules でコンテンツを構成する。ページ自体はAtomic Design階層には含めない。
+
 ## アプリ規約
 
 各アプリケーションは `apps/{app-name}/` に格納し、以下を含む:

@@ -1,12 +1,7 @@
-import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { TransactionList } from '@/components/transactions/transaction-list'
-import { TransactionFilters } from '@/components/transactions/transaction-filters'
-import { QuickExpenseFab } from '@/components/transactions/quick-expense-fab'
-import { TransactionPagination } from '@/components/transactions/transaction-pagination'
 import { formatMonthYear } from '@/lib/utils/format'
-import { ArrowRightLeft } from 'lucide-react'
+import { TransactionsTemplate } from '@/components/templates/TransactionsTemplate'
 
 export const metadata = {
   title: 'トランザクション | Budget App',
@@ -123,56 +118,14 @@ export default async function TransactionsPage({
     : formatMonthYear(now)
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-          トランザクション
-        </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
-          {displayLabel}
-        </p>
-      </div>
-
-      {/* Search & Filters */}
-      <Suspense fallback={null}>
-        <TransactionFilters categories={catList} />
-      </Suspense>
-
-      {/* Transaction list or empty state */}
-      {txList.length > 0 ? (
-        <>
-          <TransactionList transactions={txList} categories={catList} />
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <TransactionPagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalCount={totalCount}
-            />
-          )}
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 dark:bg-zinc-800">
-            <ArrowRightLeft className="h-8 w-8 text-slate-400 dark:text-zinc-500" />
-          </div>
-          <h2 className="text-lg font-semibold text-slate-700 dark:text-zinc-300">
-            {hasActiveFilters
-              ? '条件に一致する取引が見つかりません'
-              : '今月の取引はまだありません'}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
-            {hasActiveFilters
-              ? 'フィルター条件を変更してお試しください'
-              : '右下の「+」ボタンから支出を記録しましょう'}
-          </p>
-        </div>
-      )}
-
-      {/* FAB */}
-      <QuickExpenseFab categories={catList} />
-    </div>
+    <TransactionsTemplate
+      transactions={txList}
+      categories={catList}
+      displayLabel={displayLabel}
+      hasActiveFilters={!!hasActiveFilters}
+      currentPage={page}
+      totalPages={totalPages}
+      totalCount={totalCount}
+    />
   )
 }
