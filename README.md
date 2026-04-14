@@ -77,6 +77,13 @@ collections/
 | Gmail           | アウトリーチ、通知             |
 | Google Calendar | スプリント管理                 |
 
+## 自動化ワークフロー（GitHub Actions）
+
+| ワークフロー | スケジュール | 内容 |
+| --- | --- | --- |
+| [Supabase Keep-Alive](.github/workflows/supabase-keep-alive.yml) | 毎日 JST 9:00 | Supabase 無料プランの7日間非アクティブ停止を防ぐ ping |
+| [App Health Check](.github/workflows/health-check.yml) | 毎日 JST 10:00 | デプロイ済みアプリの死活監視（失敗時は issue を自動作成） |
+
 ## セットアップ
 
 ```bash
