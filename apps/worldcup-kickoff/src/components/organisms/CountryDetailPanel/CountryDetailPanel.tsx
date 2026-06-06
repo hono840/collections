@@ -6,13 +6,10 @@ import { Tag } from '@/components/atoms/Tag'
 import { EmptyState } from '@/components/atoms/EmptyState'
 import { FavoriteToggle } from '@/components/molecules/FavoriteToggle'
 import { MatchCard, type MatchCardTeam } from '@/components/molecules/MatchCard'
+import { TierLegendDialog } from '@/components/molecules/TierLegendDialog'
+import { TIER_META } from '@/lib/constants/tiers'
 import { cn } from '@/lib/utils/cn'
-import type {
-  Player,
-  PlayerPosition,
-  Team,
-  TeamTier,
-} from '@/lib/domain'
+import type { Player, PlayerPosition, Team } from '@/lib/domain'
 
 /** CountryDetailPanel が描画する1試合分の表示データ（page でシリアライズ可能に整形） */
 export interface CountryMatchView {
@@ -36,15 +33,6 @@ export interface CountryDetailPanelProps {
   /** その国の試合（page で整形済み・キックオフ昇順想定） */
   matches: CountryMatchView[]
   className?: string
-}
-
-const TIER_META: Record<
-  TeamTier,
-  { label: string; variant: 'gold' | 'pitch' | 'neutral' }
-> = {
-  favorite: { label: '優勝候補', variant: 'gold' },
-  darkhorse: { label: 'ダークホース', variant: 'pitch' },
-  underdog: { label: 'チャレンジャー', variant: 'neutral' },
 }
 
 const POSITION_ORDER: PlayerPosition[] = ['GK', 'DF', 'MF', 'FW']
@@ -106,8 +94,23 @@ export function CountryDetailPanel({
           <h1 className="text-3xl font-extrabold text-text">{team.nameJa}</h1>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Badge variant="neutral">{groupLabel}</Badge>
-            <Badge variant={tierMeta.variant}>{tierMeta.label}</Badge>
+            {/* tier バッジをタップすると凡例モーダルが開く（cursor-help + リングで手掛かり） */}
+            <TierLegendDialog
+              triggerClassName="rounded-full transition-shadow hover:ring-2 hover:ring-pitch-200 focus-visible:ring-2 focus-visible:ring-pitch-200"
+              triggerAriaLabel={`${tierMeta.label}とは？ランクの見方を開く`}
+            >
+              <Badge variant={tierMeta.variant} className="cursor-help">
+                {tierMeta.label}
+              </Badge>
+            </TierLegendDialog>
           </div>
+          {/* なぜその tier なのかの一言理由 */}
+          <p className="max-w-prose text-center text-sm leading-relaxed">
+            <span className="font-bold text-pitch-700">
+              なぜ{tierMeta.label}？
+            </span>{' '}
+            <span className="text-text-muted">{team.tierReasonJa}</span>
+          </p>
         </div>
         <FavoriteToggle teamCode={team.code} nameJa={team.nameJa} showLabel />
       </header>

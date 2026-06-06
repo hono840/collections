@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
 import './globals.css'
 import { FavoriteTeamProvider } from '@/components/providers/FavoriteTeamProvider'
+import { DeskDecor } from '@/components/organisms/DeskDecor'
 import { SiteHeader } from '@/components/organisms/SiteHeader'
 import { BottomNav } from '@/components/organisms/BottomNav'
 
@@ -76,6 +77,12 @@ export default function RootLayout({
       <body className="min-h-dvh bg-bg text-text antialiased">
         <FavoriteTeamProvider>
           {/*
+            PC（lg+）の広い左右余白を上品に飾る純装飾レイヤ（最背面 z-0・最前面の
+            固定要素より後ろ）。lg 未満では描画されず、モバイルの見た目は不変。
+            body の bg-bg は維持し、中央 480px 列には掛けない。
+          */}
+          <DeskDecor />
+          {/*
             アプリ全体は中央寄せ・最大幅 ~480px のモバイルファースト枠。
             上下の固定要素（SiteHeader: fixed top-0 / h-14、BottomNav: fixed bottom-0 / h-16）に
             重ならないよう、<main> に pt-14 / pb-16 を確保している。
@@ -91,7 +98,7 @@ export default function RootLayout({
             overflow-y を visible のまま残せるため、横あふれだけを切り取りつつ
             sticky を維持できる。ブラケット等の横スクロールは内側コンテナで完結させる。
           */}
-          <main className="mx-auto w-full max-w-[480px] overflow-x-clip px-4 pt-14 pb-16">
+          <main className="relative z-10 mx-auto w-full max-w-[480px] overflow-x-clip px-4 pt-14 pb-16">
             {children}
           </main>
           <BottomNav />

@@ -18,6 +18,7 @@ const team: Team = {
   region: 'asia',
   style: 'balanced',
   tier: 'darkhorse',
+  tierReasonJa: '組織的なサッカーで上位を脅かす力があるからです。',
   blurbJa: 'アジアの強豪、サムライブルー。',
   watchPointJa: '全員で連動する組織的な守備が見どころ。',
   funFactsJa: ['7大会連続出場', '愛称はサムライブルー'],
@@ -142,5 +143,37 @@ describe('CountryDetailPanel', () => {
       />,
     )
     expect(screen.getByText('試合はまだありません')).toBeInTheDocument()
+  })
+
+  it('tier の理由（tierReasonJa）が表示される', () => {
+    renderPanel(
+      <CountryDetailPanel
+        team={team}
+        groupLabel="グループA"
+        players={players}
+        matches={matches}
+      />,
+    )
+    expect(
+      screen.getByText('組織的なサッカーで上位を脅かす力があるからです。'),
+    ).toBeInTheDocument()
+    // 「なぜ◯◯？」の見出し（tier ラベルを含む）
+    expect(screen.getByText(/なぜダークホース？/)).toBeInTheDocument()
+  })
+
+  it('tier バッジがランク凡例ダイアログのトリガーになっている', () => {
+    renderPanel(
+      <CountryDetailPanel
+        team={team}
+        groupLabel="グループA"
+        players={players}
+        matches={matches}
+      />,
+    )
+    const trigger = screen.getByRole('button', {
+      name: /ランクの見方を開く/,
+    })
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 })
