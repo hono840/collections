@@ -14,8 +14,14 @@
  *   4. それ以外（公開直後の新バージョン等のグレー判定）はブロックしない。
  *      → pnpm の minimumReleaseAge(cooldown) と巡回(/supply-chain)→issue起票に委ねる。
  *
+ * 動作ログ:
+ *   インストール系コマンドを評価した結果（許可/ブロック・カテゴリ・Socketスコア）を
+ *   `.claude/security/audit-log.jsonl` に1行JSONで追記する（`node .claude/security/view-log.mjs` で閲覧）。
+ *   非インストールコマンドは記録しない。`SECURITY_LOG_DISABLE=1` で無効化。
+ *
  * フェイルセーフ:
- *   - threat-intel.json 欠落・破損、Socket 未到達・タイムアウト等は fail-open（開発を止めない）。
+ *   - threat-intel.json 欠落・破損、Socket 未到達・タイムアウト、ログ書込失敗等は
+ *     すべて fail-open / fail-soft（開発を止めない）。
  *   - Socket ゲートは `SOCKET_GATE_DISABLE=1` で無効化、閾値は `SOCKET_GATE_THRESHOLD`、
  *     タイムアウトは `SOCKET_GATE_TIMEOUT_MS`（既定8000）で調整可能。
  *
@@ -24,17 +30,19 @@
  *   許可 → exit 0。ブロック → 理由を stderr に出して exit 2（Claude にフィードバックされる）。
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const INTEL_PATH = resolve(HERE, "../security/threat-intel.json");
+const LOG_PATH = resolve(HERE, "../security/audit-log.jsonl");
 
 const SOCKET_MCP_URL = process.env.SOCKET_MCP_URL || "https://mcp.socket.dev/";
 const SOCKET_THRESHOLD = Number(process.env.SOCKET_GATE_THRESHOLD || 20);
 const SOCKET_TIMEOUT_MS = Number(process.env.SOCKET_GATE_TIMEOUT_MS || 8000);
 const SOCKET_DISABLED = process.env.SOCKET_GATE_DISABLE === "1";
+const LOG_DISABLED = process.env.SECURITY_LOG_DISABLE === "1";
 
 function readStdin() {
   try {
@@ -44,11 +52,25 @@ function readStdin() {
   }
 }
 
+function trunc(s) {
+  return s.length > 300 ? s.slice(0, 300) + "…" : s;
+}
+
+function logEvent(obj) {
+  if (LOG_DISABLED) return;
+  try {
+    appendFileSync(LOG_PATH, JSON.stringify({ ts: new Date().toISOString(), event: "install_guard", ...obj }) + "\n");
+  } catch {
+    /* ログ書込失敗は無視（fail-soft） */
+  }
+}
+
 function allow() {
   process.exit(0);
 }
 
-function block(reason) {
+function block(reason, logObj) {
+  if (logObj) logEvent({ decision: "block", ...logObj });
   process.stderr.write(reason + "\n");
   process.exit(2);
 }
@@ -167,14 +189,15 @@ async function main() {
         block(
           `🚫 サプライチェーンガード: \`${name}\` でのインストールはこのプロジェクトでは禁止されています。\n` +
             `   パッケージマネージャーは pnpm に統一されています。\`pnpm add <pkg>\` / \`pnpm install\` を使ってください。\n` +
-            `   （検出コマンド: ${sub})`
+            `   （検出コマンド: ${sub})`,
+          { category: "forbidden-pm", command: trunc(command), detail: name }
         );
       }
     }
   }
 
   const pnpmSpecs = subCommands.flatMap(extractPnpmPackages);
-  if (pnpmSpecs.length === 0) allow();
+  if (pnpmSpecs.length === 0) allow(); // 非インストールコマンドは記録しない
 
   const parsed = pnpmSpecs.map(parseSpec);
 
@@ -200,7 +223,8 @@ async function main() {
               `   campaign: ${entry.campaign ?? "unknown"} / severity: ${entry.severity ?? "critical"}\n` +
               `   reference: ${entry.reference ?? "-"}\n\n` +
               `   致命的なサプライチェーンリスクの可能性があります。インストールせず、\n` +
-              `   \`gh issue create --label security --label severity:critical\` で起票し Hiro に報告してください。`
+              `   \`gh issue create --label security --label severity:critical\` で起票し Hiro に報告してください。`,
+            { category: "denylist", command: trunc(command), packages: [name], detail: `campaign=${entry.campaign ?? "unknown"}` }
           );
         }
       }
@@ -208,6 +232,7 @@ async function main() {
   }
 
   // 3. Socket depscore ライブ採点（ネットワーク・fail-open）
+  let scoreObj;
   if (!SOCKET_DISABLED) {
     const pkgs = parsed
       .filter((p) => !p.nonRegistry)
@@ -215,6 +240,11 @@ async function main() {
     if (pkgs.length) {
       const scores = await socketScores(pkgs);
       if (scores) {
+        scoreObj = {};
+        for (const p of pkgs) {
+          const s = scores.get(p.depname);
+          if (typeof s === "number") scoreObj[p.depname] = s;
+        }
         const risky = pkgs
           .map((p) => ({ name: p.depname, score: scores.get(p.depname) }))
           .filter((x) => typeof x.score === "number" && x.score < SOCKET_THRESHOLD);
@@ -225,7 +255,14 @@ async function main() {
               `${lines}\n\n` +
               `   マルウェア / typosquat / 乗っ取りの兆候です。インストールせず、\n` +
               `   \`gh issue create --label security --label severity:critical\` で起票し Hiro に報告してください。\n` +
-              `   （誤検知と判断する場合のみ SOCKET_GATE_DISABLE=1 で一時的に無効化できます）`
+              `   （誤検知と判断する場合のみ SOCKET_GATE_DISABLE=1 で一時的に無効化できます）`,
+            {
+              category: "socket",
+              command: trunc(command),
+              packages: parsed.map((p) => p.name),
+              scores: scoreObj,
+              detail: risky.map((r) => `${r.name}:${r.score}`).join(","),
+            }
           );
         }
       }
@@ -233,6 +270,14 @@ async function main() {
     }
   }
 
+  // 許可（評価した pnpm インストールのみ記録）
+  logEvent({
+    decision: "allow",
+    category: "clean",
+    command: trunc(command),
+    packages: parsed.map((p) => p.name),
+    ...(scoreObj ? { scores: scoreObj } : {}),
+  });
   allow();
 }
 

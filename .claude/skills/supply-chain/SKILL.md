@@ -21,6 +21,12 @@ model: opus
 
 このプロジェクトが shai-hulud 級のサプライチェーン攻撃に対して安全かを**あらゆる場所で能動的に監視**し、致命的リスクは GitHub issue で警鐘を鳴らします。`$ARGUMENTS` が空ならリポジトリ全体（全 `apps/*` + ルート + `.github`）を対象にします。
 
+## `--log` フラグ時（動作ログの閲覧のみ）
+
+`$ARGUMENTS` に `--log` が含まれる場合は巡回せず、**動作ログを表示して終了**する:
+`node .claude/security/view-log.mjs` を実行（`--blocks` / `--today` / `--limit=N` をそのまま渡せる）し、
+ガードの許可/ブロック判定・Socketスコア・セッション履歴を Hiro に日本語で要約提示する。
+
 ## ステップ 0: 脅威データの鮮度確認
 
 - `.claude/security/threat-intel.json` の `updated_at` を確認。7日以上古ければ `node .github/scripts/build-threat-intel.mjs` で更新を試みる（ネットワーク/トークンが必要。失敗時はその旨を記録して続行）。

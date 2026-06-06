@@ -20,6 +20,9 @@ out/
 # Claude Code local settings
 .claude/settings.local.json
 
+# サプライチェーン動作ログ（ローカル実行時データ・マシン固有）
+.claude/security/audit-log.jsonl
+
 # OS
 .DS_Store
 *.pem

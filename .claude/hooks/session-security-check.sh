@@ -19,6 +19,10 @@ if command -v gh >/dev/null 2>&1; then
     #       即時反映されるため、こちらを使う。
     ISSUES=$(gh issue list --state open --limit 50 --json number,title,labels \
       --jq '.[] | select(.labels | map(.name) | index("security")) | "  #\(.number) \(.title)"' 2>/dev/null)
+    # 動作ログに session_start を記録（fail-soft）
+    if [ -n "$ISSUES" ]; then COUNT=$(printf '%s\n' "$ISSUES" | grep -c .); else COUNT=0; fi
+    printf '{"ts":"%s","event":"session_start","openSecurityIssues":%s}\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$COUNT" >> "${PROJECT_DIR}/.claude/security/audit-log.jsonl" 2>/dev/null || true
     if [ -n "$ISSUES" ]; then
       printf '\n🚨 === 未対応のセキュリティ Issue があります ===\n'
       printf '%s\n' "$ISSUES"
