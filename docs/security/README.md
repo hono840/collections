@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | 0. pnpm 統一強制 | `packageManager` / `engines` / `.npmrc` / `preinstall: only-allow pnpm` | `apps/*/package.json`, `.npmrc` |
 | 1. cooldown（受動防御の本命） | `minimumReleaseAge`（公開直後の悪質版を遅延） | `apps/*/pnpm-workspace.yaml` |
-| 2. インストールガード | 既知IOC・npm/yarn/bun を即ブロック | `.claude/hooks/guard-install.mjs` |
+| 2. インストールガード | 既知IOC・npm/yarn/bun・**Socket supplyChain<20** を即ブロック | `.claude/hooks/guard-install.mjs` |
 | 3. 監査エージェント | 依存・lockfile・スクリプト・workflow を監査 | `.claude/agents/supply-chain-auditor.md` |
 | 4. 巡回スキル | 3エージェント並列巡回 → issue 起票 | `.claude/skills/supply-chain/SKILL.md` |
 | 5. CI/CD監視 + 日次更新 | pnpm audit / OSV / Socket / IOC収集 | `.github/workflows/*.yml`, `.github/scripts/build-threat-intel.mjs` |
@@ -45,6 +45,19 @@
 - `indicators` / `campaigns`: 文字列・ファイル痕跡。ワークフロー注入スキャンと監査エージェントが参照（インストールブロックには使わない）。
 - 手動で恒久的に denylist へ追加したい場合は、エントリに `"source": "manual"` を付ける（日次更新で消えない）。
 
+## Socket 連携の2系統（混同しやすい）
+
+Socket は**用途の違う2つ**の連携があり、本プロジェクトは両方使う:
+
+| 系統 | 誰が動かす | ダッシュボードを開く必要 | 何をする |
+| --- | --- | --- | --- |
+| **Socket GitHub App** | GitHub（自動・PR時） | スキャン状況の確認時のみ | PRの依存を自動スキャンしコメント。SSO/OAuthで導入、キー不要 |
+| **Socket MCP**（`socket-mcp`, `https://mcp.socket.dev/`） | **Claude**（スキル/エージェント/フック） | **不要** | Claudeが `depscore` で依存を直接採点。`/supply-chain` でデータ取得→実依存と照合→issue起票。`guard-install.mjs` も supplyChain<20 を水際ブロック |
+
+ポイント: **「自分で Socket.dev を開いてスキャン開始」する必要があるのは GitHub App 側のUI運用だけ**。Socket MCP 経由なら Claude が API を直接叩くので、ダッシュボードを開かずに自動で照合・issue化できる。`depscore` はホスト版がキー不要（自己ホストのみ `SOCKET_API_TOKEN` が必要）。
+
+ガードフックの Socket ゲートは環境変数で調整可能: `SOCKET_GATE_THRESHOLD`（既定20）/ `SOCKET_GATE_TIMEOUT_MS`（既定8000・fail-open）/ `SOCKET_GATE_DISABLE=1`（無効化）。
+
 ## 手動セットアップ（要対応）
 
 | 項目 | 内容 |
@@ -53,6 +66,27 @@
 | Socket.dev（任意: CI内CLIゲート） | 上記に加えて Actions 内で `SocketDev/action`（CLIモード）を回したい場合**のみ** secrets に `SOCKET_SECURITY_API_KEY` を追加。未設定なら CI の Socket ステップは自動スキップ（CIは失敗しない）。GitHub App を入れていれば通常は不要。 |
 | **gh CLI 認証** | SessionStart の issue 表示・ローカルからの issue 起票に必要。`gh auth status` で確認。 |
 | **cooldown 日数** | 既定7日。変更は `apps/*/pnpm-workspace.yaml` の `minimumReleaseAge`（分単位）。 |
+
+## 動作ログ（観測）
+
+ガードフックが「中身で何をしたか」を `.claude/security/audit-log.jsonl`（1行1イベントのJSON）に記録する。インストールの**許可/ブロック判定・ブロック理由カテゴリ・Socketスコア・セッション開始時の未対応issue数**が残るので、後から「いつ・何を・なぜ止めたか」を追える。ローカル実行時データのため gitignore 済み（`SECURITY_LOG_DISABLE=1` で無効化可）。
+
+閲覧:
+
+```bash
+node .claude/security/view-log.mjs            # 直近30件＋サマリ
+node .claude/security/view-log.mjs --blocks   # ブロックのみ
+node .claude/security/view-log.mjs --today    # 本日分
+node .claude/security/view-log.mjs --limit=100
+# Claude から: /supply-chain --log
+```
+
+記録カテゴリ: `forbidden-pm`（npm/yarn/bun使用）・`denylist`（既知IOC一致）・`socket`（供給網スコア<閾値）・`clean`（許可）。イベント例:
+
+```json
+{"ts":"2026-06-06T03:21:00.000Z","event":"install_guard","decision":"block","category":"socket","command":"pnpm add evil-pkg","packages":["evil-pkg"],"scores":{"evil-pkg":12},"detail":"evil-pkg:12"}
+{"ts":"2026-06-06T03:22:10.000Z","event":"install_guard","decision":"allow","category":"clean","command":"pnpm add zod","packages":["zod"],"scores":{"zod":98}}
+```
 
 ## 任意の追加策
 

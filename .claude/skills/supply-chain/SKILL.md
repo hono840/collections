@@ -11,6 +11,7 @@ allowed-tools:
   - Write
   - WebSearch
   - WebFetch
+  - mcp__socket-mcp__depscore
 model: opus
 ---
 
@@ -19,6 +20,12 @@ model: opus
 `/supply-chain $ARGUMENTS` として実行された場合:
 
 このプロジェクトが shai-hulud 級のサプライチェーン攻撃に対して安全かを**あらゆる場所で能動的に監視**し、致命的リスクは GitHub issue で警鐘を鳴らします。`$ARGUMENTS` が空ならリポジトリ全体（全 `apps/*` + ルート + `.github`）を対象にします。
+
+## `--log` フラグ時（動作ログの閲覧のみ）
+
+`$ARGUMENTS` に `--log` が含まれる場合は巡回せず、**動作ログを表示して終了**する:
+`node .claude/security/view-log.mjs` を実行（`--blocks` / `--today` / `--limit=N` をそのまま渡せる）し、
+ガードの許可/ブロック判定・Socketスコア・セッション履歴を Hiro に日本語で要約提示する。
 
 ## ステップ 0: 脅威データの鮮度確認
 
@@ -29,7 +36,7 @@ model: opus
 3つのエージェントを**並列**で起動:
 
 1. **supply-chain-auditor エージェント**: 「{対象}のサプライチェーンを監査せよ。
-   `pnpm audit`・OSV・`.claude/security/threat-intel.json` のIOC照合・`pnpm-lock.yaml` 差分・ライフサイクルスクリプト・`.github/workflows` への注入(`SHA1HULUD`/`bun_environment.js`等)・パッケージマネージャー統一(pnpm)崩れを確認し、重大度付きで報告すること」
+   `pnpm audit`・OSV・**Socket(`mcp__socket-mcp__depscore`)で各依存をスコアリングし supplyChain 低スコアを抽出**・`.claude/security/threat-intel.json` のIOC照合・`pnpm-lock.yaml` 差分・ライフサイクルスクリプト・`.github/workflows` への注入(`SHA1HULUD`/`bun_environment.js`等)・パッケージマネージャー統一(pnpm)崩れを確認し、重大度付きで報告すること。Socketのデータはこのスキル内で取得するので、ユーザーがSocketダッシュボードを開く必要はない」
 
 2. **security-auditor エージェント**: 「{対象}のシークレット露出と認証/権限を監査せよ。
    ハードコードされた鍵・トークン、`.github/workflows` の `permissions:` 過剰付与、`.env` の取り扱いを確認し、重大度付きで報告すること」
@@ -60,7 +67,7 @@ model: opus
 **重大 / 高** の各検出について、重複を避けつつ GitHub issue を起票:
 
 ```bash
-gh issue list --label security --state open   # 既存の重複を確認
+gh issue list --search "label:security state:open"   # 既存の重複を確認（--label単体はインデックス遅延で取りこぼすため--search方式）
 gh issue create --label security --label "severity:critical" \
   --title "🚨 [Supply Chain] <要約> (YYYY-MM-DD)" \
   --body "<検出内容・影響・対処・参照を日本語で。レポートへのリンクも>"

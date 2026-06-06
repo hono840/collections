@@ -139,7 +139,7 @@ shai-hulud 級の攻撃から多層防御する。詳細・運用は `docs/secur
 
 - **パッケージマネージャーは pnpm に統一。** npm/yarn/bun でのインストールは PreToolUse フック（`.claude/hooks/guard-install.mjs`）が即ブロックする。
 - **受動防御の本命は cooldown**: `apps/*/pnpm-workspace.yaml` の `minimumReleaseAge`（既定7日）が公開直後の悪質バージョンを遅延させる。
-- **水際防御**: 既知の悪質パッケージ（`.claude/security/threat-intel.json` の denylist）はインストール不可。
+- **水際防御**: 既知の悪質パッケージ（`.claude/security/threat-intel.json` の denylist）に加え、**Socket(`depscore`) の供給網スコア<20** のパッケージもインストール不可（`guard-install.mjs` がライブ照会）。
 - **能動監視**: `supply-chain-auditor` エージェント + `/supply-chain` スキルが依存・workflow を巡回。致命的検出は GitHub issue（`security` ラベル）で警鐘を鳴らし、SessionStart フックが起動時に提示する。
 - **日次更新**: GitHub Actions（`threat-intel-refresh.yml` / `supply-chain-security.yml`）が脅威データを更新し、CI でも監視する。
 - 依存・パッケージマネージャー設定を変更するときは `.claude/rules/dependencies.md` に従う。
@@ -153,6 +153,7 @@ shai-hulud 級の攻撃から多層防御する。詳細・運用は `docs/secur
 - **Google Calendar** → CPO: スプリントマイルストーン / CMO: ローンチスケジューリング
 - **Supabase** → CTO, devops-engineer: DB操作、マイグレーション、プロジェクト管理
 - **Playwright** → code-reviewer, qa-engineer: ブラウザE2E検証、コンソールエラー検出、スクリーンショット取得。`/review` スキル実行時にブラウザ検証を自動実施。
+- **Socket (socket-mcp)** → supply-chain-auditor, `/supply-chain`: `depscore` で依存の供給網スコアを取得し悪質パッケージ/typosquatを検出（ホスト版 `https://mcp.socket.dev/`・**キー不要**）。`guard-install.mjs` もこのスコアで supplyChain<20 のインストールを水際ブロック。**Socketダッシュボードを開かずに**Claude側でSocketデータと実依存を自動照合できる。
 
 ### オンデマンド利用可能
 

@@ -4,6 +4,10 @@
       "type": "http",
       "url": "https://mcp.supabase.com/mcp"
     },
+    "socket-mcp": {
+      "type": "http",
+      "url": "https://mcp.socket.dev/"
+    },
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
