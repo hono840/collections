@@ -61,7 +61,7 @@ model: opus
 **重大 / 高** の各検出について、重複を避けつつ GitHub issue を起票:
 
 ```bash
-gh issue list --label security --state open   # 既存の重複を確認
+gh issue list --search "label:security state:open"   # 既存の重複を確認（--label単体はインデックス遅延で取りこぼすため--search方式）
 gh issue create --label security --label "severity:critical" \
   --title "🚨 [Supply Chain] <要約> (YYYY-MM-DD)" \
   --body "<検出内容・影響・対処・参照を日本語で。レポートへのリンクも>"

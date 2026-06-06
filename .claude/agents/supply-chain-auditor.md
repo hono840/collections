@@ -72,7 +72,8 @@ tools:
 
 ```bash
 # 既存の同種 open issue を確認（重複起票しない）
-gh issue list --label security --state open --search "<パッケージ名や要約>"
+# 注: `--label` 単体は検索インデックス遅延で取りこぼすことがあるため --search 方式を使う
+gh issue list --search "label:security state:open <パッケージ名や要約>"
 # なければ起票
 gh issue create --label security --label "severity:critical" \
   --title "🚨 [Supply Chain] <要約>" \
