@@ -251,7 +251,10 @@ jobs:
       # PRコメント: 新規依存が増えていたら supply-chain-auditor レビューを要求
       # ----------------------------------------------------------------
       - name: Request supply-chain-auditor review on new deps
-        if: ${{ github.event_name == 'pull_request' && steps.lockfile_diff.outputs.new_deps == 'true' }}
+        # Dependabot PR は GITHUB_TOKEN が読み取り専用のため、コメント投稿(write)が 403 で失敗する。
+        # → Dependabot 以外の PR のみ実行し、万一の write 失敗でもジョブを落とさない（continue-on-error）。
+        if: ${{ github.event_name == 'pull_request' && steps.lockfile_diff.outputs.new_deps == 'true' && github.actor != 'dependabot[bot]' }}
+        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           ADDED_DEPS: ${{ steps.lockfile_diff.outputs.added_deps }}
@@ -291,7 +294,9 @@ jobs:
   # ==================================================================
   report:
     needs: audit
-    if: ${{ always() && needs.audit.outputs.critical_found == 'true' }}
+    # Issue は main の状態を追跡する目的なので push / schedule / 手動実行でのみ起票する。
+    # PR（特に Dependabot PR は読み取り専用トークン）では起票せず、検出は PR のチェック結果に委ねる。
+    if: ${{ always() && needs.audit.outputs.critical_found == 'true' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
