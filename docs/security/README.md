@@ -49,9 +49,14 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| **Socket.dev** | 無料アカウント作成 → リポジトリに Socket GitHub App をインストール → Actions secrets に `SOCKET_SECURITY_API_KEY` を追加。未設定の間は CI の Socket ステップは自動スキップ（CIは失敗しない）。 |
+| **Socket.dev（推奨: App のみ・キー不要）** | [github.com/apps/socket-security](https://github.com/apps/socket-security) で **Socket GitHub App** を対象リポジトリに導入するだけ（SSO/OAuth、**APIキー不要**）。PR時の依存スキャンとコメントが自動で有効になる。 |
+| Socket.dev（任意: CI内CLIゲート） | 上記に加えて Actions 内で `SocketDev/action`（CLIモード）を回したい場合**のみ** secrets に `SOCKET_SECURITY_API_KEY` を追加。未設定なら CI の Socket ステップは自動スキップ（CIは失敗しない）。GitHub App を入れていれば通常は不要。 |
 | **gh CLI 認証** | SessionStart の issue 表示・ローカルからの issue 起票に必要。`gh auth status` で確認。 |
 | **cooldown 日数** | 既定7日。変更は `apps/*/pnpm-workspace.yaml` の `minimumReleaseAge`（分単位）。 |
+
+## 任意の追加策
+
+- **Socket Firewall Free (`sfw-free`)**: APIキー・設定不要のパッケージマネージャーラッパー。Socket の脅威インテリジェンスで悪質パッケージのインストールを直接ブロックする（本プロジェクトの `guard-install.mjs` と同系統だが、Socket の全データを利用）。ローカルやCIで `pnpm` をラップして使える。参照: https://github.com/SocketDev/sfw-free
 
 ## チューニング
 

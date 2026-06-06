@@ -3,7 +3,8 @@ name: Supply Chain Security
 # 依存関係とワークフローのサプライチェーン監視。
 #   - pnpm audit (既知脆弱性)
 #   - OSV-Scanner (OSVデータベース照合)
-#   - Socket.dev (不審なパッケージ挙動・要 SOCKET_SECURITY_API_KEY)
+#   - Socket.dev (不審なパッケージ挙動。推奨は Socket GitHub App 導入=キー不要。
+#     このCLIステップは任意で、SOCKET_SECURITY_API_KEY がある時だけ追加で走る)
 #   - ワークフロー注入スキャン (shai-hulud 型のCI改ざん検知)
 #   - lockfile 差分チェック (PRで新規依存が増えたら supply-chain-auditor レビュー要求)
 # Critical/High を検知したら `security` ラベル付きで GitHub Issue を起票/更新する。
