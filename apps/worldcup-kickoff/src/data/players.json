@@ -1,0 +1,563 @@
+[
+  {
+    "code": "ARG",
+    "players": [
+      {
+        "nameJa": "リオネル・メッシ",
+        "position": "FW",
+        "highlightJa": "史上最高の選手のひとり。小さな体から繰り出す魔法のドリブルとパスで、見る人すべてを驚かせます。"
+      },
+      {
+        "nameJa": "ラウタロ・マルティネス",
+        "position": "FW",
+        "highlightJa": "メッシの相棒となる点取り屋。ゴール前での落ち着きが武器の頼れるエースストライカーです。"
+      },
+      {
+        "nameJa": "エミリアーノ・マルティネス",
+        "position": "GK",
+        "highlightJa": "PK戦にめっぽう強い守護神。相手をゆさぶる名手で、優勝の立役者になりました。"
+      }
+    ]
+  },
+  {
+    "code": "BRA",
+    "players": [
+      {
+        "nameJa": "ヴィニシウス・ジュニオール",
+        "position": "FW",
+        "highlightJa": "世界最速級のドリブラー。スルスルと相手を抜き去るスピードはまさにブラジルの魔法です。"
+      },
+      {
+        "nameJa": "ロドリゴ",
+        "position": "FW",
+        "highlightJa": "大事な試合で結果を出す勝負強いアタッカー。攻撃陣のキーマンです。"
+      }
+    ]
+  },
+  {
+    "code": "FRA",
+    "players": [
+      {
+        "nameJa": "キリアン・エムバペ",
+        "position": "FW",
+        "highlightJa": "とにかく速い!世界一とも言われるスピードで、一瞬でゴールを決める現代サッカーの主役です。"
+      },
+      {
+        "nameJa": "ウスマヌ・デンベレ",
+        "position": "FW",
+        "highlightJa": "両足を自在に使うドリブラー。何をしてくるか読めない、わくわくする選手です。"
+      }
+    ]
+  },
+  {
+    "code": "ENG",
+    "players": [
+      {
+        "nameJa": "ハリー・ケイン",
+        "position": "FW",
+        "highlightJa": "イングランドの大黒柱。点取り屋なのに正確なパスも出せる、万能のキャプテンです。"
+      },
+      {
+        "nameJa": "ジュード・ベリンガム",
+        "position": "MF",
+        "highlightJa": "守って攻めて点も取る、何でもできる若き天才。チームの心臓です。"
+      },
+      {
+        "nameJa": "ブカヨ・サカ",
+        "position": "FW",
+        "highlightJa": "笑顔がトレードマークの若きエース。キレのあるドリブルでチャンスを作ります。"
+      }
+    ]
+  },
+  {
+    "code": "POR",
+    "players": [
+      {
+        "nameJa": "クリスティアーノ・ロナウド",
+        "position": "FW",
+        "highlightJa": "史上最高の選手のひとり。40歳を超えてもゴールへの執念は健在。圧巻のジャンプヘッドは必見です。"
+      },
+      {
+        "nameJa": "ブルーノ・フェルナンデス",
+        "position": "MF",
+        "highlightJa": "ピタッと合う鋭いパスの名手。チャンスを作る司令塔です。"
+      }
+    ]
+  },
+  {
+    "code": "ESP",
+    "players": [
+      {
+        "nameJa": "ラミン・ヤマル",
+        "position": "FW",
+        "highlightJa": "10代で世界を席巻する超新星。年齢を感じさせないドリブルとパスで未来を背負います。"
+      },
+      {
+        "nameJa": "ロドリ",
+        "position": "MF",
+        "highlightJa": "世界最優秀選手にも選ばれた守備の名手。チームのバランスを支える縁の下の力持ちです。"
+      }
+    ]
+  },
+  {
+    "code": "GER",
+    "players": [
+      {
+        "nameJa": "ジャマル・ムシアラ",
+        "position": "MF",
+        "highlightJa": "ぬるりと相手をかわす独特のドリブルが魅力の若き天才。ドイツの希望です。"
+      },
+      {
+        "nameJa": "フロリアン・ヴィルツ",
+        "position": "MF",
+        "highlightJa": "賢いプレーでチャンスを生み出す司令塔。ドイツの新時代を担います。"
+      }
+    ]
+  },
+  {
+    "code": "NED",
+    "players": [
+      {
+        "nameJa": "フィルジル・ファン・ダイク",
+        "position": "DF",
+        "highlightJa": "世界最高クラスの守備の壁。大きな体と読みのよさで相手の攻撃を食い止めるキャプテンです。"
+      },
+      {
+        "nameJa": "コーディ・ガクポ",
+        "position": "FW",
+        "highlightJa": "大きな体を生かしたパワフルなプレーが武器の点取り屋です。"
+      }
+    ]
+  },
+  {
+    "code": "BEL",
+    "players": [
+      {
+        "nameJa": "ケビン・デ・ブライネ",
+        "position": "MF",
+        "highlightJa": "世界最高クラスのパスの名手。ピンポイントのパスで一瞬で試合を決めます。"
+      },
+      {
+        "nameJa": "ジェレミー・ドク",
+        "position": "FW",
+        "highlightJa": "止まらないドリブルが武器の若手。相手を何人も抜き去る突破力が魅力です。"
+      }
+    ]
+  },
+  {
+    "code": "CRO",
+    "players": [
+      {
+        "nameJa": "ルカ・モドリッチ",
+        "position": "MF",
+        "highlightJa": "世界最優秀選手にも輝いた小さな巨人。ベテランになっても優雅なパス回しは健在です。"
+      },
+      {
+        "nameJa": "ヨシュコ・グヴァルディオル",
+        "position": "DF",
+        "highlightJa": "攻めにも守りにも強い若き万能ディフェンダー。クロアチアの未来です。"
+      }
+    ]
+  },
+  {
+    "code": "JPN",
+    "players": [
+      {
+        "nameJa": "久保建英",
+        "position": "FW",
+        "highlightJa": "スペインで活躍する日本のエース。細かいドリブルとアイデアあふれるプレーでチャンスを作ります。"
+      },
+      {
+        "nameJa": "遠藤航",
+        "position": "MF",
+        "highlightJa": "イングランドの名門でプレーするキャプテン。ボールを奪う力とリーダーシップでチームを支えます。"
+      },
+      {
+        "nameJa": "堂安律",
+        "position": "FW",
+        "highlightJa": "大事な試合で点を取る勝負強いアタッカー。前回大会でも大金星に貢献しました。"
+      }
+    ]
+  },
+  {
+    "code": "KOR",
+    "players": [
+      {
+        "nameJa": "ソン・フンミン",
+        "position": "FW",
+        "highlightJa": "アジア最高のスター。両足から放つ豪快なシュートとスピードは世界トップクラスです。"
+      },
+      {
+        "nameJa": "イ・ガンイン",
+        "position": "MF",
+        "highlightJa": "フランスの名門で活躍する技巧派。アイデアあふれるパスとドリブルが魅力です。"
+      }
+    ]
+  },
+  {
+    "code": "USA",
+    "players": [
+      {
+        "nameJa": "クリスチャン・プリシッチ",
+        "position": "FW",
+        "highlightJa": "アメリカの顔とも言えるエース。スピードとドリブルでゴールを狙う中心選手です。"
+      },
+      {
+        "nameJa": "ウェストン・マッケニー",
+        "position": "MF",
+        "highlightJa": "走力と力強さが武器の中盤の選手。攻守にわたって走り回ります。"
+      }
+    ]
+  },
+  {
+    "code": "MEX",
+    "players": [
+      {
+        "nameJa": "サンティアゴ・ヒメネス",
+        "position": "FW",
+        "highlightJa": "ゴール前での嗅覚が鋭い若きストライカー。メキシコの新たな点取り屋です。"
+      },
+      {
+        "nameJa": "エドソン・アルバレス",
+        "position": "MF",
+        "highlightJa": "守備でチームを支える中盤の要。粘り強くボールを奪います。"
+      }
+    ]
+  },
+  {
+    "code": "MAR",
+    "players": [
+      {
+        "nameJa": "アシュラフ・ハキミ",
+        "position": "DF",
+        "highlightJa": "守備の選手なのに猛スピードで攻め上がる二刀流。モロッコ躍進の立役者です。"
+      },
+      {
+        "nameJa": "ブラヒム・ディアス",
+        "position": "MF",
+        "highlightJa": "細かいタッチのドリブルが魅力の技巧派。攻撃にリズムを生み出します。"
+      }
+    ]
+  },
+  {
+    "code": "SEN",
+    "players": [
+      {
+        "nameJa": "サディオ・マネ",
+        "position": "FW",
+        "highlightJa": "セネガルの英雄。爆発的なスピードとゴールへの嗅覚を兼ねそなえたエースです。"
+      },
+      {
+        "nameJa": "ニコラ・ジャクソン",
+        "position": "FW",
+        "highlightJa": "勢いのある若手ストライカー。力強い体を生かして得点を狙います。"
+      }
+    ]
+  },
+  {
+    "code": "NOR",
+    "players": [
+      {
+        "nameJa": "アーリング・ハーランド",
+        "position": "FW",
+        "highlightJa": "『ゴールマシーン』の異名を持つ怪物ストライカー。大きな体から繰り出す豪快なゴールは必見です。"
+      },
+      {
+        "nameJa": "マルティン・ウーデゴール",
+        "position": "MF",
+        "highlightJa": "イングランドの名門でキャプテンを務める司令塔。賢いパスでチャンスを作ります。"
+      }
+    ]
+  },
+  {
+    "code": "URU",
+    "players": [
+      {
+        "nameJa": "フェデリコ・バルベルデ",
+        "position": "MF",
+        "highlightJa": "走って守って点も取る万能戦士。遠くから放つ強烈なシュートが武器です。"
+      },
+      {
+        "nameJa": "ダルウィン・ヌニェス",
+        "position": "FW",
+        "highlightJa": "とにかく走る・とにかく仕掛ける、エネルギーあふれる点取り屋です。"
+      }
+    ]
+  },
+  {
+    "code": "COL",
+    "players": [
+      {
+        "nameJa": "ハメス・ロドリゲス",
+        "position": "MF",
+        "highlightJa": "美しい左足から繰り出すパスとシュートの名手。コロンビアの司令塔です。"
+      }
+    ]
+  },
+  {
+    "code": "ECU",
+    "players": [
+      {
+        "nameJa": "モイセス・カイセド",
+        "position": "MF",
+        "highlightJa": "イングランドの名門で活躍する守備の名手。広い範囲を走ってボールを奪います。"
+      }
+    ]
+  },
+  {
+    "code": "EGY",
+    "players": [
+      {
+        "nameJa": "モハメド・サラー",
+        "position": "FW",
+        "highlightJa": "エジプトの英雄。世界トップクラスの点取り屋で、するどい動き出しからゴールを量産します。"
+      }
+    ]
+  },
+  {
+    "code": "GHA",
+    "players": [
+      {
+        "nameJa": "モハメド・クドゥス",
+        "position": "FW",
+        "highlightJa": "華麗なドリブルが武器の若きエース。相手をかわして仕掛ける姿は必見です。"
+      }
+    ]
+  },
+  {
+    "code": "CIV",
+    "players": [
+      {
+        "nameJa": "セバスティアン・アレ",
+        "position": "FW",
+        "highlightJa": "大きな体を生かした力強いストライカー。アフリカ王者へと導いたエースです。"
+      }
+    ]
+  },
+  {
+    "code": "SUI",
+    "players": [
+      {
+        "nameJa": "グラニト・ジャカ",
+        "position": "MF",
+        "highlightJa": "チームをまとめる経験豊富なキャプテン。正確なパスで攻撃の組み立てを担います。"
+      }
+    ]
+  },
+  {
+    "code": "AUT",
+    "players": [
+      {
+        "nameJa": "ダヴィド・アラバ",
+        "position": "DF",
+        "highlightJa": "世界の名門で長く活躍する万能ディフェンダー。守りも攻めもこなすベテランです。"
+      }
+    ]
+  },
+  {
+    "code": "TUR",
+    "players": [
+      {
+        "nameJa": "アルダ・ギュレル",
+        "position": "MF",
+        "highlightJa": "スペインの名門で輝く若き天才。美しい左足から多彩なプレーを見せます。"
+      }
+    ]
+  },
+  {
+    "code": "SCO",
+    "players": [
+      {
+        "nameJa": "スコット・マクトミネイ",
+        "position": "MF",
+        "highlightJa": "ゴール前に飛び込む得点力が魅力の中盤の選手。スコットランドの大黒柱です。"
+      }
+    ]
+  },
+  {
+    "code": "SWE",
+    "players": [
+      {
+        "nameJa": "アレクサンデル・イサク",
+        "position": "FW",
+        "highlightJa": "しなやかな動きでゴールを決めるストライカー。スウェーデンの希望です。"
+      }
+    ]
+  },
+  {
+    "code": "ALG",
+    "players": [
+      {
+        "nameJa": "リヤド・マフレズ",
+        "position": "FW",
+        "highlightJa": "美しい左足のドリブルとシュートが武器のスター。アルジェリアの顔です。"
+      }
+    ]
+  },
+  {
+    "code": "CZE",
+    "players": [
+      {
+        "nameJa": "パトリク・シック",
+        "position": "FW",
+        "highlightJa": "高さと決定力をあわせ持つ点取り屋。チェコのゴールの柱です。"
+      }
+    ]
+  },
+  {
+    "code": "PAR",
+    "players": [
+      {
+        "nameJa": "ミゲル・アルミロン",
+        "position": "MF",
+        "highlightJa": "スピードあふれる走りでチームを引っぱるパラグアイの主力です。"
+      }
+    ]
+  },
+  {
+    "code": "AUS",
+    "players": [
+      {
+        "nameJa": "マシュー・ライアン",
+        "position": "GK",
+        "highlightJa": "経験豊富な守護神。チームをまとめるキャプテンとしても活躍します。"
+      }
+    ]
+  },
+  {
+    "code": "IRN",
+    "players": [
+      {
+        "nameJa": "メフディ・タレミ",
+        "position": "FW",
+        "highlightJa": "ゴール前で頼りになるエースストライカー。イランの攻撃の中心です。"
+      }
+    ]
+  },
+  {
+    "code": "KSA",
+    "players": [
+      {
+        "nameJa": "サレム・アルドサリ",
+        "position": "FW",
+        "highlightJa": "アルゼンチン戦で歴史的ゴールを決めたエース。勝負強さが魅力です。"
+      }
+    ]
+  },
+  {
+    "code": "QAT",
+    "players": [
+      {
+        "nameJa": "アクラム・アフィフ",
+        "position": "FW",
+        "highlightJa": "アジア最優秀選手にも選ばれた技巧派。カタールの攻撃を引っぱります。"
+      }
+    ]
+  },
+  {
+    "code": "TUN",
+    "players": [
+      {
+        "nameJa": "ハンニバル・メイブリ",
+        "position": "MF",
+        "highlightJa": "闘志あふれるプレーが魅力の若手。中盤を走り回ってチームを支えます。"
+      }
+    ]
+  },
+  {
+    "code": "RSA",
+    "players": [
+      {
+        "nameJa": "ルテボ・モフォル",
+        "position": "MF",
+        "highlightJa": "テクニックと運動量を兼ねそなえた中盤の主力選手です。"
+      }
+    ]
+  },
+  {
+    "code": "CAN",
+    "players": [
+      {
+        "nameJa": "アルフォンソ・デイヴィス",
+        "position": "DF",
+        "highlightJa": "驚異的なスピードで攻め上がる二刀流。カナダ躍進の立役者です。"
+      }
+    ]
+  },
+  {
+    "code": "COD",
+    "players": [
+      {
+        "nameJa": "セシリオ・ドンプ",
+        "position": "MF",
+        "highlightJa": "力強い体とテクニックを生かしてチームを支える中盤の主力です。"
+      }
+    ]
+  },
+  {
+    "code": "PAN",
+    "players": [
+      {
+        "nameJa": "アダルベルト・カラスキージャ",
+        "position": "MF",
+        "highlightJa": "中盤を駆け回る運動量が武器。パナマの心臓となる選手です。"
+      }
+    ]
+  },
+  {
+    "code": "BIH",
+    "players": [
+      {
+        "nameJa": "エディン・ジェコ",
+        "position": "FW",
+        "highlightJa": "ベテランながらゴールへの嗅覚は健在。高さと決定力をあわせ持つエースです。"
+      }
+    ]
+  },
+  {
+    "code": "HAI",
+    "players": []
+  },
+  {
+    "code": "CUW",
+    "players": []
+  },
+  {
+    "code": "CPV",
+    "players": []
+  },
+  {
+    "code": "IRQ",
+    "players": []
+  },
+  {
+    "code": "JOR",
+    "players": [
+      {
+        "nameJa": "ムサ・アルタアマリ",
+        "position": "MF",
+        "highlightJa": "ドリブルとパスで攻撃を作る技巧派。ヨルダンのエースです。"
+      }
+    ]
+  },
+  {
+    "code": "UZB",
+    "players": [
+      {
+        "nameJa": "エルドル・ショムロドフ",
+        "position": "FW",
+        "highlightJa": "ヨーロッパで活躍する点取り屋。ウズベキスタンの希望の星です。"
+      }
+    ]
+  },
+  {
+    "code": "NZL",
+    "players": [
+      {
+        "nameJa": "クリス・ウッド",
+        "position": "FW",
+        "highlightJa": "高さと決定力が武器のベテランストライカー。ニュージーランドの大黒柱です。"
+      }
+    ]
+  }
+]

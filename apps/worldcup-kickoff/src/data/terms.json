@@ -1,0 +1,353 @@
+[
+  {
+    "slug": "offside",
+    "termJa": "オフサイド",
+    "reading": "おふさいど",
+    "definitionJa": "攻めている選手が、相手の最後尾の守り(キーパーを除く)よりゴール側で待ち伏せしてボールをもらうと反則になるルール。点取り屋が前で待つだけのズルを防ぐためのものです。",
+    "category": "rule",
+    "relatedRuleSlug": "offside"
+  },
+  {
+    "slug": "foul",
+    "termJa": "ファウル",
+    "reading": "ふぁうる",
+    "definitionJa": "相手を押したり、けったり、ユニフォームを引っぱったりする反則のこと。ファウルがあると相手チームにボールが渡されます。",
+    "category": "rule",
+    "relatedRuleSlug": "cards-fouls"
+  },
+  {
+    "slug": "yellow-card",
+    "termJa": "イエローカード",
+    "reading": "いえろーかーど",
+    "definitionJa": "悪い反則をした選手に審判が出す『警告』の黄色いカード。1試合で2枚もらうと退場になります。",
+    "category": "rule",
+    "relatedRuleSlug": "cards-fouls"
+  },
+  {
+    "slug": "red-card",
+    "termJa": "レッドカード",
+    "reading": "れっどかーど",
+    "definitionJa": "とても危険な反則をした選手に出される赤いカード。出された選手はその場で退場となり、チームは10人で戦うことになります。",
+    "category": "rule",
+    "relatedRuleSlug": "cards-fouls"
+  },
+  {
+    "slug": "penalty-kick",
+    "termJa": "PK(ペナルティキック)",
+    "reading": "ぺなるてぃきっく",
+    "definitionJa": "守る側がゴール近くの大きな枠の中で反則をすると与えられる、キーパーと1対1で蹴れる特別なシュート。ほぼゴールになる大チャンスです。",
+    "category": "rule",
+    "relatedRuleSlug": "cards-fouls"
+  },
+  {
+    "slug": "free-kick",
+    "termJa": "FK(フリーキック)",
+    "reading": "ふりーきっく",
+    "definitionJa": "反則があった場所から、止まったボールを蹴って試合を再開するプレー。ゴールに近い場所だと直接シュートを狙うこともできます。",
+    "category": "rule"
+  },
+  {
+    "slug": "corner-kick",
+    "termJa": "CK(コーナーキック)",
+    "reading": "こーなーきっく",
+    "definitionJa": "守る側が自分のゴールラインからボールを外に出したとき、攻める側がコーナー(角)から蹴って再開するプレー。ゴール前にボールを上げる大チャンスです。",
+    "category": "rule"
+  },
+  {
+    "slug": "throw-in",
+    "termJa": "スローイン",
+    "reading": "すろーいん",
+    "definitionJa": "ボールが横のラインから外に出たとき、両手でボールを頭の後ろから投げて試合を再開すること。サッカーで唯一、手を使ってよいプレーです。",
+    "category": "rule"
+  },
+  {
+    "slug": "handball",
+    "termJa": "ハンド(ハンドボール)",
+    "reading": "はんど",
+    "definitionJa": "キーパー以外の選手が手や腕でボールに触れてしまう反則。わざとでなくても反則になることがあります。",
+    "category": "rule",
+    "relatedRuleSlug": "cards-fouls"
+  },
+  {
+    "slug": "var",
+    "termJa": "VAR(ビデオ判定)",
+    "reading": "ぶいえーあーる",
+    "definitionJa": "ビデオ映像を使って審判の判定を確認するしくみ。ゴールやPK、退場など大事な場面で『本当に正しかったか』をチェックします。",
+    "category": "rule",
+    "relatedRuleSlug": "new-rules-2026"
+  },
+  {
+    "slug": "additional-time",
+    "termJa": "アディショナルタイム",
+    "reading": "あでぃしょなるたいむ",
+    "definitionJa": "ケガの手当てなどで止まっていた時間を、試合の最後に追加する時間のこと。『ロスタイム』とも呼ばれ、ここで劇的なゴールが生まれることもあります。",
+    "category": "rule"
+  },
+  {
+    "slug": "first-half-second-half",
+    "termJa": "前半・後半",
+    "reading": "ぜんはん・こうはん",
+    "definitionJa": "サッカーの試合は45分ずつの前半と後半に分かれています。間にハーフタイム(休憩)があり、後半はコートを入れ替えて戦います。",
+    "category": "rule",
+    "relatedRuleSlug": "soccer-basics"
+  },
+  {
+    "slug": "extra-time",
+    "termJa": "延長戦",
+    "reading": "えんちょうせん",
+    "definitionJa": "決勝トーナメントで90分が終わっても同点のとき、さらに15分ずつ追加で戦うこと。それでも決まらないとPK戦に進みます。",
+    "category": "rule",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "penalty-shootout",
+    "termJa": "PK戦",
+    "reading": "ぴーけーせん",
+    "definitionJa": "延長戦でも勝負がつかないとき、両チームが交互にPKを蹴り合って勝敗を決める方法。最後まで目が離せない一番ドキドキする瞬間です。",
+    "category": "rule",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "hat-trick",
+    "termJa": "ハットトリック",
+    "reading": "はっととりっく",
+    "definitionJa": "1人の選手が1試合で3点を決める大活躍のこと。なかなか見られない、とても名誉あるプレーです。",
+    "category": "stat"
+  },
+  {
+    "slug": "clean-sheet",
+    "termJa": "クリーンシート",
+    "reading": "くりーんしーと",
+    "definitionJa": "1試合で相手に1点も取られなかったこと。守りが完璧だった証で、キーパーや守備陣の勲章です。",
+    "category": "stat"
+  },
+  {
+    "slug": "own-goal",
+    "termJa": "オウンゴール",
+    "reading": "おうんごーる",
+    "definitionJa": "自分のチームのゴールに、まちがって自分でボールを入れてしまうこと。相手チームの得点になってしまいます。",
+    "category": "stat"
+  },
+  {
+    "slug": "assist",
+    "termJa": "アシスト",
+    "reading": "あしすと",
+    "definitionJa": "ゴールを決めた選手に、その直前にパスを出して得点を手助けすること。ゴールと同じくらい価値のある名プレーです。",
+    "category": "stat"
+  },
+  {
+    "slug": "goalkeeper",
+    "termJa": "GK(ゴールキーパー)",
+    "reading": "ごーるきーぱー",
+    "definitionJa": "ゴールを守る最後の砦。手を使ってもよい唯一のポジションで、シュートを止めるとチームを救うヒーローになります。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "defender",
+    "termJa": "DF(ディフェンダー)",
+    "reading": "でぃふぇんだー",
+    "definitionJa": "守りを担当する選手たち。相手の攻撃をはね返し、ゴールを守るのが主な役目です。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "midfielder",
+    "termJa": "MF(ミッドフィルダー)",
+    "reading": "みっどふぃるだー",
+    "definitionJa": "ピッチの真ん中で攻めと守りをつなぐ選手。チームの心臓とも呼ばれ、パスを配る司令塔役も担います。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "forward",
+    "termJa": "FW(フォワード)",
+    "reading": "ふぉわーど",
+    "definitionJa": "一番前でゴールを狙う点取り屋。チームの得点源で、試合の主役になることが多いポジションです。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "formation",
+    "termJa": "フォーメーション",
+    "reading": "ふぉーめーしょん",
+    "definitionJa": "選手をどこに並べるかという配置のこと。『4-4-2』のように数字で表し、チームの作戦が見えてきます。",
+    "category": "stat",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "pressing",
+    "termJa": "プレス(プレッシング)",
+    "reading": "ぷれっしんぐ",
+    "definitionJa": "相手がボールを持ったとき、すばやく囲んでボールを奪いにいくこと。前から積極的に追うと相手はあわてます。",
+    "category": "stat"
+  },
+  {
+    "slug": "counter-attack",
+    "termJa": "カウンター",
+    "reading": "かうんたー",
+    "definitionJa": "相手が攻めてきた直後にボールを奪い、一気に逆に攻め返すこと。相手の守りがそろう前に攻めるので大チャンスになります。",
+    "category": "stat"
+  },
+  {
+    "slug": "possession",
+    "termJa": "ポゼッション",
+    "reading": "ぽぜっしょん",
+    "definitionJa": "ボールを自分たちがどれくらい持っていたかという割合。ボールを多く持つほど試合を支配していると言えます。",
+    "category": "stat"
+  },
+  {
+    "slug": "set-piece",
+    "termJa": "セットプレー",
+    "reading": "せっとぷれー",
+    "definitionJa": "フリーキックやコーナーキックなど、ボールを止めた状態から始めるプレーのこと。作戦を仕込みやすく、得点のチャンスです。",
+    "category": "stat"
+  },
+  {
+    "slug": "defensive-midfielder",
+    "termJa": "ボランチ",
+    "reading": "ぼらんち",
+    "definitionJa": "中盤の一番後ろで守りを固める選手。相手の攻撃の芽をつみ、味方にボールを配る大事な役目です。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "full-back",
+    "termJa": "サイドバック",
+    "reading": "さいどばっく",
+    "definitionJa": "守備の両サイド(端)を担当する選手。守るだけでなく、サイドを駆け上がって攻めにも参加します。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "center-back",
+    "termJa": "センターバック",
+    "reading": "せんたーばっく",
+    "definitionJa": "守備の真ん中を守る選手。体の大きい選手が多く、相手のエースを止める守りの中心です。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "striker",
+    "termJa": "ストライカー",
+    "reading": "すとらいかー",
+    "definitionJa": "一番前でゴールを決めることに特化した点取り屋。チームの得点王になる主役です。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "winger",
+    "termJa": "ウインガー",
+    "reading": "ういんがー",
+    "definitionJa": "前線のサイド(端)で活躍する選手。スピードとドリブルで切り込み、チャンスを作ります。",
+    "category": "position",
+    "relatedRuleSlug": "positions"
+  },
+  {
+    "slug": "captain",
+    "termJa": "キャプテン",
+    "reading": "きゃぷてん",
+    "definitionJa": "チームをまとめるリーダー。腕に『キャプテンマーク』という腕章を巻いていて、審判との話し合いも担います。",
+    "category": "position"
+  },
+  {
+    "slug": "group-stage",
+    "termJa": "グループステージ",
+    "reading": "ぐるーぷすてーじ",
+    "definitionJa": "大会の最初の段階。4チームずつのグループに分かれて総当たりで戦い、上位チームが次に進みます。",
+    "category": "tournament",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "knockout-stage",
+    "termJa": "決勝トーナメント",
+    "reading": "けっしょうとーなめんと",
+    "definitionJa": "グループステージを勝ち抜いたチームによる、負けたら終わりの一発勝負。ここから優勝に向けて熱い戦いが始まります。",
+    "category": "tournament",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "knockout",
+    "termJa": "ノックアウト",
+    "reading": "のっくあうと",
+    "definitionJa": "勝ったら次へ、負けたら終わりという一発勝負の形式のこと。決勝トーナメントはこの方式で行われます。",
+    "category": "tournament",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "round-of-32",
+    "termJa": "ラウンド32",
+    "reading": "らうんどさーてぃーとぅー",
+    "definitionJa": "2026年大会から登場する、決勝トーナメントの最初の段階。32チームが集まり、ここから勝ち抜き戦が始まります。",
+    "category": "tournament",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "round-of-16",
+    "termJa": "ラウンド16(ベスト16)",
+    "reading": "らうんどしっくすてぃーん",
+    "definitionJa": "勝ち残った16チームによる戦い。ここを勝つとベスト8で、いよいよ優勝が見えてきます。",
+    "category": "tournament",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "goal-difference",
+    "termJa": "得失点差",
+    "reading": "とくしってんさ",
+    "definitionJa": "取った点から取られた点を引いた数字。グループステージで勝ち点が同じときに、順位を決める基準になります。",
+    "category": "stat",
+    "relatedRuleSlug": "tournament-format"
+  },
+  {
+    "slug": "seed",
+    "termJa": "シード",
+    "reading": "しーど",
+    "definitionJa": "強いチームが組み合わせで早くぶつからないよう、あらかじめ振り分けること。強豪同士の対決を最後までとっておく仕組みです。",
+    "category": "tournament"
+  },
+  {
+    "slug": "dark-horse",
+    "termJa": "ダークホース",
+    "reading": "だーくほーす",
+    "definitionJa": "下馬評は高くないけれど、勝ち上がりそうな実力を秘めたチームのこと。思わぬ大活躍で大会を盛り上げます。",
+    "category": "tournament"
+  },
+  {
+    "slug": "giant-killing",
+    "termJa": "ジャイアントキリング",
+    "reading": "じゃいあんときりんぐ",
+    "definitionJa": "格下のチームが強豪を倒す大番狂わせのこと。W杯で一番盛り上がる、まさかのドラマです。",
+    "category": "tournament"
+  },
+  {
+    "slug": "kickoff",
+    "termJa": "キックオフ",
+    "reading": "きっくおふ",
+    "definitionJa": "試合の始まり、または得点後の再開で、センターサークルからボールを蹴って始めること。試合のスタートの合図です。",
+    "category": "rule",
+    "relatedRuleSlug": "soccer-basics"
+  },
+  {
+    "slug": "substitution",
+    "termJa": "交代(サブ)",
+    "reading": "こうたい",
+    "definitionJa": "試合の途中で選手を入れ替えること。疲れた選手や作戦のために、ベンチの選手が出てきます。",
+    "category": "rule"
+  },
+  {
+    "slug": "draw",
+    "termJa": "引き分け",
+    "reading": "ひきわけ",
+    "definitionJa": "両チームの点数が同じで終わること。グループステージでは引き分けでも勝ち点1がもらえます。",
+    "category": "stat",
+    "relatedRuleSlug": "soccer-basics"
+  },
+  {
+    "slug": "points",
+    "termJa": "勝ち点",
+    "reading": "かちてん",
+    "definitionJa": "グループステージで順位を決めるための点数。勝つと3点、引き分けで1点、負けると0点がもらえます。",
+    "category": "stat",
+    "relatedRuleSlug": "tournament-format"
+  }
+]
