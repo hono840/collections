@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/*
+ * worldcup-kickoff デザイントークン（@theme）。
+ * ピッチグリーン基調 + ゴールド差し色 + W杯レッド。ライトモードのみ。
+ * すべての UI はこのトークン経由で配色する（ハードコード hex 禁止）。
+ */
+@theme {
+  /* ── ピッチグリーン（基調色） ── */
+  --color-pitch-50: #eafaf0;
+  --color-pitch-100: #d0f2de;
+  --color-pitch-200: #a3e6bf;
+  --color-pitch-300: #6fd49b;
+  --color-pitch-400: #3cb878;
+  --color-pitch-500: #14994f;
+  --color-pitch-600: #0b7a3b;
+  --color-pitch-700: #096331;
+  --color-pitch-800: #0a4f2a;
+  --color-pitch-900: #093f23;
+
+  /* ── ゴールド（差し色・推し/ハイライト） ── */
+  --color-gold-50: #fef9e7;
+  --color-gold-100: #fdf0c3;
+  --color-gold-200: #fbe289;
+  --color-gold-300: #f8d255;
+  --color-gold-400: #f4c430;
+  --color-gold-500: #e0ac13;
+  --color-gold-600: #b8870c;
+  --color-gold-700: #8f6709;
+
+  /* ── W杯レッド（重要アクション・警告系アクセント） ── */
+  --color-kickoff-50: #fdeceb;
+  --color-kickoff-100: #fbd2cf;
+  --color-kickoff-200: #f5a39d;
+  --color-kickoff-300: #ef6f66;
+  --color-kickoff-400: #e84236;
+  --color-kickoff-500: #e2231a;
+  --color-kickoff-600: #bd1812;
+  --color-kickoff-700: #94120d;
+
+  /* ── 背景・サーフェス・テキスト ── */
+  --color-bg: #fafaf7;
+  --color-surface: #ffffff;
+  --color-border: #ebe9e2;
+  --color-text: #1a1a1a;
+  --color-text-muted: #6b7280;
+
+  /* ── ステータス色 ── */
+  --color-success: #14994f;
+  --color-warning: #f4c430;
+  --color-danger: #e2231a;
+
+  /* ── タイポグラフィ ── */
+  --font-sans: var(--font-noto-sans-jp), system-ui, -apple-system, sans-serif;
+
+  /* ── 角丸（カード = 2xl 基調） ── */
+  --radius-card: 1rem;
+}
+
+/*
+ * ベーススタイル。
+ * - 背景・文字色・フォント変数の既定
+ * - 可視フォーカスリング（A11y / コントラスト AA）
+ * - タップハイライト無効化（モバイル）
+ */
+:root {
+  color-scheme: light;
+}
+
+/*
+ * ルートの横クリップ。
+ * ブラケット等の横長コンテンツが overflow-x-auto の内側で完結しきれず
+ * ルート要素（documentElement）レベルへあふれるのを止める。
+ * html / body の両方に overflow-x: clip + max-width: 100% を効かせ、
+ * 横スクロールの伝播を root で確実に封じる。
+ *
+ * 縦スクロール（overflow-y）は変更しない。ここで重要なのは hidden ではなく
+ * clip を使う点。overflow-x: hidden はスクロールコンテナ（scrolling box）を
+ * 生成してしまい、その結果 overflow-y の computed 値が auto に解釈され、
+ * body/html が子孫の position: sticky の祖先スクロールボックスになって
+ * /matches の日付見出し（sticky top-14）の追従が壊れる。
+ * overflow-x: clip はスクロールコンテナを生成せず overflow-y を visible の
+ * まま残せるため、横あふれだけを切り取りつつ sticky を維持できる。
+ */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1.75;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* キーボード操作時のみ可視フォーカスリング（マウスクリックでは出さない） */
+*:focus-visible {
+  outline: 2px solid var(--color-pitch-600);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* 動きに敏感なユーザー向けにアニメーションを抑制 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
