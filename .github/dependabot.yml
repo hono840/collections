@@ -1,0 +1,53 @@
+# Dependabot 設定
+#   依存とGitHub Actionsの更新を自動PR化する。
+#   方針:
+#     - budget-app の npm エコシステム（pnpm-lock.yaml も npm ecosystem として扱われる）を週次でグループ更新。
+#       グループ化により大量の細切れPRを避け、レビュー負荷を下げる。
+#     - github-actions エコシステムも週次で更新。これにより SHA pin したアクションが
+#       新バージョンへ追従でき、更新PR上で再度 supply-chain-security ワークフローの検査を通せる。
+version: 2
+
+updates:
+  # --- アプリ依存 (pnpm / npm ecosystem) ---
+  - package-ecosystem: "npm"
+    directory: "/apps/budget-app"
+    schedule:
+      interval: "weekly"
+    # 同時に開くPR数を抑制（レビュー可能な範囲に）
+    open-pull-requests-limit: 5
+    # グループ更新: パッチ/マイナーをまとめて1つのPRに
+    groups:
+      # 本番依存のパッチ・マイナーをまとめる
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # 開発依存のパッチ・マイナーをまとめる
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels:
+      - "dependencies"
+
+  # --- GitHub Actions (SHA pin の追従更新) ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      # アクション更新を1つのPRにまとめる
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci(actions)"
+    labels:
+      - "dependencies"
+      - "github-actions"

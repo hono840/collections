@@ -1,0 +1,352 @@
+name: Supply Chain Security
+
+# 依存関係とワークフローのサプライチェーン監視。
+#   - pnpm audit (既知脆弱性)
+#   - OSV-Scanner (OSVデータベース照合)
+#   - Socket.dev (不審なパッケージ挙動・要 SOCKET_SECURITY_API_KEY)
+#   - ワークフロー注入スキャン (shai-hulud 型のCI改ざん検知)
+#   - lockfile 差分チェック (PRで新規依存が増えたら supply-chain-auditor レビュー要求)
+# Critical/High を検知したら `security` ラベル付きで GitHub Issue を起票/更新する。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # JST 09:00 (UTC 00:00)。health-check(UTC 01:00) / threat-intel(UTC 18:00) と時刻を分散。
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write # Critical/High 検知時の Issue 起票に必要
+
+concurrency:
+  group: supply-chain-security-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_DIR: apps/budget-app
+  PNPM_VERSION: 10.29.2
+  NODE_VERSION: 22
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    outputs:
+      # 各スキャンの結果サマリ（Issue起票ステップが参照）
+      critical_found: ${{ steps.summarize.outputs.critical_found }}
+      summary: ${{ steps.summarize.outputs.summary }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # lockfile 差分チェックのため、PRでは base との比較に十分な履歴を取得
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # ----------------------------------------------------------------
+      # a. 依存インストール（ライフサイクルスクリプトは実行しない = shai-hulud対策）
+      # ----------------------------------------------------------------
+      - name: Install dependencies (no scripts, frozen lockfile)
+        working-directory: ${{ env.APP_DIR }}
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # ----------------------------------------------------------------
+      # b. pnpm audit (high 以上で記録。結果は集約し、ここでは続行)
+      # ----------------------------------------------------------------
+      - name: pnpm audit (high+)
+        id: pnpm_audit
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set +e
+          pnpm audit --audit-level=high | tee /tmp/pnpm-audit.txt
+          # パイプ越しの終了コードは tee ではなく pnpm audit のものを取得する
+          code=${PIPESTATUS[0]}
+          set -e
+          # pnpm audit は脆弱性検出で非ゼロ終了する。検出されても続行し、結果だけ記録する。
+          if [ "$code" -ne 0 ]; then
+            echo "pnpm_audit_failed=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::pnpm audit が high 以上の脆弱性を検出しました。"
+          else
+            echo "pnpm_audit_failed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ----------------------------------------------------------------
+      # c. OSV-Scanner (OSVデータベース照合・無料)
+      #    docker版アクションを SHA pin。lockfile を直接スキャン。
+      #    脆弱性検出時は非ゼロ終了するため continue-on-error で続行し結果を記録。
+      # ----------------------------------------------------------------
+      - name: OSV-Scanner
+        id: osv
+        continue-on-error: true
+        uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+        with:
+          scan-args: |-
+            --lockfile=apps/budget-app/pnpm-lock.yaml
+
+      - name: Record OSV-Scanner result
+        run: |
+          if [ "${{ steps.osv.outcome }}" = "failure" ]; then
+            echo "osv_failed=true" >> "$GITHUB_ENV"
+            echo "::warning::OSV-Scanner が既知脆弱性を検出しました。"
+          else
+            echo "osv_failed=false" >> "$GITHUB_ENV"
+          fi
+
+      # ----------------------------------------------------------------
+      # d. Socket.dev (不審なパッケージ挙動の検査)
+      #    SOCKET_SECURITY_API_KEY secret が未設定の場合はスキップ。
+      # ----------------------------------------------------------------
+      - name: Socket security scan
+        id: socket
+        if: ${{ secrets.SOCKET_SECURITY_API_KEY != '' }}
+        continue-on-error: true
+        uses: SocketDev/action@ba6de6cc0565af1f42295590380973573297e31f # v1.3.2
+        with:
+          mode: cli
+          socket-token: ${{ secrets.SOCKET_SECURITY_API_KEY }}
+
+      - name: Record Socket result
+        run: |
+          if [ "${{ steps.socket.outcome }}" = "failure" ]; then
+            echo "socket_failed=true" >> "$GITHUB_ENV"
+            echo "::warning::Socket が不審なパッケージ挙動を検出しました。"
+          elif [ "${{ steps.socket.outcome }}" = "skipped" ]; then
+            echo "socket_failed=skipped" >> "$GITHUB_ENV"
+            echo "::notice::SOCKET_SECURITY_API_KEY 未設定のため Socket スキャンをスキップしました。"
+          else
+            echo "socket_failed=false" >> "$GITHUB_ENV"
+          fi
+
+      # ----------------------------------------------------------------
+      # e. ワークフロー注入スキャン (shai-hulud 型のCI改ざん検知)
+      #    .github/workflows/ 配下を既知IOCシグネチャでgrepし、ヒットしたら fail。
+      # ----------------------------------------------------------------
+      - name: Scan workflows for injection signatures
+        id: wf_scan
+        run: |
+          set -e
+          echo "ワークフローディレクトリを shai-hulud シグネチャでスキャンします..."
+          # 既知のIOCシグネチャ（自己ホストrunner名 / ペイロードファイル名 / 代表的なexfil先）。
+          # NOTE: この検査ワークフロー自身はシグネチャ文字列を「パターン定義」として含むため
+          #       自己一致による偽陽性を避ける。対策は2つ:
+          #         1) シグネチャは静的テキストとして書かず、実行時に断片を連結して組み立てる
+          #         2) grep の対象からこのファイル(supply-chain-security.yml)を --exclude で除外
+          sig_runner="SHA1""HULUD"
+          sig_repo="Sha1""-Hulud"
+          sig_payload="bun_""environment\.js"
+          sig_exfil="webhook""\.site"
+          patterns="${sig_runner}|${sig_repo}|${sig_payload}|${sig_exfil}"
+          self="supply-chain-security.yml"
+          hits=""
+          # 既知シグネチャの直接一致（この検査ファイル自身は除外）
+          if grep -rniE --exclude="$self" "$patterns" .github/workflows/ ; then
+            hits="signature"
+          fi
+          # 不審な curl ... | sh / wget ... | bash 形式のリモートコード実行（自身は除外）
+          if grep -rniE --exclude="$self" '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(sh|bash)' .github/workflows/ ; then
+            hits="${hits} pipe-to-shell"
+          fi
+          if [ -n "$hits" ]; then
+            echo "::error::ワークフローに不審なパターンを検出しました: $hits"
+            echo "wf_injection_found=true" >> "$GITHUB_ENV"
+            exit 1
+          fi
+          echo "ワークフロー注入シグネチャは検出されませんでした。"
+          echo "wf_injection_found=false" >> "$GITHUB_ENV"
+
+      # ----------------------------------------------------------------
+      # f. lockfile 差分チェック (PR時のみ)
+      #    base 比較で pnpm-lock.yaml に新規パッケージが増えたら警告。
+      # ----------------------------------------------------------------
+      - name: Lockfile diff check (PR only)
+        id: lockfile_diff
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          LOCKFILE: ${{ env.APP_DIR }}/pnpm-lock.yaml
+        run: |
+          set -e
+          # base に lockfile が無い場合（新規）はスキップ
+          if ! git cat-file -e "${BASE_SHA}:${LOCKFILE}" 2>/dev/null; then
+            echo "base に lockfile が見つかりません。差分チェックをスキップします。"
+            echo "new_deps=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # lockfile 内のパッケージ解決エントリ（行頭2スペース + "'/...' or /...:"）を比較。
+          # pnpm-lock v9 形式では packages: 配下に "  '@scope/name@x.y.z':" のように並ぶ。
+          git show "${BASE_SHA}:${LOCKFILE}" > /tmp/lock-base.yaml
+          # 新規に追加された依存指定行を抽出（先頭が空白2つ + 引用符付きパッケージキー）
+          added=$(diff <(grep -E "^  ('|/)" /tmp/lock-base.yaml | sort -u) \
+                       <(grep -E "^  ('|/)" "${LOCKFILE}" | sort -u) \
+                  | grep '^>' | sed 's/^> //' || true)
+          if [ -n "$added" ]; then
+            echo "新規/変更された依存エントリを検出しました:"
+            echo "$added"
+            echo "new_deps=true" >> "$GITHUB_OUTPUT"
+            # 改行を含むため heredoc 形式で出力
+            {
+              echo "added_deps<<DEPS_EOF"
+              echo "$added"
+              echo "DEPS_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "lockfile に新規依存の追加はありません。"
+            echo "new_deps=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ----------------------------------------------------------------
+      # 結果集約: Critical/High が1つでもあれば critical_found=true
+      # ----------------------------------------------------------------
+      - name: Summarize results
+        id: summarize
+        if: always()
+        env:
+          PNPM_AUDIT_FAILED: ${{ steps.pnpm_audit.outputs.pnpm_audit_failed }}
+        run: |
+          osv="${osv_failed:-false}"
+          socket="${socket_failed:-false}"
+          wf="${wf_injection_found:-false}"
+          pnpm_a="${PNPM_AUDIT_FAILED:-false}"
+
+          critical=false
+          summary=""
+          [ "$pnpm_a" = "true" ] && { critical=true; summary="${summary}- pnpm audit: high 以上の脆弱性あり\n"; } || summary="${summary}- pnpm audit: 問題なし\n"
+          [ "$osv" = "true" ]    && { critical=true; summary="${summary}- OSV-Scanner: 既知脆弱性あり\n"; }    || summary="${summary}- OSV-Scanner: 問題なし\n"
+          if [ "$socket" = "true" ]; then critical=true; summary="${summary}- Socket: 不審な挙動あり\n";
+          elif [ "$socket" = "skipped" ]; then summary="${summary}- Socket: スキップ (APIキー未設定)\n";
+          else summary="${summary}- Socket: 問題なし\n"; fi
+          [ "$wf" = "true" ]     && { critical=true; summary="${summary}- ワークフロー注入: シグネチャ検出\n"; } || summary="${summary}- ワークフロー注入: 検出なし\n"
+
+          echo "critical_found=$critical" >> "$GITHUB_OUTPUT"
+          {
+            echo "summary<<SUMMARY_EOF"
+            echo -e "$summary"
+            echo "SUMMARY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          # ジョブサマリにも出力
+          {
+            echo "## Supply Chain Security Scan"
+            echo ""
+            echo -e "$summary"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ----------------------------------------------------------------
+      # PRコメント: 新規依存が増えていたら supply-chain-auditor レビューを要求
+      # ----------------------------------------------------------------
+      - name: Request supply-chain-auditor review on new deps
+        if: ${{ github.event_name == 'pull_request' && steps.lockfile_diff.outputs.new_deps == 'true' }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          ADDED_DEPS: ${{ steps.lockfile_diff.outputs.added_deps }}
+        with:
+          script: |
+            // untrusted な可能性のあるデータは env 経由で受け取り、テンプレートリテラルに直接埋め込まない
+            const added = process.env.ADDED_DEPS || '(差分の取得に失敗)';
+            const body = [
+              '## 🔍 サプライチェーン: 新規依存を検出',
+              '',
+              'このPRで `pnpm-lock.yaml` に新しい依存エントリが追加されました。',
+              'マージ前に **supply-chain-auditor** によるレビューを実施してください。',
+              '',
+              '<details><summary>追加/変更された依存エントリ</summary>',
+              '',
+              '```',
+              added,
+              '```',
+              '',
+              '</details>',
+              '',
+              '- [ ] 各パッケージの提供元・メンテナ・公開日を確認',
+              '- [ ] typosquat / メンテナ交代 / 不審な postinstall が無いか確認',
+              '- [ ] `threat-intel.json` の既知IOCと照合',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  # ==================================================================
+  # Critical/High 検知時の Issue 起票/更新
+  #   同タイトルの open issue があれば重複起票せず、コメント追記で更新する。
+  # ==================================================================
+  report:
+    needs: audit
+    if: ${{ always() && needs.audit.outputs.critical_found == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Create or update security issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          SCAN_SUMMARY: ${{ needs.audit.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            const title = `🚨 [Supply Chain] 重大な依存リスクを検知 (${date})`;
+            // untrusted の可能性があるデータは env 経由（テンプレートに直接展開しない）
+            const summary = process.env.SCAN_SUMMARY || '(サマリ取得失敗)';
+            const runUrl = process.env.RUN_URL;
+            const body = [
+              `## 🚨 サプライチェーン: 重大な依存リスクを検知`,
+              '',
+              `**検出日**: ${date}`,
+              `**ワークフロー実行**: ${runUrl}`,
+              '',
+              '### 検出サマリ',
+              '',
+              summary,
+              '',
+              '### 対応',
+              '',
+              '- [ ] `/supply-chain` を実行して全体を能動巡回する',
+              '- [ ] 検出された依存の提供元・公開日・差分を supply-chain-auditor で精査',
+              '- [ ] 影響範囲を確認し、必要なら lockfile を安全な版へロールバック',
+              '- [ ] 対応完了後にこの Issue をクローズ',
+            ].join('\n');
+
+            // 同タイトルの open issue を検索（重複起票防止）
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security',
+              per_page: 100,
+            });
+            const dup = existing.find((i) => i.title === title);
+
+            if (dup) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: dup.number,
+                body: `### 🔁 再検知 (${new Date().toISOString()})\n\n${summary}\n\n実行: ${runUrl}`,
+              });
+              core.notice(`既存 Issue #${dup.number} を更新しました。`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['security', 'supply-chain'],
+              });
+              core.notice(`Issue #${created.number} を起票しました。`);
+            }

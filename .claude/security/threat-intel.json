@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-06-06T00:00:00Z",
+  "updated_by": "seed",
+  "note": "サプライチェーン脅威インテリジェンス。malicious_packages はインストール即ブロック対象（誤検知でビルドを壊さないため、確実に悪質なものだけを列挙）。実データは .github/workflows/threat-intel-refresh.yml が GitHub malware advisory 等から日次で自動投入する。indicators / campaigns は文字列・ファイル痕跡で、ワークフロー注入スキャンや supply-chain-auditor が参照する（インストールブロックには使わない）。",
+  "policy": {
+    "block_npm_yarn_bun_install": true,
+    "cooldown_days": 7,
+    "allowed_package_manager": "pnpm"
+  },
+  "sources": [
+    { "name": "GitHub Advisory Database (malware)", "url": "https://github.com/advisories?query=type%3Amalware+ecosystem%3Anpm" },
+    { "name": "OSSF malicious-packages", "url": "https://github.com/ossf/malicious-packages" },
+    { "name": "Wiz Shai-Hulud IOC", "url": "https://www.wiz.io/blog/shai-hulud-2-0-ongoing-supply-chain-attack" },
+    { "name": "Datadog Security Labs Shai-Hulud 2.0", "url": "https://securitylabs.datadoghq.com/articles/shai-hulud-2.0-npm-worm/" }
+  ],
+  "malicious_packages": {
+    "shai-hulud-test-sentinel": {
+      "versions": ["*"],
+      "campaign": "test",
+      "severity": "critical",
+      "reference": "guard-install.mjs の動作確認用センチネル。実在しないパッケージ。削除しないこと。",
+      "added": "2026-06-06",
+      "source": "seed"
+    }
+  },
+  "indicators": {
+    "file_artifacts": [
+      "bun_environment.js",
+      "shai-hulud-workflow.yml",
+      "shai-hulud.yaml"
+    ],
+    "strings": [
+      "SHA1HULUD",
+      "Sha1-Hulud",
+      "Sha1-Hulud: The Second Coming",
+      "_SHA1HULUD"
+    ],
+    "exfil_indicators": [
+      "webhook.site",
+      "Shai-Hulud"
+    ],
+    "self_hosted_runner_names": [
+      "SHA1HULUD"
+    ]
+  },
+  "campaigns": {
+    "shai-hulud": {
+      "description": "自己増殖型 npm ワーム。postinstall 等のライフサイクルスクリプトで増殖し、認証情報（npm/GitHub/クラウド）を窃取、トロイ化したバージョンを再公開する。2025年9月初出、2.0/3.0/Miasma 等の亜種が2026年も継続。",
+      "propagation": "lifecycle scripts (postinstall) / 窃取した npm トークンによる再公開",
+      "key_iocs": [
+        "悪質ファイル bun_environment.js",
+        "自己ホストランナー名 SHA1HULUD",
+        "exfil リポジトリ名 'Sha1-Hulud: The Second Coming'"
+      ],
+      "primary_defense": "pnpm の minimumReleaseAge（cooldown）+ ライフサイクルスクリプト既定ブロック + 既知IOC denylist",
+      "references": [
+        "https://unit42.paloaltonetworks.com/npm-supply-chain-attack/",
+        "https://www.reversinglabs.com/blog/shai-hulud-worm-npm"
+      ]
+    }
+  }
+}
