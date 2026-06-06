@@ -11,6 +11,7 @@ allowed-tools:
   - Write
   - WebSearch
   - WebFetch
+  - mcp__socket-mcp__depscore
 model: opus
 ---
 
@@ -29,7 +30,7 @@ model: opus
 3つのエージェントを**並列**で起動:
 
 1. **supply-chain-auditor エージェント**: 「{対象}のサプライチェーンを監査せよ。
-   `pnpm audit`・OSV・`.claude/security/threat-intel.json` のIOC照合・`pnpm-lock.yaml` 差分・ライフサイクルスクリプト・`.github/workflows` への注入(`SHA1HULUD`/`bun_environment.js`等)・パッケージマネージャー統一(pnpm)崩れを確認し、重大度付きで報告すること」
+   `pnpm audit`・OSV・**Socket(`mcp__socket-mcp__depscore`)で各依存をスコアリングし supplyChain 低スコアを抽出**・`.claude/security/threat-intel.json` のIOC照合・`pnpm-lock.yaml` 差分・ライフサイクルスクリプト・`.github/workflows` への注入(`SHA1HULUD`/`bun_environment.js`等)・パッケージマネージャー統一(pnpm)崩れを確認し、重大度付きで報告すること。Socketのデータはこのスキル内で取得するので、ユーザーがSocketダッシュボードを開く必要はない」
 
 2. **security-auditor エージェント**: 「{対象}のシークレット露出と認証/権限を監査せよ。
    ハードコードされた鍵・トークン、`.github/workflows` の `permissions:` 過剰付与、`.env` の取り扱いを確認し、重大度付きで報告すること」

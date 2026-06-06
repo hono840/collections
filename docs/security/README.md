@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | 0. pnpm 統一強制 | `packageManager` / `engines` / `.npmrc` / `preinstall: only-allow pnpm` | `apps/*/package.json`, `.npmrc` |
 | 1. cooldown（受動防御の本命） | `minimumReleaseAge`（公開直後の悪質版を遅延） | `apps/*/pnpm-workspace.yaml` |
-| 2. インストールガード | 既知IOC・npm/yarn/bun を即ブロック | `.claude/hooks/guard-install.mjs` |
+| 2. インストールガード | 既知IOC・npm/yarn/bun・**Socket supplyChain<20** を即ブロック | `.claude/hooks/guard-install.mjs` |
 | 3. 監査エージェント | 依存・lockfile・スクリプト・workflow を監査 | `.claude/agents/supply-chain-auditor.md` |
 | 4. 巡回スキル | 3エージェント並列巡回 → issue 起票 | `.claude/skills/supply-chain/SKILL.md` |
 | 5. CI/CD監視 + 日次更新 | pnpm audit / OSV / Socket / IOC収集 | `.github/workflows/*.yml`, `.github/scripts/build-threat-intel.mjs` |
@@ -44,6 +44,19 @@
 - `malicious_packages`: インストール即ブロック対象（誤検知でビルドを壊さないよう確実なものだけ）。`build-threat-intel.mjs` が GitHub malware advisory から日次投入。`source: seed`/`manual` のエントリは保持される。
 - `indicators` / `campaigns`: 文字列・ファイル痕跡。ワークフロー注入スキャンと監査エージェントが参照（インストールブロックには使わない）。
 - 手動で恒久的に denylist へ追加したい場合は、エントリに `"source": "manual"` を付ける（日次更新で消えない）。
+
+## Socket 連携の2系統（混同しやすい）
+
+Socket は**用途の違う2つ**の連携があり、本プロジェクトは両方使う:
+
+| 系統 | 誰が動かす | ダッシュボードを開く必要 | 何をする |
+| --- | --- | --- | --- |
+| **Socket GitHub App** | GitHub（自動・PR時） | スキャン状況の確認時のみ | PRの依存を自動スキャンしコメント。SSO/OAuthで導入、キー不要 |
+| **Socket MCP**（`socket-mcp`, `https://mcp.socket.dev/`） | **Claude**（スキル/エージェント/フック） | **不要** | Claudeが `depscore` で依存を直接採点。`/supply-chain` でデータ取得→実依存と照合→issue起票。`guard-install.mjs` も supplyChain<20 を水際ブロック |
+
+ポイント: **「自分で Socket.dev を開いてスキャン開始」する必要があるのは GitHub App 側のUI運用だけ**。Socket MCP 経由なら Claude が API を直接叩くので、ダッシュボードを開かずに自動で照合・issue化できる。`depscore` はホスト版がキー不要（自己ホストのみ `SOCKET_API_TOKEN` が必要）。
+
+ガードフックの Socket ゲートは環境変数で調整可能: `SOCKET_GATE_THRESHOLD`（既定20）/ `SOCKET_GATE_TIMEOUT_MS`（既定8000・fail-open）/ `SOCKET_GATE_DISABLE=1`（無効化）。
 
 ## 手動セットアップ（要対応）
 

@@ -80,6 +80,7 @@ collections/
 | MCP             | 用途                           |
 | --------------- | ------------------------------ |
 | Supabase        | DB管理、マイグレーション       |
+| Socket (socket-mcp) | 依存の供給網スコア取得（`depscore`）・悪質パッケージ検出。キー不要 |
 | Playwright      | ブラウザ E2E 検証              |
 | Chrome DevTools | コンソール検出、パフォーマンス |
 | Vercel          | デプロイ、ログ確認             |
