@@ -27,7 +27,8 @@ Hiro (CEO / Orchestrator)
 │   ├── test-writer         - テスト作成（Vitest、Playwright）
 │   ├── code-reviewer       - コード品質レビュー（確信度80%以上のみ）
 │   ├── devops-engineer     - デプロイ、CI/CD、インフラ
-│   └── security-auditor    - 脆弱性スキャン、セキュリティベストプラクティス
+│   ├── security-auditor    - 脆弱性スキャン、セキュリティベストプラクティス
+│   └── supply-chain-auditor - 依存/lockfile/ライフサイクルスクリプト/CI注入の監査、IOC照合
 ├── CPO  - プロダクト設計、要件定義、ユーザーストーリー（レビュー専任）
 │   ├── ux-researcher       - 競合UI分析、UXパターン
 │   ├── feature-planner     - 詳細機能仕様、受入条件
@@ -121,6 +122,7 @@ src/components/
 - `docs/product/` — CPO成果物（PRD、ユーザーストーリー、仕様書）
 - `docs/marketing/` — CMO成果物（コピー、ブランディング、ローンチ計画）
 - `docs/finance/` — CFO成果物（コスト見積もり、価格モデル）
+- `docs/security/` — サプライチェーン監査レポート・セキュリティ運用ガイド
 
 ## スキル（スラッシュコマンド）
 
@@ -129,6 +131,18 @@ src/components/
 - `/strategy {topic}` — CSO + CMO + CFO 戦略セッション（委譲型PDCA）
 - `/standup` — C-Suite全エリア進捗チェック
 - `/monitor {app-name} [--full]` — デプロイ済みアプリの健全性評価・改善提案
+- `/supply-chain [app-name] [--fix]` — サプライチェーン能動巡回（依存/lockfile/スクリプト/CI注入の監査 → 致命的リスクをissue起票）
+
+## サプライチェーンセキュリティ
+
+shai-hulud 級の攻撃から多層防御する。詳細・運用は `docs/security/README.md` を参照。
+
+- **パッケージマネージャーは pnpm に統一。** npm/yarn/bun でのインストールは PreToolUse フック（`.claude/hooks/guard-install.mjs`）が即ブロックする。
+- **受動防御の本命は cooldown**: `apps/*/pnpm-workspace.yaml` の `minimumReleaseAge`（既定7日）が公開直後の悪質バージョンを遅延させる。
+- **水際防御**: 既知の悪質パッケージ（`.claude/security/threat-intel.json` の denylist）はインストール不可。
+- **能動監視**: `supply-chain-auditor` エージェント + `/supply-chain` スキルが依存・workflow を巡回。致命的検出は GitHub issue（`security` ラベル）で警鐘を鳴らし、SessionStart フックが起動時に提示する。
+- **日次更新**: GitHub Actions（`threat-intel-refresh.yml` / `supply-chain-security.yml`）が脅威データを更新し、CI でも監視する。
+- 依存・パッケージマネージャー設定を変更するときは `.claude/rules/dependencies.md` に従う。
 
 ## MCP連携
 
