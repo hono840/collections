@@ -34,6 +34,10 @@ env:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    env:
+      # secrets は if: で直接参照できない（ワークフロー全体が無効化される）。
+      # ジョブレベルの env に写し、ステップの if: では env.SOCKET_TOKEN を判定する。
+      SOCKET_TOKEN: ${{ secrets.SOCKET_SECURITY_API_KEY }}
     outputs:
       # 各スキャンの結果サマリ（Issue起票ステップが参照）
       critical_found: ${{ steps.summarize.outputs.critical_found }}
@@ -110,12 +114,12 @@ jobs:
       # ----------------------------------------------------------------
       - name: Socket security scan
         id: socket
-        if: ${{ secrets.SOCKET_SECURITY_API_KEY != '' }}
+        if: ${{ env.SOCKET_TOKEN != '' }}
         continue-on-error: true
         uses: SocketDev/action@ba6de6cc0565af1f42295590380973573297e31f # v1.3.2
         with:
           mode: cli
-          socket-token: ${{ secrets.SOCKET_SECURITY_API_KEY }}
+          socket-token: ${{ env.SOCKET_TOKEN }}
 
       - name: Record Socket result
         run: |

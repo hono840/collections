@@ -13,6 +13,10 @@ updates:
     directory: "/apps/budget-app"
     schedule:
       interval: "weekly"
+    # cooldown: 公開から指定日数が経つまで更新PRを作らない（公開直後の悪質バージョン回避）。
+    #   pnpm の minimumReleaseAge=7日 と整合。version更新のみ対象でセキュリティ更新は遅延しない。
+    cooldown:
+      default-days: 7
     # 同時に開くPR数を抑制（レビュー可能な範囲に）
     open-pull-requests-limit: 5
     # グループ更新: パッチ/マイナーをまとめて1つのPRに
@@ -40,6 +44,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # アクションの新バージョンも7日 cooldown（タグ付け直後の改ざん回避）
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       # アクション更新を1つのPRにまとめる
