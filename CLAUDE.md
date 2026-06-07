@@ -32,6 +32,7 @@ Hiro (CEO / Orchestrator)
 │   └── supply-chain-auditor - 依存/lockfile/ライフサイクルスクリプト/CI注入の監査、IOC照合
 ├── CPO  - プロダクト設計、要件定義、ユーザーストーリー（レビュー専任）
 │   ├── ux-researcher       - 競合UI分析、UXパターン
+│   ├── ui-ux-designer      - ビジュアル設計、装飾、デザイントークン、デザイン一貫性
 │   ├── feature-planner     - 詳細機能仕様、受入条件
 │   └── qa-engineer         - テスト計画、品質保証
 ├── CSO  - 事業戦略、市場/競合分析（レビュー専任）

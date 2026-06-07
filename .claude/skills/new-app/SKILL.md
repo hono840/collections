@@ -60,8 +60,10 @@ AskUserQuestion を使用。**承認なしに先に進めないこと。**
 3つのエージェントを**並列**で起動:
 
 1. **CPO エージェント**: 「{app-name} の要件、ユーザーストーリー、受入条件を確定せよ。
-   feature-planner に詳細仕様を、ux-researcher にUX調査を委譲し、PDCAサイクルを回した上で
-   確定版を apps/{app-name}/docs/product/ に書き出すこと。
+   feature-planner に詳細仕様を、ux-researcher にUX調査を、ui-ux-designer にビジュアル設計
+   （アートディレクション・デザイントークン・装飾方針）を委譲し、PDCAサイクルを回した上で
+   確定版を apps/{app-name}/docs/product/ に書き出すこと
+   （ビジュアル設計書は {app-name}-design-spec.md）。
    Google Calendarにスプリントマイルストーンを作成すること」
 
 2. **CTO エージェント**: 「PRDに基づき {app-name} の技術アーキテクチャを設計せよ。
@@ -93,7 +95,7 @@ AskUserQuestion を使用。**承認なしに先に進めないこと。**
 
  1. code-architect に設計を委譲 → レビュー → 承認
  2. Red: test-writer に受入条件+設計図に基づきテストを先に書かせる（テストは失敗する状態）
- 3. Green: frontend-developer / backend-developer にテストを通す最小限の実装を委譲
+ 3. Green: frontend-developer / backend-developer にテストを通す最小限の実装を委譲（frontend-developer は {app-name}-design-spec.md のビジュアル設計書に従う）
  4. Refactor: code-reviewer にリファクタリング提案を委譲 → テストが通り続けることを確認
  5. セキュリティ関連は security-auditor に監査を委譲
  6. デプロイ準備は devops-engineer に委譲
