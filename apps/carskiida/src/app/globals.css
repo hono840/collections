@@ -109,10 +109,38 @@
   border-radius: 2px;
 }
 
-/* 寸法線アニメーション（reduced-motion で停止） */
+/* 仕組み図解アニメ（駆動方式パワーフロー等）。SVG+CSSで完結 */
+@keyframes ck-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ck-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* 駆動輪のスポークを回転（fill-box で SVG グループの中心を基準に） */
+.ck-wheel-driven {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ck-spin 1.6s linear infinite;
+}
+/* 動力の流れ（破線が駆動輪へ向かって流れる） */
+.ck-powerflow {
+  stroke-dasharray: 6 6;
+  animation: ck-flow 0.8s linear infinite;
+}
+
+/* 寸法線・仕組みアニメーションは reduced-motion で停止（静止フォールバック） */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+  }
+  .ck-wheel-driven,
+  .ck-powerflow {
+    animation: none !important;
   }
 }

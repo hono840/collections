@@ -6,7 +6,8 @@ import { GenerationTimeline } from '@/components/organisms/GenerationTimeline'
 import { GradeSpecPanel } from '@/components/organisms/GradeSpecPanel'
 import { PartStructureAccordion } from '@/components/organisms/PartStructureAccordion'
 import { PlantMap } from '@/components/organisms/PlantMap'
-import type { Generation } from '@/types/car'
+import { DrivetrainDiagram } from '@/components/organisms/DrivetrainDiagram'
+import type { Drivetrain, Generation } from '@/types/car'
 
 export interface GenerationExplorerProps {
   generations: Generation[]
@@ -83,6 +84,27 @@ export function GenerationExplorer({
         <SectionHeading label="Specifications">諸元</SectionHeading>
         <GradeSpecPanel grades={active.grades} />
       </section>
+
+      {(() => {
+        const drivetrains = Array.from(
+          new Set(
+            active.grades
+              .map((g) => g.drivetrain)
+              .filter((d): d is Drivetrain => !!d)
+          )
+        )
+        if (drivetrains.length === 0) return null
+        return (
+          <section>
+            <SectionHeading label="Drivetrain">駆動方式</SectionHeading>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {drivetrains.map((dt) => (
+                <DrivetrainDiagram key={dt} drivetrain={dt} />
+              ))}
+            </div>
+          </section>
+        )
+      })()}
 
       <section>
         <SectionHeading label="Parts">パーツ構造</SectionHeading>

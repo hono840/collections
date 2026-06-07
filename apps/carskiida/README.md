@@ -81,10 +81,12 @@ pnpm start        # 本番サーバ
 - [x] **Sprint 2** — 比較表（2〜4台・差分ハイライト・色＋記号でA11y）＋ 用語インライン解説（ツールチップ・用語集ページ）
 - [x] **Sprint 3** — 検索（メーカー/ボディ/キーワード/ショーケースのみ・ファセット）＋ breadth ETL スクリプト（vPIC + Wikidata）＋ PGroonga マイグレーション＋ keep-alive Action
 - [x] **Sprint 4** — SEO（sitemap.xml / robots.txt / OGP画像）・関連車回遊・お気に入り（localStorage）
+- [x] **仕組み図解（第1弾）** — 駆動方式パワーフローの自作SVGアニメ（エンジン→駆動輪へ動力が流れ、駆動輪が回転）。**型ごとに1つ作れば全車種に再利用**・写真不使用・著作権ゼロ・$0。`prefers-reduced-motion` 対応・色でも駆動輪を判別
+- [ ] **仕組み図解（次段）** — サスペンションの動き / エンジンレイアウトの図解
 - [ ] **次段** — データを Supabase + ETL 実投入へ移行（現状はインメモリシード）／ Vercel 本番デプロイ
 
 ### スクリーンショット
-`docs/screenshots/` に home / detail-roadster / compare / search を収録。
+`docs/screenshots/` に home / detail-roadster / detail-drivetrain / drivetrain-fr-closeup / compare / search を収録。
 
 ## データソースと法務
 
