@@ -1,0 +1,1 @@
+export { CompareTray } from './CompareTray'

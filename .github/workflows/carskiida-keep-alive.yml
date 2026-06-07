@@ -1,0 +1,30 @@
+name: carskiida keep-alive
+
+# Supabase Free は 1 週間 API 無アクセスで自動一時停止する。
+# 毎日 1 回 keep_alive RPC を叩いて停止を防ぐ（docs/finance/carskiida-costs.md §4）。
+# 必要な Secrets: CARSKIIDA_SUPABASE_URL, CARSKIIDA_SUPABASE_ANON_KEY
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # 毎日 03:17 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase keep_alive
+        env:
+          SUPABASE_URL: ${{ secrets.CARSKIIDA_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.CARSKIIDA_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Secrets not configured; skipping keep-alive."
+            exit 0
+          fi
+          curl -sS -X POST \
+            "$SUPABASE_URL/rest/v1/rpc/keep_alive" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'

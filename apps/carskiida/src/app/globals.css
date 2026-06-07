@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* class ベースのダークモード（.dark を html に付与して切替） */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * carskiida デザイントークン — "Technical Blueprint × Letterpress Editorial"
+ * セマンティックトークンは CSS 変数で定義し、.dark 配下で値を上書きする。
+ * これにより bg-ck-bg / text-ck-text などのユーティリティが自動でテーマ切替する
+ * （dark: バリアントを各所に書かずに済む）。
+ */
+@theme {
+  /* ライト = "Paper Blueprint"（生成りの製図用紙） */
+  --color-ck-bg: #f4f1ea;
+  --color-ck-surface: #fbfaf6;
+  --color-ck-surface-sunken: #ece8dd;
+  --color-ck-grid: #d8d2c3;
+  --color-ck-border: #c9c2b0;
+  --color-ck-border-strong: #1b2a4a;
+  --color-ck-text: #1a1a18;
+  --color-ck-text-muted: #5a5648;
+  --color-ck-primary: #1b2a4a;
+  --color-ck-primary-deep: #0e1b33;
+  --color-ck-accent: #0e7c86;
+  --color-ck-mark: #c0392b;
+  --color-ck-source: #3a6b35;
+  --color-ck-positive: #2f6b3c;
+  --color-ck-warn: #b36a12;
+
+  /* フォント（next/font が注入する CSS 変数を参照） */
+  --font-display: var(--font-zen-old-mincho), "Zen Old Mincho", serif;
+  --font-body: var(--font-zen-kaku), "Zen Kaku Gothic New", sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: var(--font-zen-kaku), "Zen Kaku Gothic New", sans-serif;
+
+  /* 角丸（最大 6px。ふわっとした SaaS カードを避ける） */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* シャドウ（紙の浮き程度に抑制） */
+  --shadow-ck-sm: 0 1px 2px rgba(27, 42, 74, 0.06);
+  --shadow-ck-md: 0 4px 16px rgba(14, 27, 51, 0.1);
+
+  /* モーション */
+  --ease-ck: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ダーク = "Cyanotype"（青写真） */
+.dark {
+  --color-ck-bg: #0c1a33;
+  --color-ck-surface: #13284a;
+  --color-ck-surface-sunken: #0a1428;
+  --color-ck-grid: #1e3a63;
+  --color-ck-border: #2c4d7e;
+  --color-ck-border-strong: #7fb7c4;
+  --color-ck-text: #e8eef5;
+  --color-ck-text-muted: #9db4ce;
+  --color-ck-primary: #7fb7c4;
+  --color-ck-primary-deep: #0a1428;
+  --color-ck-accent: #37d0db;
+  --color-ck-mark: #ff7a5c;
+  --color-ck-source: #8fc98a;
+  --color-ck-positive: #7fd18c;
+  --color-ck-warn: #e0a451;
+}
+
+/* 数値は等幅・等角（計器/図面の言語） */
+.ck-num {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * ブループリント方眼背景。
+ * 主方眼 96px + 補助方眼 24px の 2 層。テンプレートのルートに付与する。
+ */
+.ck-blueprint {
+  background-color: var(--color-ck-bg);
+  background-image:
+    linear-gradient(to right, var(--color-ck-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-ck-grid) 1px, transparent 1px),
+    linear-gradient(to right, var(--color-ck-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-ck-grid) 1px, transparent 1px);
+  background-size:
+    96px 96px,
+    96px 96px,
+    24px 24px,
+    24px 24px;
+  background-position: -1px -1px;
+}
+
+/* 極薄ペーパーグレイン（写真ゼロで紙の質感を出す。ベタ塗り回避） */
+.ck-blueprint::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+
+/* 可視フォーカスリング（WCAG 2.4.7）。両テーマで accent が AA を満たす */
+:focus-visible {
+  outline: 2px solid var(--color-ck-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* 寸法線アニメーション（reduced-motion で停止） */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
