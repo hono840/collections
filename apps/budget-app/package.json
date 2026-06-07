@@ -47,6 +47,12 @@
     "supabase": "^2.102.0",
     "tailwindcss": "^4",
     "typescript": "^6",
+    "vite": "^8.0.9",
     "vitest": "^4.1.7"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "^8.0.9"
+    }
   }
 }
