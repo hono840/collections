@@ -122,6 +122,7 @@ const content: CountryContent[] = [
     funFactsJa: ['f'],
     style: 'balanced',
     tier: 'darkhorse',
+    tierReasonJa: '安定した組織力で上位を狙えるからです。',
     region: 'asia',
     vibeJa: ['組織力'],
   },
@@ -133,6 +134,7 @@ const content: CountryContent[] = [
     funFactsJa: ['f'],
     style: 'attacking',
     tier: 'underdog',
+    tierReasonJa: '勢いはありますが格上に挑む立場だからです。',
     region: 'asia',
     vibeJa: ['運動量'],
   },
@@ -168,6 +170,8 @@ describe('normalizeTeams', () => {
     expect(jpn.style).toBe('balanced')
     expect(jpn.region).toBe('asia')
     expect(jpn.vibeJa).toEqual(['組織力'])
+    expect(jpn.tier).toBe('darkhorse')
+    expect(jpn.tierReasonJa).toBe('安定した組織力で上位を狙えるからです。')
   })
 
   it('コンテンツ欠落時はエラー', () => {

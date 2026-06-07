@@ -49,6 +49,8 @@ export interface Team {
   style: TeamStyle
   /** 大会での位置づけ（診断用） */
   tier: TeamTier
+  /** なぜその tier なのかの一言理由（国詳細・凡例導線で表示） */
+  tierReasonJa: string
   /** 初心者向け一言紹介 */
   blurbJa: string
   /** 観戦ポイント */

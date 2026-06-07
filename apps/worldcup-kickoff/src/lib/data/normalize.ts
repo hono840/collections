@@ -63,6 +63,7 @@ export interface CountryContent {
   funFactsJa: string[]
   style: TeamStyle
   tier: TeamTier
+  tierReasonJa: string
   region: TeamRegion
   vibeJa: string[]
 }
@@ -197,6 +198,7 @@ export function normalizeTeams(
       region: content.region,
       style: content.style,
       tier: content.tier,
+      tierReasonJa: content.tierReasonJa,
       blurbJa: content.blurbJa,
       watchPointJa: content.watchPointJa,
       funFactsJa: content.funFactsJa,

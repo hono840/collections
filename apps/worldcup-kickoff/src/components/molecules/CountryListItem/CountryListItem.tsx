@@ -2,15 +2,9 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { CountryFlag } from '@/components/atoms/CountryFlag'
 import { Badge } from '@/components/atoms/Badge'
+import { TIER_META } from '@/lib/constants/tiers'
 import { cn } from '@/lib/utils/cn'
 import type { TeamTier } from '@/lib/domain'
-
-/** tier → 日本語ラベル + バッジ色 */
-const TIER_META: Record<TeamTier, { label: string; variant: 'gold' | 'pitch' | 'neutral' }> = {
-  favorite: { label: '優勝候補', variant: 'gold' },
-  darkhorse: { label: 'ダークホース', variant: 'pitch' },
-  underdog: { label: 'チャレンジャー', variant: 'neutral' },
-}
 
 export interface CountryListItemProps {
   /** 国旗絵文字 */

@@ -55,6 +55,23 @@
 
   /* ── 角丸（カード = 2xl 基調） ── */
   --radius-card: 1rem;
+
+  /*
+   * PC ガター装飾（DeskDecor）の紙吹雪用。非常にゆっくり上下に浮遊する。
+   * Tailwind v4 の utility `animate-float` として参照する。
+   * prefers-reduced-motion 時は下の @media で無効化される。
+   */
+  --animate-float: float 9s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 /*

@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import { Info } from 'lucide-react'
 import { ListDetailTemplate } from '@/components/templates/ListDetailTemplate'
 import { CountryListItem } from '@/components/molecules/CountryListItem'
 import { FavoriteToggle } from '@/components/molecules/FavoriteToggle'
+import { TierLegendDialog } from '@/components/molecules/TierLegendDialog'
 import {
   GroupStandings,
   type GroupStandingsEntry,
@@ -110,6 +112,16 @@ export default async function CountriesPage() {
       title="国図鑑"
       description="出場48ヶ国をグループ別に。気になる国をタップして、推し国を見つけよう。"
     >
+      {/* バッジ（優勝候補・ダークホース等）の意味＝凡例への導線 */}
+      <div>
+        <TierLegendDialog
+          triggerClassName="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-muted transition-colors hover:bg-pitch-50 hover:text-text"
+          triggerAriaLabel="ランクの見方を開く"
+        >
+          <Info className="h-4 w-4" aria-hidden />
+          ランク（優勝候補・ダークホースなど）の見方
+        </TierLegendDialog>
+      </div>
       <CountriesView list={listNode} standings={standingsNode} />
     </ListDetailTemplate>
   )

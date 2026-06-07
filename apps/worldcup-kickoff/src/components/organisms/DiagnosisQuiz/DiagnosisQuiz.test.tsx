@@ -21,6 +21,7 @@ function makeTeam(code: string, overrides: Partial<Team> = {}): Team {
     region: 'europe',
     style: 'attacking',
     tier: 'favorite',
+    tierReasonJa: '実績と地力があり優勝を狙えるからです。',
     blurbJa: `${code} の紹介`,
     watchPointJa: '見どころ',
     funFactsJa: [],
