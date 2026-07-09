@@ -34,6 +34,37 @@ describe('toCsv (RFC4180)', () => {
   })
 })
 
+describe('escapeField CSV formula-injection guard (security)', () => {
+  // A neutralized field is prefixed with a single quote so a spreadsheet treats it as text.
+  it.each([
+    ['=cmd', "'=cmd"],
+    ['=HYPERLINK("http://evil","x")', `"'=HYPERLINK(""http://evil"",""x"")"`],
+    ['+abc', "'+abc"],
+    ['@x', "'@x"],
+    ['-abc', "'-abc"],
+    ['\tSUM(A1)', "'\tSUM(A1)"],
+  ])('neutralizes a formula-leading field %j', (input, expected) => {
+    expect(toCsv([[input]])).toBe(`${BOM}${expected}`)
+  })
+
+  it.each([['-123'], ['+5.5'], ['-0.25'], ['1200'], ['0']])(
+    'does NOT prefix the pure/signed number %j (negative amounts stay intact)',
+    (input) => {
+      expect(toCsv([[input]])).toBe(`${BOM}${input}`)
+    },
+  )
+
+  it('still applies RFC4180 quoting on a neutralized field that also contains a comma', () => {
+    // Leading '=' → prefix "'", and the comma → wrap in quotes.
+    expect(toCsv([['=a,b']])).toBe(`${BOM}"'=a,b"`)
+  })
+
+  it('quotes a formula-leading field whose only special char is a leading CR', () => {
+    // '\r' is both a formula-lead char and an RFC4180 quote trigger → prefixed then quoted.
+    expect(toCsv([['\r=x']])).toBe(`${BOM}"'\r=x"`)
+  })
+})
+
 describe('buildMenusCsv', () => {
   it('emits a BOM, CRLF rows and the PRD header', () => {
     const csv = buildMenusCsv(sampleFullState())

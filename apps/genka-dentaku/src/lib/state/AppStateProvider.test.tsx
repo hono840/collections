@@ -89,6 +89,44 @@ describe('AppStateProvider', () => {
     expect(result.current.state.menus).toHaveLength(3)
   })
 
+  it('enforces the Free cap inside the updater when two adds fire in the same tick', async () => {
+    const { result } = await renderProvider()
+
+    // Fill to 2 menus first.
+    act(() => {
+      result.current.actions.addMenu(menuInput('A'))
+      result.current.actions.addMenu(menuInput('B'))
+    })
+    expect(result.current.state.menus).toHaveLength(2)
+
+    // Two adds dispatched in the SAME tick: only ONE may persist (cap = 3). Pre-fix, a stale
+    // stateRef let both slip past and 4 menus were written; the cap now lives in the updater.
+    const results: Array<{ ok: true } | { ok: false; reason: 'free-limit' }> = []
+    act(() => {
+      results.push(result.current.actions.addMenu(menuInput('C')))
+      results.push(result.current.actions.addMenu(menuInput('D')))
+    })
+    expect(result.current.state.menus).toHaveLength(3)
+    expect(results).toEqual([{ ok: true }, { ok: false, reason: 'free-limit' }])
+  })
+
+  it('duplicateMenu also caps same-tick duplicates at the Free limit', async () => {
+    const { result } = await renderProvider()
+    act(() => {
+      result.current.actions.addMenu(menuInput('A'))
+      result.current.actions.addMenu(menuInput('B'))
+    })
+    const sourceId = result.current.state.menus[0].id
+
+    const results: Array<{ ok: true } | { ok: false; reason: 'free-limit' }> = []
+    act(() => {
+      results.push(result.current.actions.duplicateMenu(sourceId))
+      results.push(result.current.actions.duplicateMenu(sourceId))
+    })
+    expect(result.current.state.menus).toHaveLength(3)
+    expect(results).toEqual([{ ok: true }, { ok: false, reason: 'free-limit' }])
+  })
+
   it('normalizes ex-tax through toExTax on addIngredient (invariant holds)', async () => {
     const { result } = await renderProvider()
 

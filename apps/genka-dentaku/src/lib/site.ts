@@ -22,6 +22,15 @@ export const SITE_DESCRIPTION = '仕入れ値を1つ直すだけで、全メニ�
 export const SITE_DOMAIN = SITE_URL.replace(/^https?:\/\//, '')
 
 /**
+ * 構造化データ（JSON-LD）を `<script>` へ dangerouslySetInnerHTML で埋め込む際のシリアライザ。
+ * `<` を `<` に無害化し、`</script>` 早期終了や `<!--` によるスクリプト注入を防ぐ多層防御
+ * （現状は静的コンテンツのみだが将来の動的化に備える・architecture §8.2）。
+ */
+export function jsonLdString(obj: unknown): string {
+  return JSON.stringify(obj).replace(/</g, '\\u003c')
+}
+
+/**
  * オンページ SEO キーワード（GTM の意図別クラスタ由来・seo-specialist が精緻化）。
  * ツール/商用・インフレ/ペイン・高WTP計画層・情報系トップファネルを横断する。
  */

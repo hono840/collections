@@ -12,12 +12,25 @@ import { selectIngredientsById, selectMenuSummary } from '@/lib/domain/selectors
 export const BOM = '﻿'
 const CRLF = '\r\n'
 
-/** RFC4180: quote a field when it contains a comma, quote, CR or LF; escape quotes by doubling. */
+/**
+ * CSV formula-injection lead chars (security): a spreadsheet (Excel / Sheets / LibreOffice) will
+ * evaluate a cell whose first char is one of these as a formula. `\t` / `\r` are included because
+ * some importers strip leading whitespace before the check.
+ */
+const FORMULA_LEAD = /^[=+\-@\t\r]/
+
+/**
+ * RFC4180 quoting + CSV formula-injection guard. A field that could be executed as a formula is
+ * neutralized by prefixing a single quote — EXCEPT pure numbers, so negative amounts (e.g. a
+ * negative 粗利 "-50") and signed values ("+5.5") stay intact. Quoting (comma / quote / CR / LF)
+ * is then applied on the guarded value.
+ */
 function escapeField(value: string): string {
-  if (/[",\r\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`
+  const guarded = FORMULA_LEAD.test(value) && !/^[+-]?\d/.test(value) ? `'${value}` : value
+  if (/[",\r\n]/.test(guarded)) {
+    return `"${guarded.replace(/"/g, '""')}"`
   }
-  return value
+  return guarded
 }
 
 /** Rows -> CSV text (BOM + CRLF + RFC4180 quoting). */

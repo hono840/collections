@@ -33,6 +33,8 @@ export interface SettingsPanelProps {
   hasSamples: boolean
   onClearSamples: () => void
   onResetAll: () => void
+  /** CSV/PDF エクスポート（Pro）。データ管理セクションの先頭に差し込む（design-spec §6.4）。 */
+  exportSlot?: React.ReactNode
   backupSlot?: React.ReactNode
   className?: string
 }
@@ -93,6 +95,7 @@ export function SettingsPanel({
   hasSamples,
   onClearSamples,
   onResetAll,
+  exportSlot,
   backupSlot,
   className,
 }: SettingsPanelProps) {
@@ -239,6 +242,8 @@ export function SettingsPanel({
       </Section>
 
       <Section title="データ管理">
+        {exportSlot}
+        {exportSlot && <div className="border-t border-border" />}
         {backupSlot}
         <div className="flex flex-col gap-2 border-t border-border pt-3">
           {hasSamples &&

@@ -16,7 +16,7 @@
  * Derived values (cost / rate / margin / color / order) are NEVER held here — use-dashboard /
  * use-menu-summary recompute them from `state`, which is what guarantees THE WEDGE.
  */
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { CanonicalState, Ingredient, Menu, RecipeItem, Settings } from '@/lib/domain/schema'
 import { toExTax } from '@/lib/domain/tax'
 import { selectMenusUsingIngredient } from '@/lib/domain/selectors'
@@ -79,6 +79,12 @@ export interface AppStateValue {
   mounted: boolean
   loadIssue: LoadResult['status']
   license: LicenseStatus
+  /** Set when a persist fails from a full localStorage (PRD 8.7). Dismissible; re-armed on the next failure. */
+  saveError: 'quota' | null
+  dismissSaveError: () => void
+  /** Set when the device clock appears to have rolled back vs lastSeenDate (PRD 5.4). Session-dismissible. */
+  clockWarning: boolean
+  dismissClockWarning: () => void
   actions: AppStateActions
 }
 
@@ -178,7 +184,14 @@ function renormalizeState(state: CanonicalState): CanonicalState {
 }
 
 export function AppStateProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
-  const { state, setState, mounted } = useCanonicalStore()
+  // Ephemeral, provider-level notice state (not persisted): quota-save failure + clock rollback.
+  const [saveError, setSaveError] = useState<'quota' | null>(null)
+  const [clockWarning, setClockWarning] = useState(false)
+  const handleSaveError = useCallback(() => setSaveError('quota'), [])
+  const dismissSaveError = useCallback(() => setSaveError(null), [])
+  const dismissClockWarning = useCallback(() => setClockWarning(false), [])
+
+  const { state, setState, mounted } = useCanonicalStore(handleSaveError)
   const [recovered, setRecovered] = useState(false)
   const [license, setLicense] = useState<LicenseStatus>(NONE_LICENSE)
 
@@ -218,11 +231,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }): R
       setLicense(status)
       if (key !== null && !gatedRef.current) {
         const today = nowIso()
+        // Soft clock-rollback detection (裁定2 / PRD 5.4): today is >1 day before the last-seen date.
+        // Never lock — surface a dismissible info banner and keep the console warning (no setState in-updater).
+        const lastSeen = stateRef.current.license.lastSeenDate
+        if (lastSeen && Date.parse(today) < Date.parse(lastSeen) - MS_PER_DAY) {
+          console.warn('[genka] clock rollback detected relative to lastSeenDate (soft warning only)')
+          setClockWarning(true)
+        }
         setState((prev) => {
           if (prev.license.key === null || prev.license.lastSeenDate === today) return prev
-          if (prev.license.lastSeenDate && Date.parse(today) < Date.parse(prev.license.lastSeenDate) - MS_PER_DAY) {
-            console.warn('[genka] clock rollback detected relative to lastSeenDate (soft warning only)')
-          }
           return { ...prev, license: { ...prev.license, lastSeenDate: today } }
         })
       }
@@ -263,12 +280,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }): R
       },
       addMenu(input) {
         if (guardMutation()) return { ok: false, reason: 'free-limit' }
-        if (!licenseRef.current.isPro && stateRef.current.menus.length >= FREE_MAX_MENUS) {
-          return { ok: false, reason: 'free-limit' }
-        }
         const menu = normalizeMenu(input)
-        setState((prev) => ({ ...prev, menus: [...prev.menus, menu] }))
-        return { ok: true }
+        // Enforce the Free cap INSIDE the updater against the freshest `prev` so two adds in the same
+        // tick can't both slip past a stale stateRef; the result reflects what actually persisted.
+        let added = false
+        setState((prev) => {
+          if (!licenseRef.current.isPro && prev.menus.length >= FREE_MAX_MENUS) return prev
+          added = true
+          return { ...prev, menus: [...prev.menus, menu] }
+        })
+        return added ? { ok: true } : { ok: false, reason: 'free-limit' }
       },
       updateMenu(id, patch) {
         if (guardMutation()) return
@@ -283,12 +304,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }): R
         if (guardMutation()) return { ok: false, reason: 'free-limit' }
         const source = stateRef.current.menus.find((menu) => menu.id === id)
         if (!source) return { ok: true }
-        if (!licenseRef.current.isPro && stateRef.current.menus.length >= FREE_MAX_MENUS) {
-          return { ok: false, reason: 'free-limit' }
-        }
         const copy = normalizeMenu({ ...menuInputOf(source), name: `${source.name} (コピー)` })
-        setState((prev) => ({ ...prev, menus: [...prev.menus, copy] }))
-        return { ok: true }
+        // Cap enforced inside the updater (see addMenu) so same-tick duplicates can't exceed the limit.
+        let added = false
+        setState((prev) => {
+          if (!licenseRef.current.isPro && prev.menus.length >= FREE_MAX_MENUS) return prev
+          added = true
+          return { ...prev, menus: [...prev.menus, copy] }
+        })
+        return added ? { ok: true } : { ok: false, reason: 'free-limit' }
       },
       removeMenu(id) {
         if (guardMutation()) return
@@ -378,6 +402,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }): R
         if (mode === 'replace') {
           setState(normalized)
         } else {
+          // 'merge' semantics: arrays (ingredients/menus) are unioned by id (existing rows win on
+          // collision); scalars (settings/meta/license) are REPLACED by the imported payload. Note:
+          // every current UI call site imports with 'replace' — 'merge' is kept for partial-restore.
           setState((prev) => {
             const ingredientIds = new Set(prev.ingredients.map((ing) => ing.id))
             const menuIds = new Set(prev.menus.map((menu) => menu.id))
@@ -411,8 +438,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }): R
   }, [setState])
 
   const value = useMemo<AppStateValue>(
-    () => ({ state, mounted, loadIssue, license, actions }),
-    [state, mounted, loadIssue, license, actions],
+    () => ({ state, mounted, loadIssue, license, saveError, dismissSaveError, clockWarning, dismissClockWarning, actions }),
+    [state, mounted, loadIssue, license, saveError, dismissSaveError, clockWarning, dismissClockWarning, actions],
   )
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>

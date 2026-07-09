@@ -25,7 +25,10 @@ export interface UseCanonicalStoreResult {
   mounted: boolean
 }
 
-export function useCanonicalStore(): UseCanonicalStoreResult {
-  const { value, setValue, mounted } = useLocalStorage(STORAGE_KEY, migratingSchema, DEFAULT_STATE)
+/** `onSaveError` is invoked when a persist fails (quota etc.) so the provider can surface it (PRD 8.7). */
+export function useCanonicalStore(onSaveError?: () => void): UseCanonicalStoreResult {
+  const { value, setValue, mounted } = useLocalStorage(STORAGE_KEY, migratingSchema, DEFAULT_STATE, {
+    onWriteError: onSaveError,
+  })
   return { state: value, setState: setValue, mounted }
 }

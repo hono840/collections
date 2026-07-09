@@ -7,7 +7,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, Zap, TrendingUp, TriangleAlert, FileDown, ShieldCheck, Check } from 'lucide-react'
-import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/site'
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, jsonLdString } from '@/lib/site'
 import { LANDING_FAQ } from '@/lib/content/faq'
 import { ctaClass } from '@/lib/utils/cta'
 import { Icon } from '@/components/atoms/Icon'
@@ -85,8 +85,8 @@ const faqJsonLd = {
 export default function HomePage() {
   return (
     <MarketingTemplate hero={<MarketingHero />}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(softwareJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(faqJsonLd) }} />
 
       {/* 使い方 3ステップ（wedge 解説） */}
       <section aria-labelledby="steps-heading" className="flex flex-col gap-8">

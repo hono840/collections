@@ -59,3 +59,32 @@ export function downloadRawText(rawText: string, filename: string): void {
   document.body.removeChild(anchor)
   URL.revokeObjectURL(url)
 }
+
+/** The three CSV export kinds (PRD 4.f). */
+export type CsvKind = 'menus' | 'ingredients' | 'breakdown'
+
+/** CSV filename: genka-dentaku-{kind}-YYYYMMDD.csv (local date), matching the backup convention. */
+export function csvFilename(kind: CsvKind, now: Date = new Date()): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `genka-dentaku-${kind}-${y}${m}${d}.csv`
+}
+
+/**
+ * Trigger a browser download of a CSV string (no-op outside the browser). The string already carries
+ * the leading UTF-8 BOM + CRLF that the builders emit (src/lib/export/csv.ts); charset=utf-8 keeps
+ * the BOM bytes so Excel (JP) opens it without mojibake.
+ */
+export function downloadCsv(csv: string, filename: string): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(url)
+}

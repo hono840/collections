@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DEFAULT_STATE } from '@/lib/storage/canonical-store'
 import type { CanonicalState } from '@/lib/domain/schema'
-import { buildExportEnvelope, serializeBackup, backupFilename, BACKUP_APP_MARKER } from './export-json'
+import { buildExportEnvelope, serializeBackup, backupFilename, csvFilename, BACKUP_APP_MARKER } from './export-json'
 import { parseBackup } from './import-json'
 
 function sampleState(): CanonicalState {
@@ -43,6 +43,13 @@ describe('export envelope', () => {
 
   it('builds a dated filename', () => {
     expect(backupFilename(new Date('2026-07-09T12:00:00.000Z'))).toBe('genka-dentaku-backup-20260709.json')
+  })
+
+  it('builds a dated CSV filename per kind (PRD 4.f)', () => {
+    const now = new Date('2026-07-09T12:00:00.000Z')
+    expect(csvFilename('menus', now)).toBe('genka-dentaku-menus-20260709.csv')
+    expect(csvFilename('ingredients', now)).toBe('genka-dentaku-ingredients-20260709.csv')
+    expect(csvFilename('breakdown', now)).toBe('genka-dentaku-breakdown-20260709.csv')
   })
 })
 

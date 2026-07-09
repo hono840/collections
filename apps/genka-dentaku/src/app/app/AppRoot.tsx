@@ -10,7 +10,8 @@
  * store is corrupt/future → OnboardingSheet on an empty first run → the normal shell.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { flushSync } from 'react-dom'
+import { Plus, TriangleAlert, X } from 'lucide-react'
 import {
   selectDashboardMenus,
   selectDashboardKpi,
@@ -21,9 +22,12 @@ import {
 import type { CanonicalState } from '@/lib/domain/schema'
 import { AppStateProvider, useAppState } from '@/lib/hooks/use-app-state'
 import { useLicense } from '@/lib/hooks/use-license'
-import { downloadBackup } from '@/lib/backup/export-json'
+import { downloadBackup, downloadCsv, csvFilename } from '@/lib/backup/export-json'
+import { buildMenusCsv, buildIngredientsCsv, buildBreakdownCsv } from '@/lib/export/csv'
+import { triggerPrint } from '@/lib/export/print'
 import { isEd25519Supported } from '@/lib/license/verify'
 import { Button } from '@/components/atoms/Button'
+import { Icon } from '@/components/atoms/Icon'
 import { Skeleton } from '@/components/atoms/Skeleton'
 import { Toast } from '@/components/molecules/Toast'
 import type {
@@ -39,7 +43,9 @@ import { IngredientListPanel } from '@/components/organisms/IngredientListPanel'
 import { IngredientFormSheet } from '@/components/organisms/IngredientFormSheet'
 import { RecipeEditor } from '@/components/organisms/RecipeEditor'
 import { SimulationPanel, type SimMenu } from '@/components/organisms/SimulationPanel'
-import { UpgradeGateBanner } from '@/components/organisms/UpgradeGateBanner'
+import { UpgradeGateBanner, type GateReason } from '@/components/organisms/UpgradeGateBanner'
+import { ExportPanel, type ExportGateReason } from '@/components/organisms/ExportPanel'
+import { PrintableMenuReport } from '@/components/organisms/PrintableMenuReport'
 import { OnboardingSheet } from '@/components/organisms/OnboardingSheet'
 import { SemaphoreLegend } from '@/components/organisms/SemaphoreLegend'
 import { SettingsPanel } from '@/components/organisms/SettingsPanel'
@@ -68,8 +74,53 @@ function SkeletonShell() {
   )
 }
 
+/** Persistent quota-save-failure notice with a JSON backup CTA (PRD 8.7). */
+function SaveErrorBanner({ onBackup, onDismiss }: { onBackup: () => void; onDismiss: () => void }) {
+  return (
+    <div role="alert" className="rounded-md border border-danger-fg bg-danger-bg p-3">
+      <div className="flex items-start gap-2">
+        <Icon icon={TriangleAlert} size="sm" className="mt-0.5 shrink-0 text-danger-fg" />
+        <div className="flex-1">
+          <p className="text-body-sm text-danger-fg">
+            保存に失敗しました（容量不足）。JSONバックアップを保存してからデータを整理してください。
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button variant="danger" onClick={onBackup}>
+              JSONバックアップを保存
+            </Button>
+            <Button variant="secondary" onClick={onDismiss}>
+              閉じる
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Session-dismissible clock-rollback info banner (PRD 5.4 / 裁定2 — non-blocking). */
+function ClockWarningBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div role="status" className="flex items-start gap-2 rounded-md border border-caution-solid bg-caution-bg p-3">
+      <Icon icon={TriangleAlert} size="sm" className="mt-0.5 shrink-0 text-caution-fg" />
+      <p className="text-body-sm flex-1 text-caution-fg">
+        端末の日時が過去に戻っています。ライセンスの状態が正しく表示されない場合があります。
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="閉じる"
+        className="shrink-0 rounded-sm p-1 text-caution-fg hover:bg-caution-solid/10"
+      >
+        <Icon icon={X} size="sm" />
+      </button>
+    </div>
+  )
+}
+
 function AppRootInner() {
-  const { state, mounted, loadIssue, actions } = useAppState()
+  const { state, mounted, loadIssue, actions, saveError, dismissSaveError, clockWarning, dismissClockWarning } =
+    useAppState()
   const license = useLicense()
   const { alertWarnThreshold: warn, alertDangerThreshold: danger } = state.settings
 
@@ -79,7 +130,8 @@ function AppRootInner() {
   const [ingredientSheet, setIngredientSheet] = useState<{ open: boolean; editingId: string | null }>({ open: false, editingId: null })
   const [sim, setSim] = useState<{ open: boolean; mode: 'single' | 'bulk'; menuId: string | null }>({ open: false, mode: 'single', menuId: null })
   const [legendOpen, setLegendOpen] = useState(false)
-  const [gateBanner, setGateBanner] = useState<'free-limit' | null>(null)
+  const [gateBanner, setGateBanner] = useState<GateReason | null>(null)
+  const [printing, setPrinting] = useState(false)
   const [dismissedOnboarding, setDismissedOnboarding] = useState(false)
   const [toast, setToast] = useState<ToastState>(null)
   const [recalc, setRecalc] = useState<{ visible: boolean; count: number }>({ visible: false, count: 0 })
@@ -136,6 +188,15 @@ function AppRootInner() {
   }, [toast])
 
   useEffect(() => () => { if (recalcTimer.current) clearTimeout(recalcTimer.current) }, [])
+
+  // PDF export (PRD 4.f): synchronously commit PrintableMenuReport, open the print dialog (window.print
+  // is blocking so the report is present for its duration), then unmount it. flushSync keeps this in
+  // the click handler (no setState-in-effect); Ctrl+P outside this flow still prints the app normally.
+  function handlePrintMenus() {
+    flushSync(() => setPrinting(true))
+    triggerPrint()
+    setPrinting(false)
+  }
 
   const showToast = (message: string, tone?: 'info' | 'success' | 'danger') => setToast({ message, tone })
 
@@ -252,6 +313,10 @@ function AppRootInner() {
         ? '食材'
         : '設定'
 
+  // The shared gateBanner state doubles as the export gate; narrow it to the export reasons.
+  const exportGate: ExportGateReason | null =
+    gateBanner === 'export-csv' || gateBanner === 'export-pdf' ? gateBanner : null
+
   let content: React.ReactNode
   if (inEditor && editingMenu && editingSummary) {
     const menuId = editingMenu.id
@@ -349,6 +414,19 @@ function AppRootInner() {
           setTab('dashboard')
           showToast('全データを消去しました')
         }}
+        exportSlot={
+          <ExportPanel
+            isPro={license.gate('export-csv')}
+            hasData={state.menus.length > 0 || state.ingredients.length > 0}
+            onExportMenusCsv={() => downloadCsv(buildMenusCsv(state), csvFilename('menus'))}
+            onExportIngredientsCsv={() => downloadCsv(buildIngredientsCsv(state), csvFilename('ingredients'))}
+            onExportBreakdownCsv={() => downloadCsv(buildBreakdownCsv(state), csvFilename('breakdown'))}
+            onPrintMenus={handlePrintMenus}
+            gateReason={exportGate}
+            onRequireUpgrade={(reason: ExportGateReason) => setGateBanner(reason)}
+            onDismissGate={() => setGateBanner(null)}
+          />
+        }
         backupSlot={
           <BackupPanel
             onExport={() => downloadBackup(state)}
@@ -449,24 +527,38 @@ function AppRootInner() {
     </>
   )
 
+  const hasNotice = Boolean(saveError || clockWarning)
+
   return (
-    <AppShell
-      header={<AppHeader title={headerTitle} onBack={inEditor ? () => setEditingMenuId(null) : undefined} />}
-      nav={
-        <BottomNav
-          active={tab}
-          onNavigate={(t) => {
-            setEditingMenuId(null)
-            setGateBanner(null)
-            setTab(t)
-          }}
-        />
-      }
-      fab={fab}
-      overlay={overlay}
-    >
-      {content}
-    </AppShell>
+    <>
+      {/* While printing, hide the app chrome so only PrintableMenuReport (print:block) is output. */}
+      <div className={printing ? 'print:hidden' : undefined}>
+        <AppShell
+          header={<AppHeader title={headerTitle} onBack={inEditor ? () => setEditingMenuId(null) : undefined} />}
+          nav={
+            <BottomNav
+              active={tab}
+              onNavigate={(t) => {
+                setEditingMenuId(null)
+                setGateBanner(null)
+                setTab(t)
+              }}
+            />
+          }
+          fab={fab}
+          overlay={overlay}
+        >
+          {hasNotice && (
+            <div className="mb-4 flex flex-col gap-3">
+              {saveError && <SaveErrorBanner onBackup={() => downloadBackup(state)} onDismiss={dismissSaveError} />}
+              {clockWarning && <ClockWarningBanner onDismiss={dismissClockWarning} />}
+            </div>
+          )}
+          {content}
+        </AppShell>
+      </div>
+      {printing && <PrintableMenuReport summaries={summaries} />}
+    </>
   )
 }
 

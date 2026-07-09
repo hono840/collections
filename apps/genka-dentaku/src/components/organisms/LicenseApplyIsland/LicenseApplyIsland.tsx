@@ -36,6 +36,9 @@ export function LicenseApplyIsland({ className }: LicenseApplyIslandProps) {
       return
     }
     if (result.status === 'unsupported') {
+      // 署名検証が動かないブラウザでも、購入者がキーを失わないよう端末内に保持する
+      // （対応ブラウザで開き直せば再検証で解錠・architecture §6.2 / AppStateProvider と同等の挙動）。
+      setState((prev) => ({ ...prev, license: { ...prev.license, key } }))
       setStatus('unsupported')
       return
     }

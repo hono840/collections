@@ -35,13 +35,20 @@ export function getItem<T>(key: string, schema: ZodType<T>): T | null {
   return result.success ? result.data : null
 }
 
-/** Write a value. Failures (quota etc.) are swallowed. */
-export function setItem<T>(key: string, value: T): void {
-  if (!hasWindow()) return
+/**
+ * Write a value. Returns `true` on success and `false` when the write failed (quota etc.).
+ * The boolean lets a caller surface the failure (use-local-storage → the quota banner, PRD 8.7);
+ * callers that ignore the return keep the prior silent semantics. A no-op under SSR counts as
+ * "nothing to surface" (`true`) — the failure signal is reserved for a real, attempted write.
+ */
+export function setItem<T>(key: string, value: T): boolean {
+  if (!hasWindow()) return true
   try {
     window.localStorage.setItem(key, JSON.stringify(value))
+    return true
   } catch {
-    // QuotaExceededError etc. ignored (canonical-store.saveCanonicalState surfaces quota explicitly)
+    // QuotaExceededError etc.: don't throw (keeps the prior stored value intact); report via boolean.
+    return false
   }
 }
 

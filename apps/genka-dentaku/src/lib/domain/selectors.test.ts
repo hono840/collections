@@ -12,7 +12,6 @@ import {
 
 function ing(overrides: Partial<Ingredient> & { id: string }): Ingredient {
   return {
-    id: overrides.id,
     name: overrides.id,
     purchasePriceExTax: 1,
     inputPrice: 1,

@@ -39,6 +39,29 @@ describe('LicenseApplyIsland', () => {
     expect(screen.getByRole('link', { name: 'アプリを開く' })).toHaveAttribute('href', '/app')
   })
 
+  it('persists the key on an unsupported browser so the buyer does not lose it', async () => {
+    mockVerify.mockResolvedValue({
+      status: 'unsupported',
+      plan: null,
+      issuedAt: null,
+      expiresAt: null,
+      isPro: false,
+      inGrace: false,
+      daysRemaining: null,
+    })
+    const user = userEvent.setup()
+    render(<LicenseApplyIsland />)
+
+    await user.type(await screen.findByLabelText('ライセンスキー'), 'GENKA-UNSUPPORTED-KEY')
+    await user.click(screen.getByRole('button', { name: '解錠' }))
+
+    // 非対応メッセージが出る。
+    expect(await screen.findByText('このブラウザではライセンスを確認できません')).toBeInTheDocument()
+    // それでもキーは端末内に保持される（対応ブラウザで再検証できるように）。
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(saved.license.key).toBe('GENKA-UNSUPPORTED-KEY')
+  })
+
   it('shows an error and does not persist an invalid key', async () => {
     mockVerify.mockResolvedValue({
       status: 'invalid',

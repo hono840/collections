@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { STORAGE_KEY } from '@/lib/constants/storage-keys'
 import { DEFAULT_STATE } from '@/lib/storage/canonical-store'
@@ -36,6 +36,23 @@ describe('useCanonicalStore', () => {
 
     const { result } = renderHook(() => useCanonicalStore())
     expect(result.current.state.meta).toEqual({ onboardingDone: true, sampleSeeded: true })
+  })
+
+  it('invokes onSaveError and keeps the prior value when a persist fails (quota, PRD 8.7)', () => {
+    const onSaveError = vi.fn()
+    const { result } = renderHook(() => useCanonicalStore(onSaveError))
+
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError')
+    })
+    act(() => {
+      result.current.setState((prev) => ({ ...prev, meta: { ...prev.meta, sampleSeeded: true } }))
+    })
+
+    expect(onSaveError).toHaveBeenCalledOnce()
+    // The failed write must not silently revert/corrupt: state stays at the prior value.
+    expect(result.current.state.meta.sampleSeeded).toBe(false)
+    spy.mockRestore()
   })
 
   it('reflects a cross-tab storage event', () => {

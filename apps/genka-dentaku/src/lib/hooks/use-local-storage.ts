@@ -25,6 +25,12 @@ export interface UseLocalStorageResult<T> {
   mounted: boolean
 }
 
+/** Optional hooks-behaviour options (kept optional so existing 3-arg callers are unaffected). */
+export interface UseLocalStorageOptions {
+  /** Called when a persist attempt fails (quota etc.) so the caller can surface it (PRD 8.7). */
+  onWriteError?: () => void
+}
+
 /** Per-key listener sets (same-tab sync). */
 const listeners = new Map<string, Set<() => void>>()
 
@@ -69,7 +75,9 @@ export function useLocalStorage<T>(
   key: string,
   schema: ZodType<T>,
   defaultValue: T,
+  options?: UseLocalStorageOptions,
 ): UseLocalStorageResult<T> {
+  const onWriteError = options?.onWriteError
   // Client value snapshot. Returns the same reference when the raw string is unchanged.
   const getSnapshot = useCallback((): T => {
     const raw =
@@ -110,12 +118,18 @@ export function useLocalStorage<T>(
     (next: T | ((prev: T) => T)) => {
       const prev = getSnapshot()
       const resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next
-      safeStorage.set(key, resolved)
+      const ok = safeStorage.set(key, resolved)
+      if (!ok) {
+        // Persist failed (quota etc.): the prior stored value is untouched. Surface it and skip the
+        // notify — re-reading would revert the UI to the old value with no explanation (PRD 8.7).
+        onWriteError?.()
+        return
+      }
       // Invalidate the cache so the next getSnapshot re-reads.
       snapshotCache.delete(key)
       notify(key)
     },
-    [key, getSnapshot],
+    [key, getSnapshot, onWriteError],
   )
 
   return { value, setValue, mounted }

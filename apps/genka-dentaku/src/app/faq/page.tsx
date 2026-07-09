@@ -5,6 +5,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { FAQ_ITEMS } from '@/lib/content/faq'
+import { jsonLdString } from '@/lib/site'
 import { ctaClass } from '@/lib/utils/cta'
 import { FaqAccordion } from '@/components/organisms/FaqAccordion'
 import { MarketingTemplate } from '@/components/templates/MarketingTemplate'
@@ -29,7 +30,7 @@ const faqJsonLd = {
 export default function FaqPage() {
   return (
     <MarketingTemplate>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(faqJsonLd) }} />
       <div className="mx-auto flex max-w-3xl flex-col gap-8">
         <div className="flex flex-col gap-2">
           <h1 className="text-h1 font-bold text-ink sm:text-hero">よくある質問</h1>

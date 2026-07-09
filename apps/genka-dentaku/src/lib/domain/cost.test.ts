@@ -6,7 +6,6 @@ import { effectiveUnitPrice, lineCost, menuCost, costRate, grossMargin } from '.
 
 function ing(overrides: Partial<Ingredient> & { id: string }): Ingredient {
   return {
-    id: overrides.id,
     name: 'x',
     purchasePriceExTax: 0,
     inputPrice: 0,

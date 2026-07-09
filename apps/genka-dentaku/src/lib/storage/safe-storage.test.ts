@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { z } from 'zod'
 import { getItem, setItem, removeItem } from './safe-storage'
 
@@ -12,6 +12,19 @@ describe('safe-storage', () => {
   it('round-trips a validated value', () => {
     setItem('k', { n: 1, s: 'a' })
     expect(getItem('k', schema)).toEqual({ n: 1, s: 'a' })
+  })
+
+  it('returns true on a successful write', () => {
+    expect(setItem('k', { n: 1, s: 'a' })).toBe(true)
+  })
+
+  it('returns false (does not throw) when the write fails, e.g. quota exceeded (PRD 8.7)', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError')
+    })
+    expect(() => setItem('k', { n: 1, s: 'a' })).not.toThrow()
+    expect(setItem('k', { n: 1, s: 'a' })).toBe(false)
+    spy.mockRestore()
   })
 
   it('returns null for a missing key', () => {
