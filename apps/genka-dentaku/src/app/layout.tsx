@@ -1,46 +1,37 @@
 import type { Metadata, Viewport } from 'next'
+import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, SITE_KEYWORDS } from '@/lib/site'
 import './globals.css'
 
-/**
- * OGP / canonical の絶対URL解決に使う基底。
- * sitemap.ts・robots.ts と同じ NEXT_PUBLIC_SITE_URL を優先し、未設定時は本番ドメインへフォールバック
- * （architecture §8.2 / §11.4）。末尾スラッシュは除去する。
- */
-const siteUrl = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://genka-dentaku.com'
-).replace(/\/$/, '')
-
-const siteName = '原価電卓'
-const siteTitle = '原価電卓 — 飲食店のメニュー原価計算ツール'
-// H1（原文固定・architecture §8.1）をディスクリプションに用いる。
-const siteDescription = '仕入れ値を1つ直すだけで、全メニューの原価率が即再計算。'
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  // metadataBase により OGP / canonical の相対パスが絶対URLへ解決される（architecture §8.2 / §11.4）。
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: siteTitle,
+    default: SITE_TITLE,
     template: '%s | 原価電卓',
   },
-  description: siteDescription,
-  applicationName: siteName,
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [...SITE_KEYWORDS],
+  // 既定 canonical は '/'（各ページは自前の alternates.canonical で上書き）。
+  alternates: { canonical: '/' },
   appleWebApp: {
     capable: true,
-    title: siteName,
+    title: SITE_NAME,
     statusBarStyle: 'default',
   },
-  // OG 画像（src/app/opengraph-image.tsx）は後続ステップで追加し、Next.js が自動で og:image に紐付ける。
+  // OG 画像は src/app/opengraph-image.tsx（ImageResponse）を Next.js が自動で og:image に紐付ける。
   openGraph: {
     type: 'website',
     locale: 'ja_JP',
-    siteName,
-    title: siteTitle,
-    description: siteDescription,
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: '/',
   },
   twitter: {
     card: 'summary_large_image',
-    title: siteTitle,
-    description: siteDescription,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
 }
 
