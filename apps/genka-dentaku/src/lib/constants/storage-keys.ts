@@ -11,8 +11,6 @@ export const STORAGE_BACKUP_KEY = 'genka-dentaku:backup'
 
 /**
  * マイグレーションの基準となるスキーマ版。
- * STEP 2 で `@/lib/domain/schema.ts` に zod スキーマ（CURRENT_SCHEMA_VERSION）を定義後、
- * そちらを単一の正として re-export に置き換える（architecture §4.1）。
- * それまでは足場として本ファイルで定義する。
+ * 単一の正は `@/lib/domain/schema.ts`（型契約の源）に定義。既存 import を壊さぬよう re-export する（architecture §4.1）。
  */
-export const CURRENT_SCHEMA_VERSION = 1 as const
+export { CURRENT_SCHEMA_VERSION } from '@/lib/domain/schema'
