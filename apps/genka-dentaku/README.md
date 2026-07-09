@@ -169,6 +169,7 @@ pnpm mint-key -- mint --plan annual --ref <注文ID>
 | [技術アーキテクチャ](./docs/product/genka-dentaku-architecture.md) | ファイル構成・型契約（zod）・純関数・ビルド／デプロイ |
 | [市場分析](./docs/strategy/genka-dentaku-market-analysis.md) | wedge・競合・獲得計画 |
 | [コスト見積もり](./docs/finance/genka-dentaku-costs.md) | 固定費・価格・P&L |
+| [セッション引き継ぎ](./docs/genka-dentaku-handoff.md) | 現状・意思決定記録・ローンチ手順・バックログ・再開手順 |
 
 ---
 
