@@ -309,7 +309,7 @@ export type LicensePayload = z.infer<typeof licensePayloadSchema>
 ```
 
 **設計上の要点（制約 C3/C4 との整合）**
-- **税抜正規化の永続**は PRD 第0.3/9章の明示要求（「内部保存は常に税抜に正規化」）。`purchasePriceExTax`/`sellPriceExTax` を保存し、`inputPrice`/`priceIncludesTax`/`taxRate` を再表示用に併持する。**ドリフト防止**：正規化は単一の純関数 `toExTax()`（第5章）を write パスでのみ呼び、インポート/マイグレーション時にも入力メタから再正規化する。
+- **税抜正規化の永続**は PRD 第0.3/9章の明示要求（「内部保存は常に税抜に正規化」）。`purchasePriceExTax`/`sellPriceExTax` を保存し、`inputPrice`/`priceIncludesTax`/`taxRate` を再表示用に併持する。**ドリフト防止**：正規化は単一の純関数 `toExTax()`（第5章）を write パスでのみ呼び、インポート/マイグレーション時にも入力メタから再正規化する。exTax 系フィールドの書き込み箇所（writer）はこの正規化経路の1箇所に限定し、**不変条件テスト `purchasePriceExTax === toExTax(inputPrice, priceIncludesTax, taxRate)`（sellPriceExTax も同様）** を storage/import のテストに追加してドリフト級のバグを機械的に検出する（CTOレビュー指摘2）。
 - **wedge 派生値（有効単価・原価・原価率・粗利・信号色・順位）は永続しない**（C4 の核心）。`licenseSchema` の `plan/exp/status` も同様に非永続＝署名検証で都度導出（耐タンパー）。
 - **PRD 第9章との差分**: PRD の License 表は `plan/issuedAt/expiresAt/status` を保存フィールドとして列挙するが、本設計はそれらを**キーからの派生**として毎回検証で得る（手編集による Pro 詐称を防ぐ）。エンティティ名・他フィールドは PRD に完全一致。
 
@@ -366,7 +366,7 @@ export function saveCanonicalState(state: CanonicalState): void // QuotaExceeded
 export function resetCanonicalState(): CanonicalState           // DEFAULT_STATE を書込み返す
 ```
 
-- **復旧フロー**: `AppStateProvider` はマウント時に `loadCanonicalState()` を1度実行。`corrupt`/`future` の場合、いかなる mutation よりも先に **`DataRecoveryDialog`（organism）** を表示し、(1) **破損データを JSON でダウンロード**（生 `rawText`）→ (2) `:backup` へ退避 → (3) **リセットして最初から** or **JSON バックアップから復元**、の順に導く。`ok`/`empty` のみ通常起動。ホワイトスクリーンにしない・黙って上書きしない。
+- **復旧フロー**: `AppStateProvider` はマウント時に `loadCanonicalState()` を1度実行。`corrupt`/`future` の場合、いかなる mutation よりも先に **`DataRecoveryDialog`（organism）** を表示し、(1) **破損データを JSON でダウンロード**（生 `rawText`）→ (2) `:backup` へ退避 → (3) **リセットして最初から** or **JSON バックアップから復元**、の順に導く。`ok`/`empty` のみ通常起動。ホワイトスクリーンにしない・黙って上書きしない。**ゲーティング保証（CTOレビュー指摘3）**: `AppStateProvider` は `DataRecoveryDialog` が解決（退避・エクスポート・リセット/復元のいずれか完了）するまで**全 mutation と `saveCanonicalState` をゲート**する。これにより破損 raw が反応系フック（§4.4 の黙殺フォールバック既定値）経由で上書き保存される事故を構造的に防ぐ — 分類ロード（§4.3）が常に反応系ストア（§4.4）より先に走る。
 
 ### 4.4 永続ストアフック（制約 C10・状態管理方針）
 
@@ -683,7 +683,7 @@ export function useLicense(): LicenseStatus & {
 
 ### 8.2 メタデータ規約（静的エクスポート版・手本と同じ書き方）
 - `sitemap.ts`/`robots.ts`/`manifest.ts` は**同期関数**（手本の `async`＋`getRepository()` と違いデータ取得不要）。`baseUrl` は **`NEXT_PUBLIC_SITE_URL`** を優先し末尾スラッシュ除去、未設定時は本番ドメインにフォールバック（手本と同じ書式）。
-- `sitemap.ts` の対象は上表の index ルートのみ（`/app`・`/legal/*` は除外 or 低優先）。
+- `sitemap.ts` の対象は上表の index ルート全部（`/legal/*` は **priority 0.2 の低優先で掲載** — index 指定との整合を取る。CTOレビュー指摘5）。`/app` のみ除外（noindex）。
 - `layout.tsx` は `metadataBase = new URL(siteUrl)`、`title.template`、`viewport.themeColor`（design-spec のネイビー `#1E3A5F`）を設定。**webフォントの `next/font` は使わない**（§1.2）。
 
 ### 8.3 SEO キーワード割付（strategy ブリーフのクラスタ → ページ）
@@ -790,7 +790,7 @@ export default nextConfig
 - **date-fns は入れない**（手本にはあるが除外）。**新規 runtime 依存＝0**。
 
 ### 12.2 devDependencies（手本ミラー）
-`vitest ^4.1.7`, `@testing-library/{react,jest-dom,user-event}`, `jsdom`, `@playwright/test`, `@tailwindcss/postcss ^4`, `tailwindcss ^4`, `typescript ^5`, `@types/{node,react,react-dom}`, `eslint ^9`, `eslint-config-next 16.2.6`, `only-allow`（preinstall）。`@types/node` は手本どおり `^20`（`.mts` の `node:crypto`/Ed25519 は Node12+ の型で表現可。厳密に手本ミラー。必要なら `^22` へ引き上げ可）。
+`vitest ^4.1.7`, `@testing-library/{react,jest-dom,user-event}`, `jsdom`, `@playwright/test`, `@tailwindcss/postcss ^4`, `tailwindcss ^4`, `typescript ^5`, `@types/{node,react,react-dom}`, `eslint ^9`, `eslint-config-next 16.2.6`, `only-allow`（preinstall）。`@types/node` は **`^22` を採用**（CTOレビュー指摘4: mint スクリプトが Node 22 依存 — crypto Ed25519・type stripping — のため型精度を優先。dev 限定で安全。carskiida も `^25` を採用済みで手本からの引き上げに前例あり）。
 
 ### 12.3 「新依存ゼロ」の証明（要求機能 × 実現手段）
 
@@ -816,8 +816,8 @@ export default nextConfig
 feature 単位で Red→Green→Refactor が回る依存順。**土台→ドメイン→永続化→UI原子→ツール→ライセンス→エクスポート→SEO→E2E**。
 
 1. **足場**: package.json / tsconfig（`**/*.mts` include）/ `next.config`（`output:'export'`）/ postcss / eslint / vitest / playwright / pnpm-workspace / .gitignore（`/.secrets/`）/ `layout.tsx`（webフォント無し）/ `globals.css`（design-spec §2 の `@theme`）/ constants。*Green*: `pnpm build` が out/ を生成、ダミー1テスト通過。
-2. **ドメイン純関数（TDD）**: `units`→`tax`→`rounding`→`cost`→`simulation`→`alert`→`selectors`。PRD の検証例を先に失敗テスト化してから実装。
-3. **zod スキーマ**: `schema.ts`（`z.infer` 型）。検証・境界（歩留まり0/購入量0/閾値逆転）テスト。
+2. **zod スキーマ（型契約を先行）**: `schema.ts`（`z.infer` 型）。検証・境界（歩留まり0/購入量0/閾値逆転）テスト。※純関数は `Ingredient`/`Menu`/`Unit` 等の型を schema.ts から import するため、型定義を先に置く（CTOレビュー指摘: 依存順序の是正）。
+3. **ドメイン純関数（TDD）**: `units`→`tax`→`rounding`→`cost`→`simulation`→`alert`→`selectors`。PRD の検証例を先に失敗テスト化してから実装。zod 実行時検証テストも本ステップと並走。
 4. **永続化**: `safe-storage`（手本ミラー）→`migrations`→`canonical-store`（load 分類/quarantine/save/quota）→`use-local-storage`（手本）→`use-canonical-store`→`AppStateProvider`＋actions。破損/未来版/cross-tab テスト。
 5. **ライセンス**: `keys`（埋め込み公開鍵）→`codec`（base64url/固定長分解）→`verify`（Ed25519・active/grace/expired/invalid/unsupported）→`use-license`→`scripts/mint-license-key.mts`（keygen/mint、フィクスチャ生成）。
 6. **atoms（TDD 各個）**: Button→入力系（TextInput/NumberInput/UnitSelect/Select/SegmentedControl/Toggle/Slider/Checkbox）→表示系（Icon/Badge/StatusDot/Label/HelperText/Spinner/Skeleton/Divider/Chip）。
