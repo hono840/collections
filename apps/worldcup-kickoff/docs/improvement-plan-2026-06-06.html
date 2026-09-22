@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>キックオフ 改修プラン｜受け渡し問題の解決 + 拡張要素 (2026-06-06)</title>
+<style>
+  :root{
+    --pitch:#0b7a3b; --pitch-700:#085f2e; --pitch-50:#eaf6ee;
+    --gold:#f4c430; --kickoff:#e2231a;
+    --bg:#fafaf7; --surface:#ffffff; --text:#1a1a1a; --muted:#6b7280; --border:#e5e7eb;
+    --warn:#b45309;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Hiragino Sans","Noto Sans JP",system-ui,-apple-system,sans-serif;
+    line-height:1.8;font-size:15px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px 80px}
+  header.hero{background:linear-gradient(135deg,var(--pitch),var(--pitch-700));color:#fff;
+    padding:40px 20px;margin-bottom:32px;border-bottom:5px solid var(--gold)}
+  header.hero .inner{max-width:960px;margin:0 auto}
+  header.hero h1{margin:0 0 6px;font-size:26px;letter-spacing:.02em}
+  header.hero p{margin:4px 0 0;opacity:.92;font-size:14px}
+  .pill{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+    border-radius:999px;padding:2px 12px;font-size:12px;margin-top:12px}
+  h2{font-size:21px;margin:44px 0 8px;padding-bottom:8px;border-bottom:2px solid var(--pitch);color:var(--pitch-700)}
+  h2 .num{display:inline-block;background:var(--pitch);color:#fff;border-radius:8px;
+    padding:1px 10px;font-size:14px;margin-right:10px;vertical-align:middle}
+  h3{font-size:17px;margin:26px 0 6px;color:var(--text)}
+  h4{font-size:15px;margin:18px 0 4px;color:var(--pitch-700)}
+  p{margin:8px 0}
+  code{background:#f1f3f0;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  ul,ol{margin:8px 0 8px;padding-left:22px}
+  li{margin:5px 0}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin:14px 0;
+    box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card.crit{border-left:5px solid var(--kickoff)}
+  .card.warn{border-left:5px solid var(--gold)}
+  .card.ok{border-left:5px solid var(--pitch)}
+  .tag{display:inline-block;border-radius:999px;font-size:11px;font-weight:700;padding:2px 10px;margin-right:6px}
+  .tag.p0{background:#fde8e6;color:var(--kickoff)} .tag.p1{background:#fef3cd;color:var(--warn)}
+  .tag.p2{background:var(--pitch-50);color:var(--pitch-700)}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px}
+  th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--pitch-50);color:var(--pitch-700)}
+  .sum{background:#fff;border:1px solid var(--border);border-radius:16px;padding:6px 20px;margin:0 0 8px}
+  .bad{color:var(--kickoff);font-weight:700}
+  .small{font-size:12.5px;color:var(--muted)}
+  .kbd{font-family:ui-monospace,monospace;background:#fff;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:0 6px;font-size:12px}
+  hr{border:none;border-top:1px dashed var(--border);margin:30px 0}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="inner">
+    <h1>⚽ キックオフ — 改修プラン</h1>
+    <p>① 最優先：エージェント受け渡しで止まった問題の解決　② 拡張3要素の改修方針</p>
+    <p class="small" style="color:#dfeee5">対象: apps/worldcup-kickoff（2026 W杯 初心者向け観戦ガイド）／ 作成: 2026-06-06 ／ オーケストレーター(CEO)レビュー</p>
+    <span class="pill">社内改善ドキュメント</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+<div class="sum">
+<h3 style="margin-top:14px">エグゼクティブサマリー</h3>
+<ul>
+<li><span class="bad">最重大</span>：開発中に幾度も「作業が止まって見えた」原因は <b>オーケストレーター（私）のツール呼び出しが実行されずにターンが終了していた</b>こと。サブエージェントの品質ではなく <b>受け渡しの“配線”ミス</b>。3類型に分類し再発防止策（運用規律＋構造的対策＝Workflow）を提示。</li>
+<li>拡張①<b>worldcupapi.com</b>：ライブスコア用途で有望だが <b>無料枠・料金・ライセンス・サンプルがすべて「記載なし」</b>＋オッズ中心。現状の openfootball 静的データ（無料・完全・稼働中）を source of truth に維持し、ライブは <b>既存の repository 抽象化で任意差し替え</b>。</li>
+<li>拡張②<b>tier根拠の明記</b>：「優勝候補/ダークホース/チャレンジャー」は表示済みだが <b>理由・基準がない</b>。基準ドキュメント＋各国の一言根拠＋バッジから開く凡例モーダルで導线を引く。</li>
+<li>拡張③<b>PCの左右余白</b>：<code>max-w-[480px]</code> 中央寄せでデスクトップが寂しい。<b>lg+ で装飾aside</b>（自作SVG/CSSのW杯モチーフ）を追加。モバイルは現状維持。</li>
+<li>体制：<b>UI/UX デザイナー専任が不在</b>。<code>frontend-design</code> プラグイン（導入済み確認）を活用し <code>ui-ux-designer</code> エージェント新設を提案。</li>
+</ul>
+</div>
+
+<h2><span class="num">1</span>【最優先】エージェント受け渡しで止まった問題</h2>
+
+<h3>1-1. 観測された症状</h3>
+<div class="card crit">
+<ul>
+<li>「今から起動します／再起動します」と <b>宣言した直後に何も起こらず</b>、ユーザーに <span class="kbd">動いてる？</span> <span class="kbd">また止まったよね</span> と複数回確認させてしまった。</li>
+<li>フェーズの境目（例：サブエージェントへの指示文「…10行以内で報告」を書いた直後）で進行が止まって見えた。</li>
+<li>引き継ぎの取り違え：「<b>もう委譲は不要、次は最終検証</b>」と言いながら、直後に「<b>最新ビルドで起動し直したい</b>」＝残作業があるのに着手せずターンを終えた。</li>
+<li>体制面：UI/UX デザイン専任がおらず、見た目・装飾の判断が場当たりになりがち。</li>
+</ul>
+</div>
+
+<h3>1-2. 根本原因（3類型）</h3>
+<div class="card crit">
+<h4>原因A：ツール呼び出しエンベロープの破損（最頻・最重大）</h4>
+<p>ツール呼び出しを <b>正規の関数呼び出し構造</b> ではなく、見た目だけ似た <b>“ただのテキスト”として出力</b> してしまった。結果、ターンが「発言だけ」で終了し、サブエージェントもコマンドも <b>起動されない</b>。エラーにもならないため、外からは「宣言したまま無言で停止」に見えた。<br>
+<span class="small">※ 正しい構造で送った同じ指示は毎回成功している。つまり指示内容ではなく <b>送信形式</b> の問題。</span></p>
+</div>
+<div class="card warn">
+<h4>原因B：特殊文字によるパースエラー（"malformed and could not be parsed"）</h4>
+<p>ツール引数の値に以下が含まれると呼び出しのパースに失敗した：</p>
+<ul>
+<li>角括弧 <code>[ ]</code>（例：Tailwind の <code>max-w-[480px]</code> や webkit セレクタをプロンプト本文に直書き）</li>
+<li>複雑なシェル一行：バックグラウンド <code>&amp;</code>、<code>%{http_code}</code> 書式、<code>for … do … done</code> ループの併用</li>
+</ul>
+<p>→ 角括弧を外し、シェルを単純化したら <b>即成功</b>。再現性のある原因。</p>
+</div>
+<div class="card warn">
+<h4>原因C：「予告して終了」アンチパターン＋失敗時に再試行しない</h4>
+<p>「今から起動します」を <b>発言の最後</b> に置き、ツール呼び出しを同一ターンに含めない／結果を待たずに終える運用だった。Aで実行に失敗しても <b>自動で直して送り直さず</b> ユーザー入力待ちになり、停止が長引いた。引き継ぎ宣言と実残作業のズレの遠因にも。</p>
+</div>
+
+<h3>1-3. 解決策</h3>
+<table>
+<tr><th>#</th><th>対策</th><th>内容</th><th>効く原因</th></tr>
+<tr><td>S1</td><td><b>予告と実行を同一ターンに</b></td><td>「起動します」で発言を終えない。必ずツール呼び出しでターンを終える。実行→結果確認→次のループを厳守。</td><td>A,C</td></tr>
+<tr><td>S2</td><td><b>特殊文字の回避</b></td><td>Agent/Bash 引数に角括弧・Tailwind arbitrary 値・複雑シェルを直書きしない。シェルは一時スクリプト化、Tailwind 値はプレーン文で説明。</td><td>B</td></tr>
+<tr><td>S3</td><td><b>失敗の即時リトライ</b></td><td>"malformed" や無実行を検知したら同一ターンで形式を直して即再送。「止まった？」と言わせない。</td><td>A,B</td></tr>
+<tr><td>S4</td><td><b>Workflow での決定論的オーケストレーション</b></td><td>多段委譲（/new-app 相当）は <code>Workflow</code> スクリプト（pipeline/parallel）で1スクリプトに固めて自動実行し、人手のシリアライズミスを原理的に排除。<span class="small">※ 明示オプトイン前提。</span></td><td>A,C</td></tr>
+<tr><td>S5</td><td><b>完了条件の明示</b></td><td>各委譲後に結果が返ったか確認してから次へ。宣言と残作業を取り違えず、宣言したらその場で着手。</td><td>C</td></tr>
+<tr><td>S6</td><td><b>UI/UX デザイナー新設</b></td><td>CPO 配下に <code>ui-ux-designer</code> を新設し、導入済み <code>frontend-design</code> を活用。視覚・装飾・一貫性を専任化。</td><td>体制</td></tr>
+</table>
+
+<h3>1-4. 再発防止チェックリスト</h3>
+<div class="card ok">
+<ol>
+<li>ツール呼び出しは正規構造で1ブロックずつ。発言の締めは実行か結果報告。</li>
+<li>引数に <code>[ ]</code>・生の <code>&amp;</code>・<code>%{…}</code>・ループを入れない。必要ならスクリプト化。</li>
+<li>呼び出しが実行されなかったらそのターン内で直して再送（持ち越さない）。</li>
+<li>「次は◯◯」と言ったら同じターンでその一歩を実行する。</li>
+<li>3段以上の委譲は <code>Workflow</code> を検討。</li>
+<li>各サブエージェント完了時は結果を一行で再陳述してから次へ。</li>
+</ol>
+</div>
+
+<h2><span class="num">2</span>拡張要素の改修プラン</h2>
+
+<h3>2-1. <span class="tag p1">P1</span>worldcupapi.com 連携の調査と方針</h3>
+<table>
+<tr><th>観点</th><th>内容</th></tr>
+<tr><td>データ種別</td><td>ライブスコア／予定試合・ラインナップ・試合前統計／過去データ・対戦成績／<b>ライブオッズ（賭けオッズ）</b></td></tr>
+<tr><td>2026 W杯</td><td>「FIFA World Cup 2026」と明記（開催国の詳細は記載なし）</td></tr>
+<tr><td>形式</td><td>RESTful・JSON。"sub-second"・リアルタイムを標榜</td></tr>
+<tr><td>認証/料金</td><td><b>API キー必須</b>。<span class="bad">無料枠・料金は「記載なし」</span></td></tr>
+<tr><td>サンプル/規約</td><td><span class="bad">レスポンス例・利用規約・ライセンスはすべて「記載なし」</span></td></tr>
+</table>
+<div class="card warn">
+<h4>判定と懸念</h4>
+<ul>
+<li><span class="bad">不透明</span>：料金・無料枠・ライセンス・サンプル未記載で依存先としての信頼性を評価できない。</li>
+<li><b>オッズ中心</b>：本アプリは初心者向け・非賭博。オッズは不要かつ規約/年齢/地域規制の観点で避けたい。</li>
+<li>現状の <code>openfootball/world-cup.json</code>（無料・パブリックドメイン・48カ国/104試合/16会場 完備・稼働中）が依然最良の土台。</li>
+</ul>
+</div>
+<div class="card ok">
+<h4>方針（既存設計を活かす）</h4>
+<ol>
+<li>静的データを source of truth に維持。<code>WorldCupRepository</code> 抽象化によりライブAPIは後付けで差し替え可能（<code>liveRepository</code>）。順位計算は <code>computeStandings()</code> に隔離済みで置換も容易。</li>
+<li>フェーズ1（開幕前〜）：静的のまま。結果反映は手動 or 後日。追加コスト 0。</li>
+<li>フェーズ2（開幕後・任意）：ライブスコアのみ追加。<b>無料枠・規約が明示</b>された <b>football-data.org</b>（第一候補）／ <b>API-Football</b>（$19・15秒更新）を優先。worldcupapi.com は料金・ToS・サンプル確認後。オッズは使わない。</li>
+<li>オッズ・賭博系は本アプリでは扱わない方針を明文化。</li>
+</ol>
+<p class="small">担当：CFO/cost-analyzer（料金確認）→ backend-developer → security/supply-chain。</p>
+</div>
+
+<h3>2-2. <span class="tag p0">P0</span>tier（優勝候補/ダークホース/チャレンジャー）の根拠を明記</h3>
+<ul>
+<li>現状：バッジは <code>CountryListItem</code> で表示（favorite→優勝候補 / darkhorse→ダークホース / underdog→チャレンジャー）。割当ては <code>src/data/countries-content.json</code> に手動。<span class="bad">「なぜその tier か」「各 tier の意味」が示されていない</span>。</li>
+</ul>
+<div class="card ok">
+<h4>改修プラン</h4>
+<ol>
+<li><b>(基準の明文化)</b>
+  <ul>
+  <li><span class="dot" style="background:var(--gold)"></span><b>優勝候補</b>：優勝経験・FIFAランク上位・近年の安定実績（ブラジル/アルゼンチン/フランス/スペイン/イングランド…）</li>
+  <li><span class="dot" style="background:var(--pitch)"></span><b>ダークホース</b>：上位を脅かす実力・勢い（モロッコ/日本/アメリカ…）</li>
+  <li><span class="dot" style="background:#9ca3af"></span><b>チャレンジャー</b>：初出場や格上への挑戦（キュラソー/カーボベルデ/ヨルダン/ウズベキスタン…）</li>
+  </ul></li>
+<li><b>(データ追加)</b> <code>countries-content.json</code> に各国 <code>tierReasonJa</code>（一言の理由）を48カ国分追加。型 <code>Team</code>・repository マージにも反映。</li>
+<li><b>(UI と導线)</b> <code>TierLegend</code> を新設（モーダル or <code>/countries</code> 上部の凡例）。3 tier の意味＋基準を解説。<b>バッジ tap → 凡例モーダル</b>（<code>TermPopover</code> 作法を踏襲）。国詳細に「<b>なぜ◯◯？</b>」= <code>tierReasonJa</code> を表示。</li>
+<li><b>(注記)</b>「初心者向けの目安・編集部の主観」と明記し序列の断定と誤解されないように。</li>
+</ol>
+<p class="small">担当：content-creator（基準文＋48カ国 tierReasonJa）／ ui-ux-designer＋frontend-developer（凡例UI・導线）／ backend-developer（型＋repository）。</p>
+</div>
+
+<h3>2-3. <span class="tag p1">P1</span>PC 表示の左右余白に W杯らしい装飾</h3>
+<p>現状：<code>layout.tsx</code> は <code>max-w-[480px]</code> 中央寄せ。デスクトップで左右が大きく空いて寂しい。</p>
+<div class="card ok">
+<h4>改修プラン</h4>
+<ul>
+<li>モバイルは現状維持。装飾は <code>lg</code> 以上でのみ表示。</li>
+<li><code>lg+</code> で中央アプリ枠の左右に装飾 aside／背景レイヤを追加。モチーフ：ピッチの芝目、紙吹雪、各国国旗の縦帯、ボール、トロフィー、開催国（米国・カナダ・メキシコ）のシルエット等。</li>
+<li>素材は自作 SVG / CSS で生成（写真は著作権リスクのため不使用）。<code>aria-hidden</code>・<code>pointer-events-none</code>・<code>overflow-hidden</code>・<code>prefers-reduced-motion</code> 配慮。</li>
+<li>実装：<code>layout.tsx</code> に最背面の装飾レイヤ＋左右 aside、または <code>DecorativeBackdrop</code> organism に切り出し。本文の可読性・コントラスト最優先。</li>
+<li><b>frontend-design スキル</b>で凡庸なAIデザインを避け、ブランド（ピッチグリーン＋ゴールド）に沿った上質なビジュアルに。</li>
+</ul>
+<p class="small">担当：ui-ux-designer（ビジュアル設計）／ frontend-developer（実装・A11y）。</p>
+</div>
+
+<h2><span class="num">3</span>実装ロードマップ</h2>
+<table>
+<tr><th>優先</th><th>項目</th><th>主担当</th><th>規模感</th><th>備考</th></tr>
+<tr><td><span class="tag p0">P0</span></td><td>受け渡し問題の運用ルール適用（S1–S5）</td><td>オーケストレーター</td><td>即時/0</td><td>次の作業から即適用</td></tr>
+<tr><td><span class="tag p0">P0</span></td><td>tier 根拠の明記（基準＋tierReasonJa＋凡例＋導线）</td><td>content/ui-ux/frontend/backend</td><td>中</td><td>既存データ拡張で完結</td></tr>
+<tr><td><span class="tag p1">P1</span></td><td>ui-ux-designer 新設＋frontend-design 運用</td><td>CTO/CPO</td><td>小</td><td>拡張②③で即活用</td></tr>
+<tr><td><span class="tag p1">P1</span></td><td>PC 左右余白の装飾（lg+ レイヤ）</td><td>ui-ux/frontend</td><td>中</td><td>モバイル不変・A11y配慮</td></tr>
+<tr><td><span class="tag p1">P1</span></td><td>Workflow による多段委譲の構造化（S4）</td><td>オーケストレーター</td><td>中</td><td>次回大型改修から試験導入</td></tr>
+<tr><td><span class="tag p2">P2</span></td><td>ライブスコア連携（liveRepository）</td><td>CFO/backend/security</td><td>中〜大</td><td>開幕後・料金/規約確認後</td></tr>
+</table>
+
+<h2><span class="num">4</span>リスクと留意点</h2>
+<div class="card warn">
+<ul>
+<li><b>worldcupapi.com</b>：料金・無料枠・ライセンス不明。確認まで本番依存にしない。オッズ不採用。</li>
+<li><b>tier 表示</b>：序列の断定と受け取られない配慮（目安・主観の明記）。</li>
+<li><b>PC 装飾</b>：可読性・パフォーマンス（LCP/CLS）・A11y を損なわない。自作 SVG/CSS で。</li>
+<li><b>Workflow 導入</b>：大量起動のため明示オプトイン前提。</li>
+<li><b>体制</b>：ui-ux-designer 追加時は README/CLAUDE.md のチーム構成・エージェント数を更新（ドキュメント管理ルール）。</li>
+</ul>
+</div>
+
+<hr>
+<p class="small">このレポートは静的HTML（自己完結）です。次アクション（P0 の tier 根拠から着手 / ui-ux-designer 新設 / PC 装飾の試作 など）をご指定ください。本ルール（S1–S5）を厳守して着手します。</p>
+<p class="small">出力先: <code>apps/worldcup-kickoff/docs/improvement-plan-2026-06-06.html</code></p>
+</div>
+</body>
+</html>
