@@ -1,8 +1,13 @@
 name: Threat Intel Refresh
 
 # 日次でサプライチェーン脅威インテリジェンス(IOCフィード)を再生成し、
-# 差分があれば .claude/security/threat-intel.json をコミットする。
+# 差分があれば .claude/security/threat-intel.json の更新 PR を作成/更新する。
 # ローカルの PreToolUse hook と CI の両方が、常に同じ最新データを参照できるようにするための仕組み。
+#
+# main は保護ブランチ（PR 必須）のため直接 push はできない。
+# 固定ブランチ bot/threat-intel-refresh を毎回 main から作り直して force push し、
+# open な PR は常に1本だけにする（マージは人が行う）。
+# 前提: リポジトリ設定 "Allow GitHub Actions to create and approve pull requests" が ON。
 #
 # スクリプト本体 (.github/scripts/build-threat-intel.mjs) は別途用意される。
 # 契約: `node .github/scripts/build-threat-intel.mjs` を実行すると、
@@ -15,7 +20,8 @@ on:
   workflow_dispatch: # 手動実行も可能
 
 permissions:
-  contents: write # threat-intel.json の自動コミットに必要
+  contents: write # 更新ブランチへの push に必要
+  pull-requests: write # 更新 PR の作成に必要
 
 # 同時実行を抑制（手動実行と日次実行が重なってもpush競合しないように）
 concurrency:
@@ -41,16 +47,31 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/build-threat-intel.mjs
 
-      - name: Commit & push if changed
+      - name: Open or update refresh PR if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: bot/threat-intel-refresh
         run: |
           # 差分が無ければ何もしない（git diff --quiet は差分ありで非ゼロ終了）
           if git diff --quiet -- .claude/security/threat-intel.json; then
-            echo "脅威インテリジェンスに差分なし。コミットをスキップします。"
+            echo "脅威インテリジェンスに差分なし。PR 作成をスキップします。"
             exit 0
           fi
 
+          today=$(date -u +%Y-%m-%d)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
           git add .claude/security/threat-intel.json
-          git commit -m "chore(security): refresh threat intel feed ($(date -u +%Y-%m-%d))"
-          git push
+          git commit -m "chore(security): refresh threat intel feed (${today})"
+          git push --force origin "$BRANCH"
+
+          # open な PR が既にあれば force push で内容が更新済み。無ければ新規作成する。
+          existing=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            echo "既存 PR #${existing} を更新しました。"
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore(security): refresh threat intel feed" \
+              --body "日次の Threat Intel Refresh ワークフローが \`.claude/security/threat-intel.json\` を更新しました（最終更新: ${today}）。マージすると、ローカルのインストールガードと CI が最新の悪質パッケージ一覧を参照します。"
+          fi
