@@ -6,7 +6,7 @@
 
 ```
 日次 GitHub Actions cron
-  ├─ threat-intel-refresh.yml ── GitHub malware advisory を収集 → .claude/security/threat-intel.json を自動コミット
+  ├─ threat-intel-refresh.yml ── GitHub malware advisory を収集 → .claude/security/threat-intel.json の更新PRを作成/更新（main は保護ブランチのため。マージは人が行う）
   └─ supply-chain-security.yml ── pnpm audit + OSV + Socket + ワークフロー注入スキャン（apps/* の全アプリ）
                                     └─ 重大/高 → GitHub issue 起票 (label: security。open 中は同じ issue にコメント追記)
 ローカル開発
