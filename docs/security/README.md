@@ -7,8 +7,8 @@
 ```
 日次 GitHub Actions cron
   ├─ threat-intel-refresh.yml ── GitHub malware advisory を収集 → .claude/security/threat-intel.json を自動コミット
-  └─ supply-chain-security.yml ── pnpm audit + OSV + Socket + ワークフロー注入スキャン
-                                    └─ 重大/高 → GitHub issue 起票 (label: security)
+  └─ supply-chain-security.yml ── pnpm audit + OSV + Socket + ワークフロー注入スキャン（apps/* の全アプリ）
+                                    └─ 重大/高 → GitHub issue 起票 (label: security。open 中は同じ issue にコメント追記)
 ローカル開発
   ├─ PreToolUse hook (guard-install.mjs) ── 既知IOC / npm・yarn・bun を即ブロック
   ├─ pnpm minimumReleaseAge ────────────── 公開直後の新バージョンを受動的に遅延 (cooldown 7日)
