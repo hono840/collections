@@ -107,14 +107,35 @@ jobs:
         uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
         with:
           scan-args: |-
+            --format=json
+            --output=osv-results.json
             --recursive
             ./apps
 
       - name: Record OSV-Scanner result
+        env:
+          OSV_OUTCOME: ${{ steps.osv.outcome }}
         run: |
-          if [ "${{ steps.osv.outcome }}" = "failure" ]; then
+          # OSV-Scanner は深刻度に関係なく脆弱性が1件でもあれば非ゼロ終了する。
+          # Issue 起票の基準（High 以上）に合わせ、JSON の max_severity（CVSS）>= 7.0 で判定する。
+          # max_severity が不明（空文字）のものは High 未満として扱い、一覧表示のみ行う。
+          if [ ! -s osv-results.json ]; then
+            # 結果ファイルが無い = スキャナ自体の失敗。見逃しを避けるため検出扱いにする。
+            if [ "$OSV_OUTCOME" = "failure" ]; then
+              echo "osv_failed=true" >> "$GITHUB_ENV"
+              echo "::warning::OSV-Scanner の実行に失敗しました（結果ファイルなし）。"
+            else
+              echo "osv_failed=false" >> "$GITHUB_ENV"
+            fi
+            exit 0
+          fi
+          jq -r '.results[]?.packages[]? | .package as $pkg | .groups[]? | "\($pkg.name)@\($pkg.version) max_severity=\((.max_severity | select(. != null and . != "")) // "unknown") \(.ids | join(","))"' osv-results.json
+          total=$(jq '[.results[]?.packages[]?.groups[]?] | length' osv-results.json)
+          high=$(jq '[.results[]?.packages[]?.groups[]? | select((.max_severity // "" | tonumber? // 0) >= 7)] | length' osv-results.json)
+          echo "OSV-Scanner: 既知脆弱性 ${total} 件（うち High 以上 ${high} 件）"
+          if [ "$high" -gt 0 ]; then
             echo "osv_failed=true" >> "$GITHUB_ENV"
-            echo "::warning::OSV-Scanner が既知脆弱性を検出しました。"
+            echo "::warning::OSV-Scanner が High 以上の既知脆弱性を ${high} 件検出しました。"
           else
             echo "osv_failed=false" >> "$GITHUB_ENV"
           fi
@@ -243,7 +264,7 @@ jobs:
           critical=false
           summary=""
           [ "$pnpm_a" = "true" ] && { critical=true; summary="${summary}- pnpm audit: high 以上の脆弱性あり (${PNPM_AUDIT_APPS})\n"; } || summary="${summary}- pnpm audit: 問題なし\n"
-          [ "$osv" = "true" ]    && { critical=true; summary="${summary}- OSV-Scanner: 既知脆弱性あり\n"; }    || summary="${summary}- OSV-Scanner: 問題なし\n"
+          [ "$osv" = "true" ]    && { critical=true; summary="${summary}- OSV-Scanner: High 以上の既知脆弱性あり\n"; }    || summary="${summary}- OSV-Scanner: High 以上なし\n"
           if [ "$socket" = "true" ]; then critical=true; summary="${summary}- Socket: 不審な挙動あり\n";
           elif [ "$socket" = "skipped" ]; then summary="${summary}- Socket: スキップ (APIキー未設定)\n";
           else summary="${summary}- Socket: 問題なし\n"; fi
