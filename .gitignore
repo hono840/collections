@@ -35,3 +35,6 @@ Thumbs.db
 *.swo
 
 memo.md
+
+# Claude Code worktrees（ブランチ別の作業コピー・ローカル専用）
+.claude/worktrees/
