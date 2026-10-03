@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-22T09:13:19.591Z",
+  "updated_at": "2026-10-03T20:48:04.125Z",
   "updated_by": "threat-intel-refresh",
   "note": "サプライチェーン脅威インテリジェンス。malicious_packages はインストール即ブロック対象（誤検知でビルドを壊さないため、確実に悪質なものだけを列挙）。実データは .github/workflows/threat-intel-refresh.yml が GitHub malware advisory 等から日次で自動投入する。indicators / campaigns は文字列・ファイル痕跡で、ワークフロー注入スキャンや supply-chain-auditor が参照する（インストールブロックには使わない）。",
   "policy": {
@@ -27,367 +27,158 @@
     }
   ],
   "malicious_packages": {
-    "@asdfaskdjfksadhfkasf/nadaver2": {
+    "@bluewin/utils": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-p368-v58m-82vj",
-      "ghsa": "GHSA-p368-v58m-82vj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-9ggj-2v34-hwv8",
+      "ghsa": "GHSA-9ggj-2v34-hwv8",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@asenfotech/unplugin-element-plus": {
+    "@celestial-community/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j296-5jqh-9cxv",
-      "ghsa": "GHSA-j296-5jqh-9cxv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-vcwh-7gr6-f894",
+      "ghsa": "GHSA-vcwh-7gr6-f894",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@baanx/abis": {
+    "@developmentyora/baileyss": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r554-rpx4-qw24",
-      "ghsa": "GHSA-r554-rpx4-qw24",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-hr4v-9q47-37m3",
+      "ghsa": "GHSA-hr4v-9q47-37m3",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@baanx/blockchain-config": {
+    "@erlanzz/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-7cc3-jjqj-wrm5",
-      "ghsa": "GHSA-7cc3-jjqj-wrm5",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-pwrr-vrh9-c7gf",
+      "ghsa": "GHSA-pwrr-vrh9-c7gf",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@baanx/solana-lib": {
+    "@fazzcodestudio/wa-web": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-pvh9-27rp-6282",
-      "ghsa": "GHSA-pvh9-27rp-6282",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-6c6x-j4h9-g6mh",
+      "ghsa": "GHSA-6c6x-j4h9-g6mh",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@dbbhk/ui-components": {
+    "@ostyado/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-hwx5-436m-736q",
-      "ghsa": "GHSA-hwx5-436m-736q",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-wcr2-cpf3-rj9m",
+      "ghsa": "GHSA-wcr2-cpf3-rj9m",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@insiderintelligence/componentlibrary": {
+    "@queenanya/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5h4w-mvwx-ff8q",
-      "ghsa": "GHSA-5h4w-mvwx-ff8q",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-w659-c49m-62p4",
+      "ghsa": "GHSA-w659-c49m-62p4",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@insiderintelligence/googleadmanager": {
+    "@revizahoshii/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-76rx-jxhm-vhww",
-      "ghsa": "GHSA-76rx-jxhm-vhww",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-fhwq-mfvr-5wxg",
+      "ghsa": "GHSA-fhwq-mfvr-5wxg",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@nimbsuedge3/xar": {
+    "@revizahoshii/hoshino": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-rg8r-9wp3-7jrg",
-      "ghsa": "GHSA-rg8r-9wp3-7jrg",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5hw7-w6pr-4249",
+      "ghsa": "GHSA-5hw7-w6pr-4249",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@nimbusedge2/auth": {
+    "@sairidev/baileys-new": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9hmg-mp2c-g9wr",
-      "ghsa": "GHSA-9hmg-mp2c-g9wr",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-xw6v-5999-m5r7",
+      "ghsa": "GHSA-xw6v-5999-m5r7",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@nimbusedge2/authxsas": {
+    "@sakataoffc/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-8mrv-jcm6-9rv3",
-      "ghsa": "GHSA-8mrv-jcm6-9rv3",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-cv72-gp3m-2v97",
+      "ghsa": "GHSA-cv72-gp3m-2v97",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@nimbusedge2/authxsas1": {
+    "@smart-dev-wa/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-92qm-hjm8-mp6j",
-      "ghsa": "GHSA-92qm-hjm8-mp6j",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-x69h-gm3h-2w4q",
+      "ghsa": "GHSA-x69h-gm3h-2w4q",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@nimbusedge2/x": {
+    "@smwebserver/static": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-488m-x4jr-5x75",
-      "ghsa": "GHSA-488m-x4jr-5x75",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-xh7x-r46x-g84q",
+      "ghsa": "GHSA-xh7x-r46x-g84q",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@nimbusedge2/xa": {
+    "@wanzlonely/bails4u": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-m4pg-jjmc-xgr9",
-      "ghsa": "GHSA-m4pg-jjmc-xgr9",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@pwaplatform/module-sso-integration": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-26h7-cmv3-wgv6",
-      "ghsa": "GHSA-26h7-cmv3-wgv6",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@shared-runtime/modules": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-g85c-jph7-8q4r",
-      "ghsa": "GHSA-g85c-jph7-8q4r",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@shared-web/assets": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-vmr9-5w3x-4v98",
-      "ghsa": "GHSA-vmr9-5w3x-4v98",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@shared-web/utils": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-29f7-pqf4-c94j",
-      "ghsa": "GHSA-29f7-pqf4-c94j",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@siriusbeyond/auth": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5x48-2mvx-rc23",
-      "ghsa": "GHSA-5x48-2mvx-rc23",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@siriusbeyond/ui": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-vw2m-5qq2-7qwg",
-      "ghsa": "GHSA-vw2m-5qq2-7qwg",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@siriusbeyond/utils": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-446r-4pr8-w423",
-      "ghsa": "GHSA-446r-4pr8-w423",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@uh-platform/cloud": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-g4jv-48fc-mhh2",
-      "ghsa": "GHSA-g4jv-48fc-mhh2",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@uh-platform/domain-widget": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-xh82-8x4m-9w6c",
-      "ghsa": "GHSA-xh82-8x4m-9w6c",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@uh-platform/nadaver": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5r3f-92qc-25rr",
-      "ghsa": "GHSA-5r3f-92qc-25rr",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@uh-platform/nadaver2": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-99r3-9hc2-372p",
-      "ghsa": "GHSA-99r3-9hc2-372p",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@uh-platform/webcard": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5h99-j25f-5q62",
-      "ghsa": "GHSA-5h99-j25f-5q62",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@uol-afiliados/affiliated-config-lib": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-mh6g-473c-fvhx",
-      "ghsa": "GHSA-mh6g-473c-fvhx",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@vite-mcp/vite-type": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-mqf9-3wx8-45cj",
-      "ghsa": "GHSA-mqf9-3wx8-45cj",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@vite-pro/vite-ui": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-phpx-wpr2-26pv",
-      "ghsa": "GHSA-phpx-wpr2-26pv",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@vite-tab/tab": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-74pv-97c8-9hfp",
-      "ghsa": "GHSA-74pv-97c8-9hfp",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@vite-tab/tabui": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-q5h9-3mvh-45cf",
-      "ghsa": "GHSA-q5h9-3mvh-45cf",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@vite-ts/vite-ui": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-jm6h-xxm2-2mr3",
-      "ghsa": "GHSA-jm6h-xxm2-2mr3",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "@vitets/vite-ts": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-733v-wc48-f65r",
-      "ghsa": "GHSA-733v-wc48-f65r",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-cvfh-2x22-f8xx",
+      "ghsa": "GHSA-cvfh-2x22-f8xx",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "@woodpecker-web-shared/components": {
@@ -396,53 +187,130 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-8hq6-gvg5-x8wq",
-      "ghsa": "GHSA-8hq6-gvg5-x8wq",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-44hm-95r4-wcrf",
+      "ghsa": "GHSA-44hm-95r4-wcrf",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "@zig-design-system/react": {
+    "@xatancchii/velycxbail": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-rqjq-px4f-2m8r",
-      "ghsa": "GHSA-rqjq-px4f-2m8r",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-fpmr-r559-qrq5",
+      "ghsa": "GHSA-fpmr-r559-qrq5",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "action-slack-message-root": {
+    "@xayz/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-48hx-h7cw-h342",
-      "ghsa": "GHSA-48hx-h7cw-h342",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-75px-x2r4-9f98",
+      "ghsa": "GHSA-75px-x2r4-9f98",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "better-envforge": {
+    "@zanta/baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9x97-m747-42gc",
-      "ghsa": "GHSA-9x97-m747-42gc",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-44wf-ggpw-qq53",
+      "ghsa": "GHSA-44wf-ggpw-qq53",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "blue-string-formatter-utilss": {
+    "ai-workshop-maa15-radio": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4g26-86h7-34h3",
-      "ghsa": "GHSA-4g26-86h7-34h3",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5m79-v4p8-r597",
+      "ghsa": "GHSA-5m79-v4p8-r597",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "ai-workshop-radio-app": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-rxfj-38w3-hw2x",
+      "ghsa": "GHSA-rxfj-38w3-hw2x",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "ai-workshop-radio-lambda": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-427x-rv7c-m3f9",
+      "ghsa": "GHSA-427x-rv7c-m3f9",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "albert-anitabaileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-2435-2rp3-4hx7",
+      "ghsa": "GHSA-2435-2rp3-4hx7",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "alexa-cybertron-team-code-review-agent": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-g7c3-m79h-9cqq",
+      "ghsa": "GHSA-g7c3-m79h-9cqq",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "anuaja": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-g6f9-85p5-hpm9",
+      "ghsa": "GHSA-g6f9-85p5-hpm9",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "apl-rive-renderer": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-66jg-9x42-xwh9",
+      "ghsa": "GHSA-66jg-9x42-xwh9",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "arsya-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-324p-wm5r-x38v",
+      "ghsa": "GHSA-324p-wm5r-x38v",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "bnppf-flag-icons": {
@@ -451,196 +319,119 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r56f-8237-82ch",
-      "ghsa": "GHSA-r56f-8237-82ch",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-34p9-xxp2-hv3g",
+      "ghsa": "GHSA-34p9-xxp2-hv3g",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "bulk-add-sdk": {
+    "brioche-apl-dev-env": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j7qr-p7vp-jvhx",
-      "ghsa": "GHSA-j7qr-p7vp-jvhx",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-8r2r-7gc9-8vq8",
+      "ghsa": "GHSA-8r2r-7gc9-8vq8",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "byted-commerce-materials": {
+    "com.epi.e2e_test": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j9hx-j6cf-phx5",
-      "ghsa": "GHSA-j9hx-j6cf-phx5",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-76w7-xhq5-w327",
+      "ghsa": "GHSA-76w7-xhq5-w327",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "bytepack-probe-a7x3": {
+    "danz-bails": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-pjjj-2389-rwj6",
-      "ghsa": "GHSA-pjjj-2389-rwj6",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-83xg-jvg8-96qw",
+      "ghsa": "GHSA-83xg-jvg8-96qw",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "catwrestlingbird": {
+    "ddok-modal": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-48qc-pw85-j8gf",
-      "ghsa": "GHSA-48qc-pw85-j8gf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5xvp-j6m9-rwr6",
+      "ghsa": "GHSA-5xvp-j6m9-rwr6",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "catwrestlinghuman": {
+    "eliteprotech-baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-6p69-rvw3-pvrv",
-      "ghsa": "GHSA-6p69-rvw3-pvrv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-jjr8-hv8r-m5x7",
+      "ghsa": "GHSA-jjr8-hv8r-m5x7",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "chai-as-indexed": {
+    "figma-to-apl": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-727r-6hg5-947x",
-      "ghsa": "GHSA-727r-6hg5-947x",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-fmw8-mrp6-mj68",
+      "ghsa": "GHSA-fmw8-mrp6-mj68",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "chai-as-viem": {
+    "focashi": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-c67f-wr24-prw9",
-      "ghsa": "GHSA-c67f-wr24-prw9",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-9hx5-4wfr-m32w",
+      "ghsa": "GHSA-9hx5-4wfr-m32w",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "chai-testing": {
+    "future-scripts": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5jvh-cf7p-qx9w",
-      "ghsa": "GHSA-5jvh-cf7p-qx9w",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-c9xw-xmvx-ffm7",
+      "ghsa": "GHSA-c9xw-xmvx-ffm7",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "chat-adapter-matrix": {
+    "generator-epic-react": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2rg8-m9rx-gfhf",
-      "ghsa": "GHSA-2rg8-m9rx-gfhf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-g46p-chgx-c83v",
+      "ghsa": "GHSA-g46p-chgx-c83v",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "commerce-materials": {
+    "hardhat-zet": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-79cv-pg4c-wmph",
-      "ghsa": "GHSA-79cv-pg4c-wmph",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "de-morgan": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2vc2-gwg3-2gpx",
-      "ghsa": "GHSA-2vc2-gwg3-2gpx",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "element-plus-vite-cli": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2w5j-q26r-6m9w",
-      "ghsa": "GHSA-2w5j-q26r-6m9w",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "emoji-prints-fancy": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-m523-mggx-3fgr",
-      "ghsa": "GHSA-m523-mggx-3fgr",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "feed-widget-helper": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fgrp-3g95-g56v",
-      "ghsa": "GHSA-fgrp-3g95-g56v",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "gemini-computer-use": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4cwr-c4gf-f9r4",
-      "ghsa": "GHSA-4cwr-c4gf-f9r4",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "hardhat-base": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-g59v-28j4-2r85",
-      "ghsa": "GHSA-g59v-28j4-2r85",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "hardhat-devkit": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2wmg-qp72-3736",
-      "ghsa": "GHSA-2wmg-qp72-3736",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-mw8r-6m3f-qmg8",
+      "ghsa": "GHSA-mw8r-6m3f-qmg8",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "homestack-cheer": {
@@ -649,108 +440,273 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fqjq-jxmv-48qv",
-      "ghsa": "GHSA-fqjq-jxmv-48qv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-x567-p88w-3697",
+      "ghsa": "GHSA-x567-p88w-3697",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "internallib_v949": {
+    "ichigo-baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4qw5-jqr6-c4fj",
-      "ghsa": "GHSA-4qw5-jqr6-c4fj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-jmwp-25hp-85hw",
+      "ghsa": "GHSA-jmwp-25hp-85hw",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "keroeltop": {
+    "illusion-datalab": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-gg5m-rqpp-c9xf",
-      "ghsa": "GHSA-gg5m-rqpp-c9xf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-834w-x8gq-8rmx",
+      "ghsa": "GHSA-834w-x8gq-8rmx",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "keroeltopgg": {
+    "ishumdz-bail": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-p3m2-65cv-vjqj",
-      "ghsa": "GHSA-p3m2-65cv-vjqj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-hpmr-5fvg-hvqf",
+      "ghsa": "GHSA-hpmr-5fvg-hvqf",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "keroeltopkk": {
+    "kartykgithub-ph-b": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-gr8g-435h-492g",
-      "ghsa": "GHSA-gr8g-435h-492g",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-27m4-jjxc-69wf",
+      "ghsa": "GHSA-27m4-jjxc-69wf",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "keroeltopkkk": {
+    "kartykgithub-ph-e": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4cvc-3pxq-6v5f",
-      "ghsa": "GHSA-4cvc-3pxq-6v5f",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-7hq7-x7ww-7cxr",
+      "ghsa": "GHSA-7hq7-x7ww-7cxr",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "math-universe": {
+    "kartykgithub-ph-f": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-97cg-r346-fg22",
-      "ghsa": "GHSA-97cg-r346-fg22",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-x2m2-w3gv-m5wg",
+      "ghsa": "GHSA-x2m2-w3gv-m5wg",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "mathmain": {
+    "kasabaileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-v6mx-2p6p-3628",
-      "ghsa": "GHSA-v6mx-2p6p-3628",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-vrqh-8vm7-r584",
+      "ghsa": "GHSA-vrqh-8vm7-r584",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "mathsbase": {
+    "keithbaileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-v4cx-64j6-84xm",
-      "ghsa": "GHSA-v4cx-64j6-84xm",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-mr96-r2xf-grpw",
+      "ghsa": "GHSA-mr96-r2xf-grpw",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "my-cdn-script": {
+    "kiyoramarkets": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r55v-7qcq-fvr9",
-      "ghsa": "GHSA-r55v-7qcq-fvr9",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-mjx8-f269-h2qf",
+      "ghsa": "GHSA-mjx8-f269-h2qf",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "levvleys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-9q97-jr9x-2qfr",
+      "ghsa": "GHSA-9q97-jr9x-2qfr",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "lilys-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-xcqq-823x-hhv7",
+      "ghsa": "GHSA-xcqq-823x-hhv7",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "live-detection-dashboard": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-h4cx-hwvc-8mgj",
+      "ghsa": "GHSA-h4cx-hwvc-8mgj",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "luoxy-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-rhcf-fwmc-3cm3",
+      "ghsa": "GHSA-rhcf-fwmc-3cm3",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mfahelper": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-9f55-6cf9-3pgw",
+      "ghsa": "GHSA-9f55-6cf9-3pgw",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mikuhostt-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-p4xf-x6j2-mq3f",
+      "ghsa": "GHSA-p4xf-x6j2-mq3f",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mms-ref-client": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-p4x2-g83h-x323",
+      "ghsa": "GHSA-p4x2-g83h-x323",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mms-ref-dedserver": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-v7g9-2fm9-gf3r",
+      "ghsa": "GHSA-v7g9-2fm9-gf3r",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mms-service": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-pjxq-g48x-h4jh",
+      "ghsa": "GHSA-pjxq-g48x-h4jh",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mms-simulation": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-v994-mfhw-f42p",
+      "ghsa": "GHSA-v994-mfhw-f42p",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mms-thin-client": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-557c-973f-xg6r",
+      "ghsa": "GHSA-557c-973f-xg6r",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mms-tools": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-gvwj-w5p8-h682",
+      "ghsa": "GHSA-gvwj-w5p8-h682",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "mod-manager": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-c34f-w6mj-2346",
+      "ghsa": "GHSA-c34f-w6mj-2346",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "monte-md-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-vxm9-4847-jw5m",
+      "ghsa": "GHSA-vxm9-4847-jw5m",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "my-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-xgfv-rm5m-vffw",
+      "ghsa": "GHSA-xgfv-rm5m-vffw",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "my-ctf-helper-script-9921": {
@@ -759,42 +715,75 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-qhgh-m36j-h879",
-      "ghsa": "GHSA-qhgh-m36j-h879",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-7mhc-78r2-fgw8",
+      "ghsa": "GHSA-7mhc-78r2-fgw8",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "npmscript_tesstalert_unpkg": {
+    "niksinnkatalapp": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r2rm-wm4f-f55p",
-      "ghsa": "GHSA-r2rm-wm4f-f55p",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-g37r-cvvp-rj75",
+      "ghsa": "GHSA-g37r-cvvp-rj75",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "npx-test-ma980": {
+    "noverojs": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9vj4-6r95-2p6w",
-      "ghsa": "GHSA-9vj4-6r95-2p6w",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-wj4h-927q-m5xv",
+      "ghsa": "GHSA-wj4h-927q-m5xv",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "openmct-heatmap": {
+    "noxleyss": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-qx52-2xq4-3x3v",
-      "ghsa": "GHSA-qx52-2xq4-3x3v",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-wf8j-w269-5xwv",
+      "ghsa": "GHSA-wf8j-w269-5xwv",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "noxxleys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-rqhh-ghpc-p37r",
+      "ghsa": "GHSA-rqhh-ghpc-p37r",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "okra-cloud-cdk": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-7rq8-hfxr-pxhw",
+      "ghsa": "GHSA-7rq8-hfxr-pxhw",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "online-header": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-hg4r-6gv8-6hmj",
+      "ghsa": "GHSA-hg4r-6gv8-6hmj",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "pf23727": {
@@ -803,9 +792,9 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-cm8q-25x5-5426",
-      "ghsa": "GHSA-cm8q-25x5-5426",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-p2hc-jmvm-qwc9",
+      "ghsa": "GHSA-p2hc-jmvm-qwc9",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "pf25133": {
@@ -814,9 +803,9 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-prrp-f648-8673",
-      "ghsa": "GHSA-prrp-f648-8673",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-8f7g-cf69-g5p8",
+      "ghsa": "GHSA-8f7g-cf69-g5p8",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "pf25262": {
@@ -825,9 +814,9 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-w55g-75g8-c4wj",
-      "ghsa": "GHSA-w55g-75g8-c4wj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-3pg3-52vp-54fg",
+      "ghsa": "GHSA-3pg3-52vp-54fg",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "pflag14570": {
@@ -836,9 +825,9 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j2x3-5g59-p27j",
-      "ghsa": "GHSA-j2x3-5g59-p27j",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-qxgf-vc83-fc34",
+      "ghsa": "GHSA-qxgf-vc83-fc34",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "pflag29424": {
@@ -847,31 +836,108 @@
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-rmcq-vcrh-wjpw",
-      "ghsa": "GHSA-rmcq-vcrh-wjpw",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-8jr8-g7mm-57m6",
+      "ghsa": "GHSA-8jr8-g7mm-57m6",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "radio-player-theme": {
+    "player-support-tools-ui": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-3rj7-hf4w-jh5c",
-      "ghsa": "GHSA-3rj7-hf4w-jh5c",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-2p95-xv34-387r",
+      "ghsa": "GHSA-2p95-xv34-387r",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "react-context-form-tdsss": {
+    "prastzy": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-pg33-6m24-4p63",
-      "ghsa": "GHSA-pg33-6m24-4p63",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-phvc-2p87-8jf3",
+      "ghsa": "GHSA-phvc-2p87-8jf3",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "prastzyy": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-23mj-w7jj-h63m",
+      "ghsa": "GHSA-23mj-w7jj-h63m",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "pulse-pwn-9f3a2": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-fwr5-cj49-cq4h",
+      "ghsa": "GHSA-fwr5-cj49-cq4h",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "qa-egs-rollback": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-p4fw-q7gp-3mq3",
+      "ghsa": "GHSA-p4fw-q7gp-3mq3",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "rubbydev-crash-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-2cr6-p8h2-g7pv",
+      "ghsa": "GHSA-2cr6-p8h2-g7pv",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "saturn-baileys": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-h3r9-cv69-cx87",
+      "ghsa": "GHSA-h3r9-cv69-cx87",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "set-egs-backend": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-whwx-38wq-2f27",
+      "ghsa": "GHSA-whwx-38wq-2f27",
+      "added": "2026-10-03",
+      "source": "github-advisory"
+    },
+    "shadowmd": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-8h9r-v5vf-jvxr",
+      "ghsa": "GHSA-8h9r-v5vf-jvxr",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
     "shai-hulud-test-sentinel": {
@@ -884,246 +950,191 @@
       "added": "2026-06-06",
       "source": "seed"
     },
-    "siriusbeyond": {
+    "spencer-baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4pq9-9r53-4chh",
-      "ghsa": "GHSA-4pq9-9r53-4chh",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-r58r-8rfq-ff52",
+      "ghsa": "GHSA-r58r-8rfq-ff52",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "sorrawit-dev-helper": {
+    "ssp-config-management-tool": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-6rc9-cghh-frwr",
-      "ghsa": "GHSA-6rc9-cghh-frwr",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-68gm-434m-pfmj",
+      "ghsa": "GHSA-68gm-434m-pfmj",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "starbucks-sdk": {
+    "store-service-worker": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-6m74-h462-fr23",
-      "ghsa": "GHSA-6m74-h462-fr23",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-pp63-g67g-4hxq",
+      "ghsa": "GHSA-pp63-g67g-4hxq",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "tailwindcss-forms-ui": {
+    "syncxbails": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fc5q-m33g-rp9c",
-      "ghsa": "GHSA-fc5q-m33g-rp9c",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-hvc6-5q6j-2867",
+      "ghsa": "GHSA-hvc6-5q6j-2867",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test-react-app-in": {
+    "translate-base-font": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-wm2w-4m2r-mv73",
-      "ghsa": "GHSA-wm2w-4m2r-mv73",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-grv5-7wp6-vw6h",
+      "ghsa": "GHSA-grv5-7wp6-vw6h",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test-react-app-out": {
+    "turbo-ws": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-vx3p-fwmg-p7g8",
-      "ghsa": "GHSA-vx3p-fwmg-p7g8",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-3933-m2c5-xfm8",
+      "ghsa": "GHSA-3933-m2c5-xfm8",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test-react-app-way": {
+    "ui-base-colors": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-264w-9h55-v637",
-      "ghsa": "GHSA-264w-9h55-v637",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-qgqx-3mhx-jwx3",
+      "ghsa": "GHSA-qgqx-3mhx-jwx3",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test12vv36": {
+    "ui.dist.min.js": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-7f39-795r-gxj4",
-      "ghsa": "GHSA-7f39-795r-gxj4",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-325f-rjxf-3gm9",
+      "ghsa": "GHSA-325f-rjxf-3gm9",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test1df23": {
+    "wailib": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-78p9-g7q9-mcjw",
-      "ghsa": "GHSA-78p9-g7q9-mcjw",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-w72m-vjx4-9m36",
+      "ghsa": "GHSA-w72m-vjx4-9m36",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test1gg234": {
+    "whalibmob": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-w7fw-w5xv-5p8v",
-      "ghsa": "GHSA-w7fw-w5xv-5p8v",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-g2qq-9229-mhjq",
+      "ghsa": "GHSA-g2qq-9229-mhjq",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test1hh235": {
+    "xcvrenzcompany": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-qrfc-3762-c24w",
-      "ghsa": "GHSA-qrfc-3762-c24w",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-474r-6338-73gj",
+      "ghsa": "GHSA-474r-6338-73gj",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test1ro": {
+    "xvinleys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-8rr3-xrmc-xvjf",
-      "ghsa": "GHSA-8rr3-xrmc-xvjf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-vpxr-24w4-56qf",
+      "ghsa": "GHSA-vpxr-24w4-56qf",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test1sdsd2": {
+    "xzbails": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9mc8-mrvr-f664",
-      "ghsa": "GHSA-9mc8-mrvr-f664",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-w8fw-prwf-rpmg",
+      "ghsa": "GHSA-w8fw-prwf-rpmg",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test89-auth": {
+    "xzvbails": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-7868-hxr7-g8r6",
-      "ghsa": "GHSA-7868-hxr7-g8r6",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-3x7p-cc3q-4g77",
+      "ghsa": "GHSA-3x7p-cc3q-4g77",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test890-auth": {
+    "xzvexpzcbailey": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-xvpv-wq7p-548c",
-      "ghsa": "GHSA-xvpv-wq7p-548c",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-fwmc-x797-fpr6",
+      "ghsa": "GHSA-fwmc-x797-fpr6",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test899-auth": {
+    "yonzoffic-baileys": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-jf2q-w77c-99vv",
-      "ghsa": "GHSA-jf2q-w77c-99vv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-j5q9-mf2r-jhf9",
+      "ghsa": "GHSA-j5q9-mf2r-jhf9",
+      "added": "2026-10-03",
       "source": "github-advisory"
     },
-    "test8999-auth": {
+    "yonzofficial": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-25wf-vfrc-2r82",
-      "ghsa": "GHSA-25wf-vfrc-2r82",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "testmgkregme": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-hc49-rwm2-p2w7",
-      "ghsa": "GHSA-hc49-rwm2-p2w7",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "transform-es2015-unicode-regex": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-jcxm-5v55-599q",
-      "ghsa": "GHSA-jcxm-5v55-599q",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "wos-library": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-mfwv-9gcf-2mww",
-      "ghsa": "GHSA-mfwv-9gcf-2mww",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "wos-library-ui": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-wh36-rj36-m3ff",
-      "ghsa": "GHSA-wh36-rj36-m3ff",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "x509-escaping": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fq85-7xqm-cgj9",
-      "ghsa": "GHSA-fq85-7xqm-cgj9",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5jww-9h4j-x7w7",
+      "ghsa": "GHSA-5jww-9h4j-x7w7",
+      "added": "2026-10-03",
       "source": "github-advisory"
     }
   },
@@ -1164,8 +1175,8 @@
     }
   },
   "stats": {
-    "malicious_packages": 100,
-    "from_advisories": 112,
+    "malicious_packages": 101,
+    "from_advisories": 303,
     "preserved_manual": 1,
     "window_days": 180
   }
