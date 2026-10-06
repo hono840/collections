@@ -9,6 +9,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 //   - getUserId() first; signed out -> 'unauthorized' without touching the DB
 //   - never sends user_id / visibility (DB default auth.uid() + RLS decide ownership)
 //   - revalidatePath('/roads') and `/roads/${id}`, then redirect outside try
+//   - D-3 (architecture ch.19.1): the BEFORE INSERT trigger raises 'road_limit_exceeded' (SQLSTATE P0001)
+//     when the user already has 500 roads -> { ok: false, error: { code: 'limit_exceeded',
+//     message: '登録できる道は500件までです' } } (new ActionErrorCode 'limit_exceeded')
 
 const ROAD_ID = '6f1c2a8e-3b4d-4e5f-8a9b-0c1d2e3f4a5b'
 const OTHER_ROAD_ID = '11111111-2222-4333-8444-555555555555'
@@ -163,6 +166,33 @@ describe('createRoad()', () => {
       ok: false,
       error: { code: 'unexpected', message: '保存できませんでした。もう一度お試しください。' },
     })
+  })
+})
+
+describe('createRoad() road limit (D-3)', () => {
+  it('maps the road_limit_exceeded DB error to limit_exceeded with the 500-roads message', async () => {
+    const limitError = { code: 'P0001', message: 'road_limit_exceeded', details: null, hint: null }
+    mocks.single.mockResolvedValue({ data: null, error: limitError })
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: limitError })
+
+    const result = await createRoad(validInput)
+
+    expect(mocks.redirect).not.toHaveBeenCalled()
+    expect(mocks.revalidatePath).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      ok: false,
+      error: { code: 'limit_exceeded', message: '登録できる道は500件までです' },
+    })
+  })
+
+  it('other P0001 errors stay "unexpected" (only road_limit_exceeded is the limit)', async () => {
+    const otherError = { code: 'P0001', message: 'something_else', details: null, hint: null }
+    mocks.single.mockResolvedValue({ data: null, error: otherError })
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: otherError })
+
+    const result = await createRoad(validInput)
+
+    expect(result).toMatchObject({ ok: false, error: { code: 'unexpected' } })
   })
 })
 

@@ -9,6 +9,8 @@ const NAME_TOO_LONG = '50文字以内で入力してください'
 const PREFECTURE_REQUIRED = '都道府県を選んでください'
 const START_REQUIRED = '地図を動かして開始地点のピンを置いてください'
 const OUT_OF_JAPAN = '日本国内の位置を指定してください'
+// D-2 (architecture ch.19.1): control characters and bidi control characters are rejected.
+const NAME_FORBIDDEN_CHARACTER = '使えない文字が含まれています'
 
 const validInput = {
   name: '碓氷峠',
@@ -66,6 +68,34 @@ describe('roadInputSchema', () => {
     it('counts length after trimming (50 chars + spaces is fine)', () => {
       const result = roadInputSchema.safeParse({ ...validInput, name: ` ${'道'.repeat(50)} ` })
       expect(result.success).toBe(true)
+    })
+
+    describe('D-2: forbidden characters', () => {
+      it.each([
+        ['NUL U+0000', '碓氷\u0000峠'],
+        ['BEL U+0007', '碓氷\u0007峠'],
+        ['TAB U+0009 inside', '碓氷\t峠'],
+        ['LF U+000A inside', '碓氷\n峠'],
+        ['CR U+000D inside', '碓氷\r峠'],
+        ['ESC U+001B', '碓氷\u001b峠'],
+        ['DEL U+007F', '碓氷\u007f峠'],
+      ])('rejects a control character (%s)', (_label, name) => {
+        expect(fieldErrorsOf({ ...validInput, name }).name).toEqual([NAME_FORBIDDEN_CHARACTER])
+      })
+
+      it.each(['202A', '202B', '202C', '202D', '202E', '2066', '2067', '2068', '2069'])(
+        'rejects the bidi control character U+%s',
+        (hex) => {
+          const name = `碓氷${String.fromCodePoint(Number.parseInt(hex, 16))}峠`
+          expect(fieldErrorsOf({ ...validInput, name }).name).toEqual([NAME_FORBIDDEN_CHARACTER])
+        },
+      )
+
+      it('still accepts ordinary names with inner spaces and symbols', () => {
+        for (const name of ['伊豆 スカイライン', '房総フラワーライン　南', 'R299（十石峠）', "Route 66 / 'A'"]) {
+          expect(roadInputSchema.safeParse({ ...validInput, name }).success, name).toBe(true)
+        }
+      })
     })
   })
 

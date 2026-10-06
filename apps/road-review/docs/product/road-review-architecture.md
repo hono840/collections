@@ -1876,5 +1876,5 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 | D-1（L-1） | roads の INSERT 権限から `visibility` を外す（既定値 'private'） | backend |
 | D-2（L-2） | name の CHECK を `name ~ '^\S(.*\S)?$'` かつ `name !~ '[[:cntrl:]]'` に。zod も制御文字・双方向制御文字（U+202A–202E, U+2066–2069）を拒否 | backend |
 | D-3（L-3） | 1ユーザーあたり道 500 件までの BEFORE INSERT トリガー（超過は専用エラー → M-xx「登録できる道は500件までです」）。`listRoadSummaries` に `.limit(500)` | backend |
-| C-1（Info） | `source-map-js` を `pnpm.overrides` で `>=1.2.2`（cooldown を満たす版）に | devops（supply-chain 確認） |
+| C-1（Info） | `source-map-js` を `pnpm.overrides` で `"source-map-js@>=1.0.0 <1.2.2": "^1.2.2"` に。**1.2.2 は 2026-09-30 公開のため cooldown 明け（2026-10-07 23:08 JST）以降に適用**（免除リストは使わない） | devops（supply-chain 確認） |
 | 後回し | L-4 `style-src 'unsafe-inline'` の削除は Supabase 起動後の E2E で地図表示を確認してから。L-5 タイル通信はプライバシーポリシーに記載（CMO） | — |

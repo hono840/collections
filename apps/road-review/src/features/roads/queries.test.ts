@@ -112,6 +112,11 @@ describe('listRoadSummaries()', () => {
     ])
   })
 
+  it('caps the list at 500 rows (D-3: same as the per-user road limit)', async () => {
+    await listRoadSummaries()
+    expect(mocks.builder.limit).toHaveBeenCalledWith(500)
+  })
+
   it('does not leak user_id / visibility into the summaries', async () => {
     const [first] = await listRoadSummaries()
     expect(first).not.toHaveProperty('user_id')

@@ -51,11 +51,15 @@ function createFakeMap(element: unknown, options: Record<string, unknown> = {}) 
     center: options.center ? toLatLng(options.center as LatLngLike) : { lat: 0, lng: 0 },
     zoom: (options.zoom as number | undefined) ?? 0,
   }
+  // getBounds().contains(...) answers "is this point in the current view?". Default: yes (in view).
+  // Tests override it, e.g. `map.bounds.contains.mockReturnValue(false)`.
+  const bounds = chainable({ contains: vi.fn<(point: unknown) => boolean>(() => true) })
   const map = chainable({
     element,
     options,
     state,
     handlers,
+    bounds,
     on: vi.fn((type: string, handler: Handler) => {
       for (const name of type.split(/\s+/)) handlers.set(name, [...(handlers.get(name) ?? []), handler])
       return map
@@ -73,6 +77,11 @@ function createFakeMap(element: unknown, options: Record<string, unknown> = {}) 
     }),
     getCenter: vi.fn(() => ({ ...state.center })),
     getZoom: vi.fn(() => state.zoom),
+    getBounds: vi.fn(() => bounds),
+    panTo: vi.fn((center: LatLngLike) => {
+      state.center = toLatLng(center)
+      return map
+    }),
     fitBounds: vi.fn(() => map),
     remove: vi.fn(() => map),
     locate: vi.fn(() => map),

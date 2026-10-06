@@ -17,6 +17,11 @@ import {
 
 vi.mock('leaflet', async () => (await import('../../../../tests/helpers/leaflet-mock')).leafletModule)
 
+const navigation = vi.hoisted(() => ({ push: vi.fn() }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: navigation.push, replace: vi.fn(), prefetch: vi.fn(), back: vi.fn(), refresh: vi.fn() }),
+}))
+
 import { RoadsMap } from './RoadsMap'
 
 // RoadsMap (architecture 9.5, US-06). Client organism, display only. Contract:
@@ -25,6 +30,9 @@ import { RoadsMap } from './RoadsMap'
 // - marker popup: road name + link "詳細を見る" to /roads/<id> (name escaped)
 // - fitBounds over all pins; 0 roads -> whole Japan (JAPAN_CENTER / JAPAN_DEFAULT_ZOOM)
 // - container aria-label "道の地図（同じ内容は下のリストにあります）"
+// - P-4 (architecture ch.19.1): the popup link "詳細を見る" navigates client-side with
+//   useRouter().push('/roads/<id>') and prevents the default full-page navigation. The popup content
+//   is bound as an HTMLElement (or a function returning one) whose link handles the click itself.
 
 const MAP_LABEL = '道の地図（同じ内容は下のリストにあります）'
 
@@ -174,5 +182,29 @@ describe('RoadsMap', () => {
     const map = await waitForMap()
     unmount()
     expect(map.remove).toHaveBeenCalled()
+  })
+
+  it('P-4: clicking "詳細を見る" in a popup uses router.push and prevents the full page load', async () => {
+    render(<RoadsMap roads={roads} />)
+    await waitForMap()
+    await waitFor(() => expect(liveMarkers()).toHaveLength(roads.length))
+
+    const target = roads[1]
+    const marker = liveMarkers().find((candidate) => candidate.options.title === target.name)!
+    let content = marker.state.popup
+    if (typeof content === 'function') content = (content as () => unknown)()
+    expect(content).toBeInstanceOf(HTMLElement)
+    const popup = content as HTMLElement
+    document.body.append(popup) // Leaflet would mount the content when the popup opens
+    const link = Array.from(popup.querySelectorAll('a')).find((anchor) => anchor.textContent?.includes('詳細を見る'))
+    expect(link).toBeDefined()
+
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 })
+    link!.dispatchEvent(click)
+
+    expect(click.defaultPrevented).toBe(true)
+    expect(navigation.push).toHaveBeenCalledTimes(1)
+    expect(navigation.push).toHaveBeenCalledWith(`/roads/${target.id}`)
+    popup.remove()
   })
 })

@@ -111,10 +111,13 @@ describe.skipIf(!hasSupabaseTestEnv)('roads RLS (user A vs user B)', () => {
     expect((await readAsAdmin(roadIdA))?.user_id).toBe(userA.id)
   })
 
-  it("visibility is constrained to 'private' (insert and update)", async () => {
-    const insert = await userA.client.from('roads').insert({ ...roadRow, visibility: 'public' })
-    expect(insert.error).not.toBeNull()
-    expect(insert.error?.code).toBe('23514')
+  it("visibility cannot be set by clients: no INSERT privilege on the column (D-1) and no UPDATE", async () => {
+    // D-1 (architecture ch.19.1): visibility is not in the INSERT grant -> privilege error, even for 'private'.
+    for (const visibility of ['public', 'private']) {
+      const insert = await userA.client.from('roads').insert({ ...roadRow, visibility })
+      expect(insert.error, visibility).not.toBeNull()
+      expect(insert.error?.code, visibility).toBe('42501')
+    }
 
     const update = await userA.client.from('roads').update({ visibility: 'public' }).eq('id', roadIdA)
     expect(update.error).not.toBeNull()
@@ -188,6 +191,20 @@ describe.skipIf(!hasSupabaseTestEnv)('roads check constraints (architecture 3.2)
     await insertExpectingCheckViolation({ name: ' 碓氷峠 ' })
   })
 
+  it('D-2: name must not be only full-width spaces or start/end with one', async () => {
+    await insertExpectingCheckViolation({ name: '\u3000\u3000' })
+    await insertExpectingCheckViolation({ name: '\u3000碓氷峠' })
+    await insertExpectingCheckViolation({ name: '碓氷峠\u3000' })
+    const inner = await user.client.from('roads').insert({ ...roadRow, name: '房総フラワーライン\u3000南' })
+    expect(inner.error).toBeNull()
+  })
+
+  it('D-2: name must not contain control characters', async () => {
+    for (const name of ['碓氷\t峠', '碓氷\n峠', '碓氷\u0007峠', '碓氷\u001b峠', '碓氷\u007f峠']) {
+      await insertExpectingCheckViolation({ name })
+    }
+  })
+
   it('prefecture_code must be 1..47', async () => {
     await insertExpectingCheckViolation({ prefecture_code: 0 })
     await insertExpectingCheckViolation({ prefecture_code: 48 })
@@ -230,5 +247,45 @@ describe.skipIf(!hasSupabaseTestEnv)('roads check constraints (architecture 3.2)
     for (const column of columns) {
       expect(column).not.toMatch(/speed|lap|time_of|duration|rank|slope|incline/i)
     }
+  })
+})
+
+describe.skipIf(!hasSupabaseTestEnv)('roads per-user limit (D-3: 500 roads, BEFORE INSERT trigger)', () => {
+  let user: TestUser
+  let otherUser: TestUser
+
+  beforeAll(async () => {
+    user = await createTestUser('roads-limit')
+    otherUser = await createTestUser('roads-limit-other')
+    // 499 rows in one batch through the service role (the trigger applies to every role).
+    const rows = Array.from({ length: 499 }, (_, index) => ({ ...roadRow, user_id: user.id, name: `道${index + 1}` }))
+    const { error } = await createAdminClient().from('roads').insert(rows)
+    if (error) throw error
+  }, 60_000)
+
+  afterAll(async () => {
+    if (user) await deleteTestUser(user.id)
+    if (otherUser) await deleteTestUser(otherUser.id)
+  })
+
+  it("the 500th road is accepted, the 501st is rejected with 'road_limit_exceeded'", async () => {
+    const fiveHundredth = await user.client.from('roads').insert({ ...roadRow, name: '500本目' })
+    expect(fiveHundredth.error).toBeNull()
+
+    const fiveHundredFirst = await user.client.from('roads').insert({ ...roadRow, name: '501本目' })
+    expect(fiveHundredFirst.error).not.toBeNull()
+    expect(fiveHundredFirst.error?.message).toContain('road_limit_exceeded')
+
+    const { count, error } = await createAdminClient()
+      .from('roads')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+    expect(error).toBeNull()
+    expect(count).toBe(500)
+  }, 30_000)
+
+  it("the limit is per user: another user's insert still works", async () => {
+    const { error } = await otherUser.client.from('roads').insert(roadRow)
+    expect(error).toBeNull()
   })
 })

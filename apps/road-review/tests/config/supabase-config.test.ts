@@ -124,3 +124,62 @@ describe('migration 00002 keep_alive privileges (S-8)', () => {
     expect(grantedRoles).toEqual(expect.arrayContaining(['anon', 'authenticated']))
   })
 })
+
+describe('migration 00003 roads hardening (architecture ch.19.1 D-1 / D-2 / D-3)', () => {
+  const source = readAppFile('supabase/migrations/00003_roads.sql')
+  const statements = sqlStatements(source)
+  /** Comments removed and whitespace collapsed, case kept (regex classes like \S are case-sensitive). */
+  const caseKeptSql = source.replace(/--.*$/gm, '').replace(/\s+/g, ' ')
+
+  it('D-1: the INSERT grant to authenticated lists the form columns but not visibility (or user_id)', () => {
+    const insertPrivileges = statements
+      .map((statement) => statement.match(/^grant (.+?) on (?:table )?public\.roads to (.+)$/))
+      .filter((match): match is RegExpMatchArray => match !== null)
+      .filter((match) => splitRoles(match[2]).includes('authenticated'))
+      .flatMap((match) => splitPrivileges(match[1]))
+      .filter((privilege) => privilege.startsWith('insert'))
+
+    expect(insertPrivileges).toHaveLength(1)
+    const columns = insertPrivileges[0]
+      .replace(/^insert \(/, '')
+      .replace(/\)$/, '')
+      .split(',')
+      .map((column) => column.trim())
+    expect(columns).toEqual(
+      expect.arrayContaining(['name', 'prefecture_code', 'road_type', 'start_lat', 'start_lng', 'end_lat', 'end_lng']),
+    )
+    expect(columns).not.toContain('visibility')
+    expect(columns).not.toContain('user_id')
+  })
+
+  it("D-2: the name check requires a non-space first/last character: name ~ '^\\S(.*\\S)?$'", () => {
+    expect(caseKeptSql).toContain("name ~ '^\\S(.*\\S)?$'")
+  })
+
+  it("D-2: the name check rejects control characters: name !~ '[[:cntrl:]]'", () => {
+    expect(caseKeptSql).toContain("name !~ '[[:cntrl:]]'")
+  })
+
+  it('D-2: the name length check (1..50) is kept', () => {
+    expect(statements.join(' ')).toMatch(/char_length\(name\) between 1 and 50/)
+  })
+
+  it("D-3: a BEFORE INSERT row trigger on public.roads enforces 500 roads per user with 'road_limit_exceeded'", () => {
+    const trigger = statements.find((statement) =>
+      /^create (?:or replace )?trigger \S+ before insert on public\.roads for each row execute (?:function|procedure) /.test(
+        statement,
+      ),
+    )
+    expect(trigger).toBeDefined()
+
+    const functionName = trigger!.match(/execute (?:function|procedure) ([\w.]+)\(/)![1]
+    const bareName = functionName.replace(/^public\./, '')
+    const functionSource = caseKeptSql
+      .toLowerCase()
+      .match(new RegExp(`create (?:or replace )?function (?:public\\.)?${bareName}\\(\\).*?\\$\\$(.*?)\\$\\$`))
+    expect(functionSource, `function ${functionName} not found`).not.toBeNull()
+    expect(functionSource![1]).toMatch(/\b500\b/)
+    expect(functionSource![1]).toContain('road_limit_exceeded')
+    expect(functionSource![1]).toMatch(/raise exception/)
+  })
+})
