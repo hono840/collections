@@ -1865,3 +1865,16 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 5. E2E の 404 は HTTP ステータスではなくページ内容で判定（`loading.tsx` によるストリーミング後の `notFound()` は 200 + noindex）。
 6. E2E では地理院タイルへのリクエストを 1×1 PNG で応答する。
 7. RLS テストで DB 制約（名前・都道府県・種別・日本の範囲・終了ピンの両方/なし・visibility='private'）も確認する。マイグレーション `00003_roads.sql` は 3.2 / 4 章どおり。
+
+### 19.1 Sprint 2 レビュー・監査の対応（CTO決定）
+| # | 内容 | 担当 |
+|---|---|---|
+| P-1（review #1） | PinPicker: 入力で座標が変わったら、ピンが表示範囲外なら panTo する（作成時だけでなく）。`JAPAN_BOUNDS` 外の座標はピンを作らず・動かさず・パンしない | frontend |
+| P-2 | PinPicker のマーカーは `{ keyboard: false, interactive: false }`（押しても何もしないボタンを作らない。地図クリックを妨げない） | frontend |
+| P-3 | PinPicker に中心の十字マーク（aria-hidden, pointer-events-none） | frontend |
+| P-4 | RoadsMap のポップアップのリンクは `router.push` でクライアント遷移 | frontend |
+| D-1（L-1） | roads の INSERT 権限から `visibility` を外す（既定値 'private'） | backend |
+| D-2（L-2） | name の CHECK を `name ~ '^\S(.*\S)?$'` かつ `name !~ '[[:cntrl:]]'` に。zod も制御文字・双方向制御文字（U+202A–202E, U+2066–2069）を拒否 | backend |
+| D-3（L-3） | 1ユーザーあたり道 500 件までの BEFORE INSERT トリガー（超過は専用エラー → M-xx「登録できる道は500件までです」）。`listRoadSummaries` に `.limit(500)` | backend |
+| C-1（Info） | `source-map-js` を `pnpm.overrides` で `>=1.2.2`（cooldown を満たす版）に | devops（supply-chain 確認） |
+| 後回し | L-4 `style-src 'unsafe-inline'` の削除は Supabase 起動後の E2E で地図表示を確認してから。L-5 タイル通信はプライバシーポリシーに記載（CMO） | — |
