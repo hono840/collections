@@ -1,16 +1,22 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
+import { CollectionSummary } from '@/components/molecules/CollectionSummary'
 import { RoadList } from '@/components/organisms/RoadList'
 import { RoadsMap } from '@/components/organisms/RoadsMap'
 import { RoadsIndexTemplate } from '@/components/templates/RoadsIndexTemplate'
 import { listRoadSummaries } from '@/features/roads/queries'
+import { buildCollectionStats } from '@/lib/collection/stats'
 
 export const metadata: Metadata = {
   title: '道の一覧',
 }
 
-/** S-05 (US-06): the list and the map get the same roads. */
+/**
+ * S-05 (US-06): the list and the map get the same roads.
+ * The collection summary (PRD US-11) is derived from the same result (no second query) and only shown
+ * once at least one road exists (0 roads -> E-01 only).
+ */
 export default async function RoadsPage() {
   const roads = await listRoadSummaries()
 
@@ -25,6 +31,7 @@ export default async function RoadsPage() {
           道を登録
         </Link>
       }
+      summary={roads.length > 0 ? <CollectionSummary stats={buildCollectionStats(roads)} /> : undefined}
       list={<RoadList roads={roads} />}
       map={roads.length > 0 ? <RoadsMap roads={roads} /> : undefined}
     />

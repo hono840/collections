@@ -5,14 +5,16 @@ export type RoadsIndexTemplateProps = {
   actions: ReactNode
   /** Supplementary map. The list always carries the same content (architecture 9.5). */
   map?: ReactNode
+  /** Optional collection summary, shown after the heading / actions and before the list. */
+  summary?: ReactNode
   list: ReactNode
 }
 
 /**
  * Roads index layout (architecture 2.1 / 9.5, UX 2.3). No data.
- * Reading order: heading -> actions -> list -> map. On md+ the list (2fr) sits left of the map (3fr).
+ * Reading order: heading -> actions -> summary -> list -> map. On md+ the list (2fr) sits left of the map (3fr).
  */
-export function RoadsIndexTemplate({ actions, map, list }: RoadsIndexTemplateProps) {
+export function RoadsIndexTemplate({ actions, map, summary, list }: RoadsIndexTemplateProps) {
   return (
     <section aria-labelledby="roads-heading">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -21,6 +23,7 @@ export function RoadsIndexTemplate({ actions, map, list }: RoadsIndexTemplatePro
         </h1>
         {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </div>
+      {summary ? <div className="mt-6">{summary}</div> : null}
       <div className={map ? 'mt-6 grid gap-6 md:grid-cols-5' : 'mt-6'}>
         <div className={map ? 'min-w-0 md:col-span-2' : undefined}>{list}</div>
         {map ? (

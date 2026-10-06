@@ -14,6 +14,8 @@ export type ChoiceGroupProps<T extends string> = {
   value: T | null
   onChange: (value: T) => void
   required?: boolean
+  /** Supplementary note under the options, linked with aria-describedby. */
+  hint?: ReactNode
   error?: string
   id?: string
   className?: string
@@ -31,6 +33,7 @@ export function ChoiceGroup<T extends string>({
   value,
   onChange,
   required = false,
+  hint,
   error,
   id,
   className,
@@ -38,11 +41,13 @@ export function ChoiceGroup<T extends string>({
   const generatedId = useId()
   const groupId = id ?? generatedId
   const errorId = `${groupId}-error`
+  const hintId = `${groupId}-hint`
+  const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined
 
   return (
     <fieldset
       id={groupId}
-      aria-describedby={error ? errorId : undefined}
+      aria-describedby={describedBy}
       className={cn('min-w-0', className)}
     >
       <legend className="inline-flex items-center gap-2 text-sm font-bold text-ink">
@@ -96,6 +101,11 @@ export function ChoiceGroup<T extends string>({
           )
         })}
       </div>
+      {hint ? (
+        <p id={hintId} className="mt-1.5 text-sm text-ink-muted">
+          {hint}
+        </p>
+      ) : null}
       <FieldError id={errorId}>{error}</FieldError>
     </fieldset>
   )

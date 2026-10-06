@@ -18,9 +18,9 @@ export type Road = {
 }
 
 /**
- * A row of the road list / map.
- * Sprint 2 reads the roads table directly, so the drive fields are always empty
- * (null / null / 0); Sprint 3 switches to the road_summaries view.
+ * A row of the road list / map (road_summaries view, 00004_drives_road_info.sql).
+ * lastDrivenOn / lastRatingOverall come from the newest drive (driven_on desc, created_at desc);
+ * averageOverall is roundedAverage(rating_overall_sum, drive_count) (PRD US-07 "総合 平均 X.X").
  */
 export type RoadSummary = {
   id: string
@@ -33,4 +33,9 @@ export type RoadSummary = {
   lastDrivenOn: string | null
   lastRatingOverall: number | null
   driveCount: number
+  /**
+   * null when the road has no drives. listRoadSummaries always sets it; it is optional only so
+   * fixtures written before Sprint 3 stay valid (treat undefined as null).
+   */
+  averageOverall?: number | null
 }

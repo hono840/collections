@@ -395,6 +395,40 @@
   .rr-pin--picker { --rr-pin-color: #2b5179; }
 }
 
+/*
+ * Road detail body (UX 2.3 S-06, spec 5-5 RoadDetailTemplate 7fr / 5fr).
+ * 1 column below md in DOM order; md+ puts [data-slot="side"] (road info, pins) in the right column
+ * across the first rows while the main slots (ratings, drives, actions) stack on the left.
+ * Done here because the "auto auto 1fr" rows cannot be expressed with plain utilities.
+ */
+@layer components {
+  .rr-road-detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  @media (width >= 48rem) {
+    .rr-road-detail-body {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      grid-template-rows: auto auto 1fr;
+      column-gap: 2rem;
+      row-gap: 1.5rem;
+      align-items: start;
+    }
+
+    .rr-road-detail-body > [data-slot="main"] {
+      grid-column: 1;
+    }
+
+    .rr-road-detail-body > [data-slot="side"] {
+      grid-column: 2;
+      grid-row: 1 / span 3;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

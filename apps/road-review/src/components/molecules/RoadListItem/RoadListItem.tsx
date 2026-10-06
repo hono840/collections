@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
+import { RatingMeter } from '@/components/atoms/RatingMeter'
 import { RoadTypeBadge, RoadTypeSymbol } from '@/components/atoms/RoadTypeBadge'
 import { getPrefectureName } from '@/lib/constants/prefectures'
+import { formatAverage } from '@/lib/ratings/summary'
 import type { RoadSummary, RoadType } from '@/types/road'
 import { cn } from '@/lib/utils/cn'
 
@@ -20,12 +22,13 @@ const symbolBoxClasses: Record<RoadType, string> = {
 
 /**
  * Road card (spec 4-4). The whole card is one link to the detail page.
- * Sprint 2 has no drives yet, so the last line is "走行記録なし" (M-25); the last driven date and the
- * rating meter arrive in Sprint 3.
+ * With drives: "最終 YYYY-MM-DD", "記録 N件" and "総合 平均 X.X" with the 5-cell meter.
+ * Without drives: only "走行記録なし" (M-25) - no empty meter, no average.
  */
 export function RoadListItem({ road, className }: RoadListItemProps) {
   const prefectureName = getPrefectureName(road.prefectureCode)
   const hasDrives = road.driveCount > 0
+  const average = hasDrives ? (road.averageOverall ?? null) : null
 
   return (
     <Link
@@ -57,7 +60,17 @@ export function RoadListItem({ road, className }: RoadListItemProps) {
       </div>
       <div className="mt-2 text-sm">
         {hasDrives ? (
-          <span className="text-xs text-ink-muted">記録 {road.driveCount}件</span>
+          <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="text-xs text-ink-muted">記録 {road.driveCount}件</span>
+            {average !== null ? (
+              <span className="flex items-center gap-2">
+                <RatingMeter value={average} label={`総合評価 平均${formatAverage(average)}`} />
+                <span className="text-xs text-ink-muted">
+                  総合 平均 <span className="num text-sm font-bold text-ink">{formatAverage(average)}</span>
+                </span>
+              </span>
+            ) : null}
+          </span>
         ) : (
           <span className="text-ink-subtle">走行記録なし</span>
         )}
