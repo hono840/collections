@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createRef } from 'react'
 import { render, screen } from '@testing-library/react'
 import { Alert } from './Alert'
 
@@ -38,5 +39,24 @@ describe('Alert', () => {
     container.querySelectorAll('svg').forEach((icon) => {
       expect(icon).toHaveAttribute('aria-hidden', 'true')
     })
+  })
+
+  it('tabIndex=-1 + ref allows moving focus to the alert programmatically (error summary)', () => {
+    const alertRef = createRef<HTMLDivElement>()
+    render(
+      <Alert variant="error" ref={alertRef} tabIndex={-1}>
+        入力内容を確認してください
+      </Alert>,
+    )
+    const alert = screen.getByRole('alert')
+    expect(alertRef.current).toBe(alert)
+    expect(alert).toHaveAttribute('tabindex', '-1')
+    alertRef.current?.focus()
+    expect(alert).toHaveFocus()
+  })
+
+  it('has no tabindex by default (not in the tab order)', () => {
+    render(<Alert variant="error">エラー</Alert>)
+    expect(screen.getByRole('alert')).not.toHaveAttribute('tabindex')
   })
 })

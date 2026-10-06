@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import Link from 'next/link'
 import { RoadsIndexTemplate } from './RoadsIndexTemplate'
 
 // RoadsIndexTemplate (architecture 2.1, 9.5; UX 2.3). Server template, no data. Contract:
@@ -16,7 +17,7 @@ describe('RoadsIndexTemplate', () => {
   it('renders actions, map and list slots', () => {
     render(
       <RoadsIndexTemplate
-        actions={<a href="/roads/new">道を登録</a>}
+        actions={<Link href="/roads/new">道を登録</Link>}
         map={<div>地図スロット</div>}
         list={<ul aria-label="道のリスト"><li>碓氷峠</li></ul>}
       />,
