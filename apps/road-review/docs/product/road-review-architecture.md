@@ -28,7 +28,7 @@ user_settings (安全注意を確認した日時)     storage_deletion_queue (�
 
 | 区分 | パッケージ | バージョン | 同じにした元 |
 |---|---|---|---|
-| フレームワーク | next | `16.3.3`（固定） | 両アプリ（commit fc87366 の RCE 修正後の版） |
+| フレームワーク | next | `16.3.6`（固定。Sprint 0 監査で GHSA-vcvr-r3jv-pc5j 対応のため 16.3.3 から更新） | 両アプリ（commit fc87366 の RCE 修正後の版） |
 | | react / react-dom | `19.2.6`（固定） | 両アプリ |
 | Supabase | @supabase/ssr | `^0.10.3` | 両アプリ |
 | | @supabase/supabase-js | `^2.106.2` | 両アプリ |
@@ -1555,18 +1555,26 @@ package.json に足す scripts:
 4. **オープンリダイレクト（任意の外部サイトへ飛ばされる穴）を防ぎます**（`safe-next-path.ts`）:
 
 ```ts
+function isProtocolRelativeLike(path: string): boolean {
+  return !path.startsWith('/') || path.startsWith('//') || path.startsWith('/\\')
+}
+
 export function safeNextPath(raw: string | null | undefined, fallback = '/roads'): string {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return fallback
+  if (!raw || isProtocolRelativeLike(raw)) return fallback
   try {
     const base = 'http://internal.invalid'
     const url = new URL(raw, base)
     if (url.origin !== base) return fallback
+    // "/.//evil.example.com" normalizes to "//evil.example.com" — check the normalized path too
+    if (isProtocolRelativeLike(url.pathname)) return fallback
     return `${url.pathname}${url.search}`
   } catch {
     return fallback
   }
 }
 ```
+
+（Sprint 0 のセキュリティレビューで修正: 入力だけでなく、URL として整えた後の pathname も確かめる。実装は `src/lib/utils/safe-next-path.ts`）
 
 5. **認証の流れ（`token_hash` + `verifyOtp` を採用）**:
    - **`/auth/confirm` で token_hash を verifyOtp する方式にした理由**: PKCE（`?code=` を `exchangeCodeForSession` で交換する方式。budget-app の `/auth/callback`）は、リンクを要求したのと**同じブラウザ**に code_verifier というクッキーが残っていないと失敗します。マジックリンクは「パソコンで要求して、スマホのメールで開く」ことがよくあるので、ブラウザに依存しない token_hash 方式にします。Supabase の Next.js 公式チュートリアルも `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` の形を示しています（context7 で確認）。
@@ -1764,6 +1772,12 @@ SUPABASE_SERVICE_ROLE_KEY=your-local-service-role-key
 - 完了条件: US-01〜US-09 の受入条件が、11.5 の対応表どおりにすべて緑。監査で High 以上の指摘が0件。
 
 ---
+
+## 15.1 CEO決定（承認ゲート2・2026-10-06）— 本章が 13章・16章より優先
+
+1. **Supabase は新規プロジェクトを作る**（無料枠に空きあり。16章 #1 は解決）。
+2. **新規登録は Hiro 本人だけ**。`supabase/config.toml` は `[auth.email] enable_signup = false`、本番ダッシュボードも「Allow new users to sign up」を OFF。`signInWithOtp` は `options.shouldCreateUser: false` を指定する。Hiro のユーザーは本番ダッシュボードの「Invite user / Add user」で作る（devops-engineer、Sprint 5）。未登録のメールアドレスでも画面には「メールを送りました」と同じ表示を出し、登録有無を漏らさない。
+3. **6桁コードでのログインを足す**（16章 #3 は解決）。メールテンプレートにリンクと `{{ .Token }}` の両方を載せる。ログイン画面は「メールを送る → 6桁コード入力欄」を同じ画面で出し、`verifyOtp({ email, token, type: 'email' })` で検証する。リンク経由（`/auth/confirm` の token_hash）はそのまま残す。Sprint 1 の Red テストに `OtpForm`（6桁以外は送信不可）と `verifyOtpCode` アクションを追加する。
 
 ## 16. 未決事項 / リスク
 

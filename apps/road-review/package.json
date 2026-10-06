@@ -1,0 +1,66 @@
+{
+  "name": "road-review",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.29.2",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.16.0"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:rls": "vitest run --config vitest.rls.config.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.2",
+    "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.17.0",
+    "next": "16.3.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^25",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "jsdom": "^29.1.1",
+    "supabase": "^2.118.0",
+    "tailwindcss": "^4",
+    "typescript": "^6",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "^8.0.16",
+      "brace-expansion@<1.1.18": "^1.1.18",
+      "brace-expansion@>=5.0.0 <5.0.9": "^5.0.9",
+      "browserslist@<4.28.7": "^4.28.7",
+      "js-yaml@>=4.0.0 <4.3.2": "^4.3.2",
+      "nanoid@<3.3.18": "^3.3.18",
+      "postcss@<8.5.18": "^8.5.18",
+      "undici@>=7.0.0 <7.29.0": "^7.29.0"
+    }
+  }
+}
