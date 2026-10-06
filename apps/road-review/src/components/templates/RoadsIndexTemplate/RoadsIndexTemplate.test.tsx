@@ -40,3 +40,19 @@ describe('RoadsIndexTemplate', () => {
     expect(list.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })
+
+// Sprint 3: optional `summary` slot (the collection summary), placed after the heading/actions and before the list.
+describe('RoadsIndexTemplate summary slot (Sprint 3)', () => {
+  it('renders the summary slot before the list', () => {
+    render(
+      <RoadsIndexTemplate
+        actions={null}
+        summary={<section aria-label="まとめ">まとめスロット</section>}
+        list={<ul aria-label="道のリスト"><li>碓氷峠</li></ul>}
+      />,
+    )
+    const summary = screen.getByText('まとめスロット')
+    const list = screen.getByRole('list', { name: '道のリスト' })
+    expect(summary.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+})

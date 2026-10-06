@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { createAdminClient } from '../helpers/supabase-test-users'
 import {
   createE2eUser,
   hasSupabaseTestEnv,
@@ -114,10 +115,34 @@ test.describe('first-run safety notice', () => {
     expect(await page.evaluate(() => window.__geolocationCalls)).toEqual([])
   })
 
-  // The record form (/roads/[id]/drives/new) arrives in Sprint 3; enable this then.
-  test.fixme('the record form always shows the safety banner (M-01)', async ({ page }) => {
-    await expect(
-      page.getByRole('note').getByText('運転中は操作しないでください'),
-    ).toBeVisible()
+  // Sprint 3: the record form (/roads/[id]/drives/new) exists now.
+  test('the record form always shows the safety banner (M-01) and never calls the Geolocation API', async ({
+    page,
+  }) => {
+    const { data: road, error } = await createAdminClient()
+      .from('roads')
+      .insert({
+        user_id: user!.id,
+        name: '碓氷峠',
+        prefecture_code: 10,
+        road_type: 'pass',
+        start_lat: 36.35,
+        start_lng: 138.7,
+      })
+      .select('id')
+      .single()
+    if (error) throw error
+
+    await loginViaMagicLink(page, user!.email)
+    const dialog = page.getByRole('dialog', { name: 'はじめに' })
+    if (await dialog.isVisible().catch(() => false)) await dialog.getByRole('button', { name: '確認しました' }).click()
+
+    await page.goto(`/roads/${road.id}/drives/new`)
+    const banner = page.getByRole('note').filter({ hasText: '運転中は操作しないでください' })
+    await expect(banner).toBeVisible()
+    await expect(banner).toContainText('記録は安全な場所に停車してから、またはドライブの後に行ってください。')
+    await expect(banner.getByRole('button')).toHaveCount(0)
+    await page.waitForLoadState('networkidle')
+    expect(await page.evaluate(() => window.__geolocationCalls)).toEqual([])
   })
 })

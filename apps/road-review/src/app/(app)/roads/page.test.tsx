@@ -91,3 +91,56 @@ describe('/roads page', () => {
     expect(screen.queryByText('道の一覧と登録は準備中です。')).not.toBeInTheDocument()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Sprint 3: collection summary on /roads (PRD US-11 items 1-3, CTO brief: shown on /roads this sprint).
+// Contract: the page derives the stats from the SAME listRoadSummaries() result with
+// buildCollectionStats() (no second query; getCollectionStats() is for a future /collection page),
+// and renders <CollectionSummary> (region "走った道のコレクション") only when at least one road exists
+// (0 roads -> only E-01). RoadsIndexTemplate gains an optional `summary` slot for it.
+// ---------------------------------------------------------------------------
+
+describe('/roads page collection summary (Sprint 3)', () => {
+  function drivenRoad(id: string, name: string, prefectureCode: number, roadType: RoadSummary['roadType'], driveCount: number) {
+    return {
+      ...road(id, name),
+      prefectureCode,
+      roadType,
+      driveCount,
+      lastDrivenOn: driveCount > 0 ? '2026-09-14' : null,
+      lastRatingOverall: driveCount > 0 ? 4 : null,
+      averageOverall: driveCount > 0 ? 4 : null,
+    } as RoadSummary
+  }
+
+  const collectionRoads = [
+    drivenRoad('6f1c2a8e-3b4d-4e5f-8a9b-0c1d2e3f4a5b', '峠A', 20, 'pass', 2),
+    drivenRoad('11111111-2222-4333-8444-555555555555', '峠B', 20, 'pass', 1),
+    drivenRoad('22222222-3333-4444-8555-666666666666', 'スカイラインC', 22, 'skyline', 0),
+  ]
+
+  it('shows 走った道 / 種別ごとの本数 / 走った都道府県 computed from the listed roads (PRD example)', async () => {
+    mocks.listRoadSummaries.mockResolvedValue(collectionRoads)
+    await renderPage()
+
+    const region = screen.getByRole('region', { name: '走った道のコレクション' })
+    expect(region).toHaveTextContent(/走った道\s*2\s*本/)
+    const types = within(within(region).getByRole('list', { name: '種別ごとの本数' })).getAllByRole('listitem')
+    expect(types[0]).toHaveTextContent(/峠\s*2\s*本/)
+    expect(types[1]).toHaveTextContent(/スカイライン\s*0\s*本/)
+    expect(region).toHaveTextContent(/走った都道府県\s*1\s*\/\s*47/)
+    expect(mocks.listRoadSummaries).toHaveBeenCalledTimes(1)
+  })
+
+  it('with roads but no drives yet shows the E-06 message', async () => {
+    mocks.listRoadSummaries.mockResolvedValue(roads)
+    await renderPage()
+    expect(screen.getByText('まだ走った道はありません。走行記録を追加するとここに数えられます')).toBeInTheDocument()
+  })
+
+  it('with 0 roads there is no collection summary (E-01 only)', async () => {
+    mocks.listRoadSummaries.mockResolvedValue([])
+    await renderPage()
+    expect(screen.queryByRole('region', { name: '走った道のコレクション' })).not.toBeInTheDocument()
+  })
+})

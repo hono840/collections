@@ -65,3 +65,57 @@ describe('RoadListItem', () => {
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Sprint 3 (architecture 15 Sprint 3 "RoadListItem の最終走行日・総合評価"; PRD US-07; design spec 4-4):
+//   RoadSummary gains averageOverall: number | null (rounded to 1 decimal by the query).
+//   With drives the card shows "最終 YYYY-MM-DD", "記録 N件", "総合 平均 X.X" (one decimal) and a
+//   RatingMeter named "総合評価 平均X.X". Without drives: only "走行記録なし" (no meter, no 最終).
+// ---------------------------------------------------------------------------
+
+describe('RoadListItem with drives (Sprint 3)', () => {
+  const drivenRoad: RoadSummary = {
+    ...baseRoad,
+    lastDrivenOn: '2026-09-14',
+    lastRatingOverall: 5,
+    driveCount: 3,
+    averageOverall: 4.3,
+  } as RoadSummary
+
+  it('shows the last driven date as "最終 YYYY-MM-DD"', () => {
+    render(<RoadListItem road={drivenRoad} />)
+    expect(screen.getByText('最終 2026-09-14')).toBeInTheDocument()
+  })
+
+  it('shows the drive count "記録 3件"', () => {
+    render(<RoadListItem road={drivenRoad} />)
+    expect(screen.getByRole('link')).toHaveTextContent('記録 3件')
+  })
+
+  it('shows the overall average with one decimal: "総合 平均 4.3"', () => {
+    render(<RoadListItem road={drivenRoad} />)
+    expect(screen.getByRole('link')).toHaveTextContent(/総合\s*平均\s*4\.3/)
+  })
+
+  it('a whole-number average still shows one decimal (4 -> 4.0)', () => {
+    render(<RoadListItem road={{ ...drivenRoad, averageOverall: 4 } as RoadSummary} />)
+    expect(screen.getByRole('link')).toHaveTextContent(/総合\s*平均\s*4\.0/)
+  })
+
+  it('has a rating meter named "総合評価 平均4.3"', () => {
+    render(<RoadListItem road={drivenRoad} />)
+    expect(screen.getByRole('img', { name: '総合評価 平均4.3' })).toBeInTheDocument()
+  })
+
+  it('does not show "走行記録なし" when there are drives', () => {
+    render(<RoadListItem road={drivenRoad} />)
+    expect(screen.queryByText('走行記録なし')).not.toBeInTheDocument()
+  })
+
+  it('without drives: no meter image, no average, no 最終', () => {
+    render(<RoadListItem road={{ ...baseRoad, averageOverall: null } as RoadSummary} />)
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.getByRole('link')).not.toHaveTextContent('平均')
+    expect(screen.getByText('走行記録なし')).toBeInTheDocument()
+  })
+})

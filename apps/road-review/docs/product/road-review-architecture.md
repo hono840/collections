@@ -1878,3 +1878,15 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 | D-3（L-3） | 1ユーザーあたり道 500 件までの BEFORE INSERT トリガー（超過は専用エラー → M-xx「登録できる道は500件までです」）。`listRoadSummaries` に `.limit(500)` | backend |
 | C-1（Info） | `source-map-js` を `pnpm.overrides` で `"source-map-js@>=1.0.0 <1.2.2": "^1.2.2"` に。**1.2.2 は 2026-09-30 公開のため cooldown 明け（2026-10-07 23:08 JST）以降に適用**（免除リストは使わない） | devops（supply-chain 確認） |
 | 後回し | L-4 `style-src 'unsafe-inline'` の削除は Supabase 起動後の E2E で地図表示を確認してから。L-5 タイル通信はプライバシーポリシーに記載（CMO） | — |
+
+## 20. Sprint 3 の決定（CTO・2026-10-06）
+1. 道の情報は「走行記録1件につき road_info 1行」（3章）。項目は PRD の8項目。各項目は null 可の status 列 + `<item>_memo`（null = 記録しない）。最新値は項目ごとに選ぶ（確認日が新しい順 → 作成日時が新しい順）。
+2. 道の情報は DriveForm 内の RoadInfoFieldset で入力する。UX S-08 の `/roads/[id]/info/new` と履歴シートは MVP 後。
+3. 列名は 3章のまま（`few/normal/many`、`rating_road_surface`、`rating_ease_of_driving`）。
+4. 一覧カードは PRD の「総合 平均 X.X」。`lastRatingOverall` も持つ。
+5. 道の情報の行の文言は PRD 形式（「あり（土日のみ）・確認日 2026-10-01」）。「ユーザー記録」はセクションのラベル。
+6. RatingInput は radio のため aria-valuetext ではなく、live region の「選択中: N（語）」。
+7. エラー時のフォーカスはエラー要約（RoadForm と同じ）。
+8. メモは「2000文字以内で入力してください」。走行日の下限は 2000-01-01。
+9. **既知のリスク（受け入れ）**: createDrive は drives → road_info の2回の insert。road_info 失敗時は drive を削除して戻す（補償処理）。補償の削除も失敗すると road_info なしの drive が残るが、データとしては有効なので受け入れる。公開共有の前に、1トランザクションの RPC 化を再検討する。
+10. 後回し: RoadsMap ポップアップの平均表示、交通量の「選択を解除」、`/collection` の地方別一覧。
