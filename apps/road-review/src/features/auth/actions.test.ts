@@ -42,7 +42,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(async () => ({ auth: mocks.auth })),
 }))
 
-import { requestMagicLink, signOut, verifyOtpCode } from './actions'
+import { confirmMagicLink, requestMagicLink, signOut, verifyOtpCode } from './actions'
 
 function formDataOf(entries: Record<string, string>): FormData {
   const formData = new FormData()
@@ -50,7 +50,7 @@ function formDataOf(entries: Record<string, string>): FormData {
   return formData
 }
 
-function authError(status: number, code: string, message = code) {
+function authError(status: number, code: string | undefined, message = code ?? 'error') {
   return Object.assign(new Error(message), { name: 'AuthApiError', status, code })
 }
 
@@ -159,10 +159,27 @@ describe('requestMagicLink (prevState, formData) — login form action', () => {
     },
   )
 
+  // S-3: the per-address send limit is reported exactly like a successful send
+  // (the sent screen says "届かない場合は60秒後にもう一度お試しください"), so it
+  // cannot be used to probe which addresses have accounts.
+  it.each([429])(
+    'returns the same success result for over_email_send_rate_limit (HTTP %i)',
+    async (status) => {
+      mocks.auth.signInWithOtp.mockResolvedValue({
+        data: {},
+        error: authError(status, 'over_email_send_rate_limit', 'For security purposes, you can only request this after 60 seconds.'),
+      })
+
+      const result = await requestMagicLink(null, formDataOf({ email: 'hiro@example.com' }))
+
+      expect(result).toEqual({ ok: true, data: { email: 'hiro@example.com' } })
+    },
+  )
+
   it.each([
-    [429, 'over_email_send_rate_limit'],
     [429, 'over_request_rate_limit'],
     [429, 'unknown_429_code'],
+    [429, undefined],
   ])('maps a rate-limit error (%i %s) to rate_limited with the M-30 message', async (status, code) => {
     mocks.auth.signInWithOtp.mockResolvedValue({ data: {}, error: authError(status, code) })
 
@@ -264,6 +281,71 @@ describe('verifyOtpCode (prevState, formData) — 6-digit code form action', () 
       ok: false,
       error: { code: 'rate_limited', message: '時間をおいてもう一度お試しください' },
     })
+  })
+})
+
+// S-6: the magic link lands on a confirmation page; only this POSTed action
+// consumes the token (link scanners and login CSRF cannot log the user in).
+describe('confirmMagicLink (prevState, formData) — "ログインする" on /auth/confirm', () => {
+  async function confirmAndCaptureRedirect(entries: Record<string, string>): Promise<string> {
+    try {
+      await confirmMagicLink(null, formDataOf(entries))
+    } catch (error) {
+      if (error instanceof mocks.RedirectSignal) return error.url
+      throw error
+    }
+    throw new Error('confirmMagicLink must end with redirect()')
+  }
+
+  it('verifies token_hash with type "email", deletes rr_next and redirects to it', async () => {
+    mocks.cookieJar.set('rr_next', '/roads/abc')
+
+    const location = await confirmAndCaptureRedirect({ token_hash: 'hash-123' })
+
+    expect(mocks.auth.verifyOtp).toHaveBeenCalledTimes(1)
+    expect(mocks.auth.verifyOtp).toHaveBeenCalledWith({ type: 'email', token_hash: 'hash-123' })
+    expect(mocks.cookieStore.delete).toHaveBeenCalledWith('rr_next')
+    expect(location).toBe('/roads/abc')
+  })
+
+  it('redirects to /roads when rr_next is missing', async () => {
+    expect(await confirmAndCaptureRedirect({ token_hash: 'hash-123' })).toBe('/roads')
+  })
+
+  it.each(['https://evil.example.com', '//evil.example.com', '/.//evil.example.com', '/\\evil.example.com'])(
+    'passes rr_next=%j through safeNextPath (falls back to /roads)',
+    async (value) => {
+      mocks.cookieJar.set('rr_next', value)
+      expect(await confirmAndCaptureRedirect({ token_hash: 'hash-123' })).toBe('/roads')
+    },
+  )
+
+  it('always uses type "email" even if the form posts another type', async () => {
+    await confirmAndCaptureRedirect({ token_hash: 'hash-123', type: 'recovery' })
+    expect(mocks.auth.verifyOtp).toHaveBeenCalledWith({ type: 'email', token_hash: 'hash-123' })
+  })
+
+  it.each<Record<string, string>>([{}, { token_hash: '' }, { token_hash: '   ' }])(
+    'redirects to /login?error=link_invalid without calling verifyOtp when token_hash is missing (%j)',
+    async (entries) => {
+      const location = await confirmAndCaptureRedirect(entries)
+
+      expect(mocks.auth.verifyOtp).not.toHaveBeenCalled()
+      expect(location).toBe('/login?error=link_invalid')
+    },
+  )
+
+  it('redirects to /login?error=link_invalid and keeps rr_next when the link is expired or used', async () => {
+    mocks.cookieJar.set('rr_next', '/roads/abc')
+    mocks.auth.verifyOtp.mockResolvedValue({
+      data: { session: null },
+      error: authError(403, 'otp_expired', 'Email link is invalid or has expired'),
+    })
+
+    const location = await confirmAndCaptureRedirect({ token_hash: 'used' })
+
+    expect(location).toBe('/login?error=link_invalid')
+    expect(mocks.cookieStore.delete).not.toHaveBeenCalled()
   })
 })
 

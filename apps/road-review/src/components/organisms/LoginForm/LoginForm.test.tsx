@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mocks = vi.hoisted(() => ({
@@ -126,5 +126,30 @@ describe('LoginForm', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'ログインリンクの有効期限が切れているか、すでに使われています。もう一度メールアドレスを入力してください。',
     )
+  })
+
+  // S-3: over_email_send_rate_limit is reported as success, so the sent screen
+  // itself tells the user when they may resend.
+  it('tells the user to retry after 60 seconds if the mail does not arrive', async () => {
+    mocks.requestMagicLink.mockResolvedValue({ ok: true, data: { email: 'hiro@example.com' } })
+    render(<LoginForm />)
+
+    await fillAndSubmit('hiro@example.com')
+
+    await screen.findByText(/hiro@example\.com にログイン用のメールを送りました/)
+    expect(screen.getByText(/届かない場合は60秒後にもう一度お試しください/)).toBeInTheDocument()
+  })
+
+  // R-3
+  it('"メールアドレスを変更" returns to the email field with focus and the previous address', async () => {
+    mocks.requestMagicLink.mockResolvedValue({ ok: true, data: { email: 'hiro@example.com' } })
+    render(<LoginForm />)
+
+    const user = await fillAndSubmit('hiro@example.com')
+    await user.click(await screen.findByRole('button', { name: 'メールアドレスを変更' }))
+
+    const input = await screen.findByLabelText(/メールアドレス/)
+    expect(input).toHaveValue('hiro@example.com')
+    await waitFor(() => expect(input).toHaveFocus())
   })
 })

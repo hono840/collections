@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const mocks = vi.hoisted(() => ({ acknowledgeSafetyNotice: vi.fn() }))
@@ -117,5 +117,34 @@ describe('SafetyNoticeDialog (first-run safety notice, US-08 / PRD US-13)', () =
     )
     expect(screen.getByRole('dialog', { name: 'はじめに' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '確認しました' })).toBeEnabled()
+  })
+
+  // R-3: while saving, the button is disabled and browsers drop its focus, so
+  // after a failure focus must be put back on "確認しました" explicitly.
+  // fireEvent.click is used on purpose: it does not move focus, so the test
+  // cannot pass just because the click focused the button.
+  it.each([
+    [
+      'the action returns an error',
+      () =>
+        mocks.acknowledgeSafetyNotice.mockResolvedValue({
+          ok: false,
+          error: { code: 'unexpected', message: '保存できませんでした。もう一度お試しください。' },
+        }),
+    ],
+    ['the action throws', () => mocks.acknowledgeSafetyNotice.mockRejectedValue(new Error('network'))],
+  ])('moves focus back to "確認しました" when %s', async (_label, arrange) => {
+    arrange()
+    render(<SafetyNoticeDialog acknowledged={false} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'はじめに' })).toHaveFocus()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '確認しました' }))
+
+    await screen.findByRole('alert')
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '確認しました' })).toHaveFocus()
+    })
   })
 })
