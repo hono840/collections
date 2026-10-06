@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { generateMagicLinkTokens } from '../helpers/supabase-test-users'
 import {
+  confirmMagicLinkOnPage,
+  confirmUrl,
   createE2eUser,
   hasSupabaseTestEnv,
   loginViaMagicLink,
@@ -56,15 +58,80 @@ test.describe('unauthenticated access', () => {
     ).toBeVisible()
   })
 
-  test('an invalid or used link lands on /login?error=link_invalid with M-23', async ({ page }) => {
-    await page.goto('/auth/confirm?token_hash=definitely-not-valid&type=email')
+  test('a link without token_hash shows M-23 on the confirm page with a link to /login', async ({
+    page,
+  }) => {
+    await page.goto('/auth/confirm?type=email')
+    await expect(page).toHaveURL(/\/auth\/confirm/)
+    await expect(page.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
+    await expect(page.getByRole('button', { name: 'ログインする' })).toHaveCount(0)
+    await page.getByRole('link', { name: 'もう一度リンクを送る' }).click()
+    await expect(page).toHaveURL(/\/login$/)
+  })
+
+  test('/auth/confirm rejects types other than email (M-23, no button)', async ({ page }) => {
+    await page.goto(confirmUrl('whatever', 'recovery'))
+    await expect(page.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
+    await expect(page.getByRole('button', { name: 'ログインする' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'もう一度リンクを送る' })).toHaveAttribute(
+      'href',
+      '/login',
+    )
+  })
+
+  test('/auth/confirm shows a confirm button and does not redirect on GET (S-6)', async ({
+    page,
+  }) => {
+    await page.goto(confirmUrl('definitely-not-valid'))
+    await expect(page).toHaveURL(/\/auth\/confirm\?token_hash=/)
+    await expect(page.getByRole('button', { name: 'ログインする' })).toBeVisible()
+    await expect(page.getByText('definitely-not-valid')).toHaveCount(0)
+  })
+
+  test('an invalid token fails only after pressing "ログインする" -> /login?error=link_invalid', async ({
+    page,
+  }) => {
+    await confirmMagicLinkOnPage(page, 'definitely-not-valid')
     await expect(page).toHaveURL(/\/login\?error=link_invalid/)
     await expect(page.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
   })
+})
 
-  test('/auth/confirm rejects types other than email', async ({ page }) => {
-    await page.goto('/auth/confirm?token_hash=whatever&type=recovery')
-    await expect(page).toHaveURL(/\/login\?error=link_invalid/)
+test.describe('Content-Security-Policy (architecture 18.1 S-5)', () => {
+  test('/login sends a nonce-based script-src without unsafe-inline', async ({ page }) => {
+    const response = await page.goto('/login')
+    const csp = response?.headers()['content-security-policy']
+    expect(csp).toBeTruthy()
+
+    const scriptSrc = csp!
+      .split(';')
+      .map((directive) => directive.trim())
+      .find((directive) => directive.startsWith('script-src'))
+    expect(scriptSrc).toMatch(/'nonce-[A-Za-z0-9+/=_-]+'/)
+    expect(scriptSrc).not.toContain("'unsafe-inline'")
+  })
+
+  test('the inline theme script carries the same nonce as the header', async ({ request }) => {
+    const response = await request.get('/login')
+    const csp = response.headers()['content-security-policy'] ?? ''
+    const headerNonce = csp.match(/'nonce-([^']+)'/)?.[1]
+    expect(headerNonce).toBeTruthy()
+
+    // Browsers hide nonce attributes from the DOM, so check the raw HTML.
+    const html = await response.text()
+    const inlineScripts = [...html.matchAll(/<script(?![^>]*\ssrc=)([^>]*)>/g)]
+    expect(inlineScripts.length).toBeGreaterThan(0)
+    for (const [, attributes] of inlineScripts) {
+      expect(attributes).toContain(`nonce="${headerNonce}"`)
+    }
+  })
+
+  test('two requests get different nonces', async ({ request }) => {
+    const first = (await request.get('/login')).headers()['content-security-policy']
+    const second = (await request.get('/login')).headers()['content-security-policy']
+    const nonceOf = (value: string | undefined) => value?.match(/'nonce-([^']+)'/)?.[1]
+    expect(nonceOf(first)).toBeTruthy()
+    expect(nonceOf(first)).not.toBe(nonceOf(second))
   })
 })
 
@@ -116,7 +183,8 @@ test.describe('login with a real local Supabase', () => {
     const rrNext = (await page.context().cookies()).find((cookie) => cookie.name === 'rr_next')
     expect(rrNext?.httpOnly).toBe(true)
 
-    await loginViaMagicLink(page, user!.email)
+    const { hashedToken } = await generateMagicLinkTokens(user!.email)
+    await confirmMagicLinkOnPage(page, hashedToken)
     await expect(page).toHaveURL(/\/roads\?view=list$/)
   })
 
@@ -126,7 +194,8 @@ test.describe('login with a real local Supabase', () => {
     await page.getByRole('button', { name: 'ログインリンクを送る' }).click()
     await expect(page.getByText(SENT_MESSAGE)).toBeVisible()
 
-    await loginViaMagicLink(page, user!.email)
+    const { hashedToken } = await generateMagicLinkTokens(user!.email)
+    await confirmMagicLinkOnPage(page, hashedToken)
     await expect(page).toHaveURL(/\/roads$/)
   })
 
@@ -157,15 +226,34 @@ test.describe('login with a real local Supabase', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
+  test('merely opening the link (GET) does not log in (mail scanner / login CSRF, S-6)', async ({
+    page,
+  }) => {
+    const { hashedToken } = await generateMagicLinkTokens(user!.email)
+    await page.goto(confirmUrl(hashedToken))
+    await expect(page.getByRole('button', { name: 'ログインする' })).toBeVisible()
+
+    await page.goto('/roads')
+    await expect(page).toHaveURL(/\/login\?next=%2Froads$/)
+
+    // The token was not consumed by the GET, so pressing the button still works.
+    await confirmMagicLinkOnPage(page, hashedToken)
+    await expect(page).toHaveURL(/\/roads/)
+  })
+
   test('a used magic link cannot be reused', async ({ page, browser }) => {
     const { hashedToken } = await generateMagicLinkTokens(user!.email)
-    await page.goto(`/auth/confirm?token_hash=${hashedToken}&type=email`)
+    await confirmMagicLinkOnPage(page, hashedToken)
     await expect(page).toHaveURL(/\/roads/)
 
     const otherContext = await browser.newContext()
     const otherPage = await otherContext.newPage()
-    await otherPage.goto(`/auth/confirm?token_hash=${hashedToken}&type=email`)
+    await otherPage.goto(confirmUrl(hashedToken))
+    // GET still shows the confirm page; the failure surfaces after the press.
+    await expect(otherPage.getByRole('button', { name: 'ログインする' })).toBeVisible()
+    await otherPage.getByRole('button', { name: 'ログインする' }).click()
     await expect(otherPage).toHaveURL(/\/login\?error=link_invalid/)
+    await expect(otherPage.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
     await otherContext.close()
   })
 
