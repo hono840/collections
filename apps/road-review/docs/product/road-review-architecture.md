@@ -1580,7 +1580,7 @@ export function safeNextPath(raw: string | null | undefined, fallback = '/roads'
    - **`/auth/confirm` で token_hash を verifyOtp する方式にした理由**: PKCE（`?code=` を `exchangeCodeForSession` で交換する方式。budget-app の `/auth/callback`）は、リンクを要求したのと**同じブラウザ**に code_verifier というクッキーが残っていないと失敗します。マジックリンクは「パソコンで要求して、スマホのメールで開く」ことがよくあるので、ブラウザに依存しない token_hash 方式にします。Supabase の Next.js 公式チュートリアルも `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` の形を示しています（context7 で確認）。
    - メールテンプレート（**Magic Link** と **Confirm signup** の両方。`signInWithOtp` は初めてのアドレスには Confirm signup のメールを送るため）:
      `{{ .RedirectTo }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
-   - `signInWithOtp({ email, options: { emailRedirectTo: siteOrigin, shouldCreateUser: true } })`。`siteOrigin` は `NEXT_PUBLIC_SITE_URL`。無ければ Vercel の Preview で `https://${VERCEL_URL}` を使います。Supabase の Redirect URLs の許可リストに無い URL を指定すると、Site URL に置き換えられます。
+   - `signInWithOtp({ email, options: { emailRedirectTo: siteOrigin, shouldCreateUser: false } })`。`siteOrigin` は `NEXT_PUBLIC_SITE_URL`。無ければ Vercel の Preview で `https://${VERCEL_URL}` を使います。Supabase の Redirect URLs の許可リストに無い URL を指定すると、Site URL に置き換えられます。（15.1 により false。未登録アドレスのエラーも成功と同じ表示にする）
    - ログイン後に戻る先（`next`）は、ログイン用 Server Action が `safeNextPath` で確かめてから、10分有効の httpOnly クッキー `rr_next` に保存します。`/auth/confirm` でもう一度 `safeNextPath` を通してから移動します（クエリに入れないので、許可リストとクエリ文字列の照合の問題も起きません）。
    - `/auth/confirm` は `type === 'email'` だけを受け付けます。
 
@@ -1660,7 +1660,7 @@ export default nextConfig
    - Preview 環境で Vercel Toolbar を使う場合は、それに必要な許可が CSP に要ります。**どのドメインが必要かは今回確かめていない**ので、devops-engineer が Vercel の公式ドキュメントで確認してから足します（16章）。
    - `camera=()` を指定しても、`<input type="file">` でカメラアプリを開いて撮影すること自体には影響しないと考えています（ブラウザの API でカメラを直接使うことだけを止める指定のため）。E2E と実機で確かめ、影響があれば `camera=()` を外します（16章）。
 8. **EXIF の除去**: 10章のとおり、描き直し + `hasExifSegment` での確認 + E2E での確認の三重です。
-9. **アクセス回数の制限（Rate limit）**（Supabase docs で確認）: マジックリンクは同じアドレスに60秒あけないと再送できません（初期値）。OTP は合計で1時間360回まで（初期値）。**Supabase 組み込みのメール送信機能は1時間あたりの送信数がとても少なく、届くことも保証されません**（「本番では独自の SMTP を設定すること」と書かれている）。MVP（自分だけで使う）なら組み込みで足りますが、他の人に使ってもらう前に独自の SMTP を設定します（16章）。ログイン用の Server Action は、429 や `over_email_send_rate_limit` を `rate_limited` に変え、「少し時間をおいてからもう一度お試しください」と表示します。メールアドレスが登録済みかどうかで表示を変えません（`shouldCreateUser: true` で常に同じ「送信しました」を表示し、登録の有無を探られないようにする）。
+9. **アクセス回数の制限（Rate limit）**（Supabase docs で確認）: マジックリンクは同じアドレスに60秒あけないと再送できません（初期値）。OTP は合計で1時間360回まで（初期値）。**Supabase 組み込みのメール送信機能は1時間あたりの送信数がとても少なく、届くことも保証されません**（「本番では独自の SMTP を設定すること」と書かれている）。MVP（自分だけで使う）なら組み込みで足りますが、他の人に使ってもらう前に独自の SMTP を設定します（16章）。ログイン用の Server Action は、429 や `over_email_send_rate_limit` を `rate_limited` に変え、「少し時間をおいてからもう一度お試しください」と表示します。メールアドレスが登録済みかどうかで表示を変えません（15.1 により `shouldCreateUser: false`。未登録アドレスのエラー（`otp_disabled` など）も成功と同じ「送信しました」を表示し、登録の有無を探られないようにする）。
 10. **依存関係**: 1章の pnpm の設定（cooldown・ビルドスクリプトの許可制・overrides）と、CI の `supply-chain-security.yml`（`apps/*/pnpm-lock.yaml` をすべて自動で検査するので、アプリを追加しても設定変更は不要）。
 
 ---

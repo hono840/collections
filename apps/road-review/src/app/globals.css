@@ -1,8 +1,253 @@
 @import "tailwindcss";
 
-/* Design tokens are added by ui-ux-designer / frontend-developer in later sprints. */
+/*
+ * Design tokens — "paper road atlas" (docs/product/road-review-design-spec.md ch.2 / 5-2).
+ * Light tokens live on :root, dark tokens on .dark, both as --rr-* variables.
+ * @theme inline maps them to Tailwind names (bg-canvas, text-ink, ...).
+ * Components should almost never need dark: variants (spec 5-3).
+ */
 
-:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --rr-canvas: #eef0ea;
+  --rr-surface: #f8f9f5;
+  --rr-surface-raised: #ffffff;
+  --rr-surface-sunken: #e3e6de;
+  --rr-ink: #1e2a32;
+  --rr-ink-muted: #4f5b60;
+  --rr-ink-subtle: #646e72;
+  --rr-line: #c9cec4;
+  --rr-line-strong: #7d877f;
+  --rr-primary: #2b5179;
+  --rr-primary-hover: #23446a;
+  --rr-primary-active: #1b3757;
+  --rr-on-primary: #ffffff;
+  --rr-primary-subtle: #dce5ee;
+  --rr-accent: #8c5a2e;
+  --rr-success: #2f6b45;
+  --rr-warning: #7a5500;
+  --rr-warning-subtle: #f5ecd3;
+  --rr-danger: #a3392e;
+  --rr-danger-hover: #8a2f26;
+  --rr-danger-subtle: #f6e3df;
+  --rr-on-danger: #ffffff;
+  --rr-info: #2e6470;
+  --rr-info-subtle: #e1ecee;
+  --rr-focus: #1f5fad;
+  --rr-inverse: #1e2a32;
+  --rr-on-inverse: #eef0ea;
+  --rr-scrim: rgba(20, 28, 34, 0.48);
+  --rr-pin-ring: #ffffff;
+  --rr-pin-outline: rgba(30, 42, 50, 0.45);
+  --rr-pin-selected: #1e2a32;
+  --rr-cluster: #f8f9f5;
+
+  --rr-contour-opacity: 0.22;
+
+  --rr-shadow-1: 0 1px 0 rgba(30, 42, 50, 0.06), 0 1px 2px rgba(30, 42, 50, 0.08);
+  --rr-shadow-2: 0 2px 4px rgba(30, 42, 50, 0.08), 0 6px 16px rgba(30, 42, 50, 0.08);
+  --rr-shadow-3: 0 -2px 8px rgba(30, 42, 50, 0.1), 0 16px 40px rgba(30, 42, 50, 0.18);
+  --rr-shadow-pin: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  --rr-duration-instant: 80ms;
+  --rr-duration-fast: 140ms;
+  --rr-duration-base: 200ms;
+  --rr-duration-sheet: 280ms;
+  --rr-duration-slow: 320ms;
+  --rr-duration-draw: 900ms;
+
+  color-scheme: light;
+}
+
+.dark {
+  --rr-canvas: #1b2329;
+  --rr-surface: #222c33;
+  --rr-surface-raised: #2b3740;
+  --rr-surface-sunken: #151b20;
+  --rr-ink: #e6e8e1;
+  --rr-ink-muted: #a9b1ae;
+  --rr-ink-subtle: #8a938f;
+  --rr-line: #36424a;
+  --rr-line-strong: #77837e;
+  --rr-primary: #8fb3da;
+  --rr-primary-hover: #a9c6e6;
+  --rr-primary-active: #bcd3ec;
+  --rr-on-primary: #14202b;
+  --rr-primary-subtle: #24364a;
+  --rr-accent: #d3a374;
+  --rr-success: #7fc197;
+  --rr-warning: #e2b85c;
+  --rr-warning-subtle: #3a3220;
+  --rr-danger: #f0968a;
+  --rr-danger-hover: #f4ada3;
+  --rr-danger-subtle: #3d2624;
+  --rr-on-danger: #14202b;
+  --rr-info: #86c0cc;
+  --rr-info-subtle: #1f3439;
+  --rr-focus: #9cc3f0;
+  --rr-inverse: #e6e8e1;
+  --rr-on-inverse: #1b2329;
+  --rr-scrim: rgba(0, 0, 0, 0.6);
+
+  --rr-contour-opacity: 0.2;
+
+  --rr-shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --rr-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --rr-shadow-3: 0 -2px 10px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+@theme {
+  /* Only token colors may be used (white / transparent are kept). */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+
+  --spacing: 0.25rem;
+
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.6;
+  --text-base: 1rem;
+  --text-base--line-height: 1.75;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.55;
+  --text-xl: 1.3125rem;
+  --text-xl--line-height: 1.45;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.4;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 1.3;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.15;
+  --text-5xl: 3.5rem;
+  --text-5xl--line-height: 1.05;
+
+  --radius-xs: 2px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-ink: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --animate-sheet-in: rr-sheet-in var(--rr-duration-sheet) var(--ease-standard);
+  --animate-dialog-in: rr-dialog-in var(--rr-duration-base) var(--ease-standard);
+
+  @keyframes rr-sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes rr-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--rr-canvas);
+  --color-surface: var(--rr-surface);
+  --color-surface-raised: var(--rr-surface-raised);
+  --color-surface-sunken: var(--rr-surface-sunken);
+  --color-ink: var(--rr-ink);
+  --color-ink-muted: var(--rr-ink-muted);
+  --color-ink-subtle: var(--rr-ink-subtle);
+  --color-line: var(--rr-line);
+  --color-line-strong: var(--rr-line-strong);
+  --color-primary: var(--rr-primary);
+  --color-primary-hover: var(--rr-primary-hover);
+  --color-primary-active: var(--rr-primary-active);
+  --color-on-primary: var(--rr-on-primary);
+  --color-primary-subtle: var(--rr-primary-subtle);
+  --color-accent: var(--rr-accent);
+  --color-success: var(--rr-success);
+  --color-warning: var(--rr-warning);
+  --color-warning-subtle: var(--rr-warning-subtle);
+  --color-danger: var(--rr-danger);
+  --color-danger-hover: var(--rr-danger-hover);
+  --color-danger-subtle: var(--rr-danger-subtle);
+  --color-on-danger: var(--rr-on-danger);
+  --color-info: var(--rr-info);
+  --color-info-subtle: var(--rr-info-subtle);
+  --color-focus: var(--rr-focus);
+  --color-inverse: var(--rr-inverse);
+  --color-on-inverse: var(--rr-on-inverse);
+  --color-scrim: var(--rr-scrim);
+  --color-pin-ring: var(--rr-pin-ring);
+  --color-pin-outline: var(--rr-pin-outline);
+  --color-pin-selected: var(--rr-pin-selected);
+  --color-cluster: var(--rr-cluster);
+
+  --shadow-1: var(--rr-shadow-1);
+  --shadow-2: var(--rr-shadow-2);
+  --shadow-3: var(--rr-shadow-3);
+  --shadow-pin: var(--rr-shadow-pin);
+
+  /* next/font variables are set on <html> in app/layout.tsx */
+  --font-sans:
+    var(--font-biz), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo,
+    sans-serif;
+  --font-mincho: var(--font-shippori), "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-num:
+    var(--font-bizud), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo,
+    sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  /* Keyboard focus ring: 2px focus color, 2px away (spec 4 common). */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Mincho headings: proportional kana + 0.04em tracking (spec 2-5). */
+  .heading-mincho {
+    font-family: var(--font-mincho);
+    font-weight: 600;
+    font-feature-settings: "palt";
+    letter-spacing: 0.04em;
+  }
+
+  /* Dates, counts, rating numbers (spec 2-5). */
+  .num {
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
