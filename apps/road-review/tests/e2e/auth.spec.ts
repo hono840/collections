@@ -16,6 +16,12 @@ const SENT_MESSAGE = /にログイン用のメールを送りました/
 const LINK_INVALID_MESSAGE =
   'ログインリンクの有効期限が切れているか、すでに使われています。もう一度メールアドレスを入力してください。'
 
+// Next.js injects <div role="alert" id="__next-route-announcer__">, so a bare
+// getByRole('alert') is ambiguous. Match the app's alert by its text instead.
+function appAlert(page: Page, text: string | RegExp) {
+  return page.getByRole('alert').filter({ hasText: text })
+}
+
 async function acknowledgeSafetyNoticeIfShown(page: Page) {
   const dialog = page.getByRole('dialog', { name: 'はじめに' })
   if (await dialog.isVisible()) {
@@ -63,7 +69,7 @@ test.describe('unauthenticated access', () => {
   }) => {
     await page.goto('/auth/confirm?type=email')
     await expect(page).toHaveURL(/\/auth\/confirm/)
-    await expect(page.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
+    await expect(appAlert(page, LINK_INVALID_MESSAGE)).toBeVisible()
     await expect(page.getByRole('button', { name: 'ログインする' })).toHaveCount(0)
     await page.getByRole('link', { name: 'もう一度リンクを送る' }).click()
     await expect(page).toHaveURL(/\/login$/)
@@ -71,7 +77,7 @@ test.describe('unauthenticated access', () => {
 
   test('/auth/confirm rejects types other than email (M-23, no button)', async ({ page }) => {
     await page.goto(confirmUrl('whatever', 'recovery'))
-    await expect(page.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
+    await expect(appAlert(page, LINK_INVALID_MESSAGE)).toBeVisible()
     await expect(page.getByRole('button', { name: 'ログインする' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'もう一度リンクを送る' })).toHaveAttribute(
       'href',
@@ -93,7 +99,7 @@ test.describe('unauthenticated access', () => {
   }) => {
     await confirmMagicLinkOnPage(page, 'definitely-not-valid')
     await expect(page).toHaveURL(/\/login\?error=link_invalid/)
-    await expect(page.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
+    await expect(appAlert(page, LINK_INVALID_MESSAGE)).toBeVisible()
   })
 })
 
@@ -220,9 +226,9 @@ test.describe('login with a real local Supabase', () => {
     await page.getByLabel(/6桁のコード/).fill('000000')
     await page.getByRole('button', { name: /ログインする/ }).click()
 
-    await expect(page.getByRole('alert')).toContainText(
-      'コードが正しくないか、有効期限が切れています。もう一度お試しください。',
-    )
+    await expect(
+      appAlert(page, 'コードが正しくないか、有効期限が切れています。もう一度お試しください。'),
+    ).toBeVisible()
     await expect(page).toHaveURL(/\/login/)
   })
 
@@ -253,7 +259,7 @@ test.describe('login with a real local Supabase', () => {
     await expect(otherPage.getByRole('button', { name: 'ログインする' })).toBeVisible()
     await otherPage.getByRole('button', { name: 'ログインする' }).click()
     await expect(otherPage).toHaveURL(/\/login\?error=link_invalid/)
-    await expect(otherPage.getByRole('alert')).toContainText(LINK_INVALID_MESSAGE)
+    await expect(appAlert(otherPage, LINK_INVALID_MESSAGE)).toBeVisible()
     await otherContext.close()
   })
 
