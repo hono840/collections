@@ -1822,3 +1822,37 @@ code-architect の v1 を CTO がレビューし、次の点を直して承認�
 - 既存アプリで分かったこと: overrides の違いは postcss の書き方だけ。どちらのアプリにも `playwright.config.ts`・`supabase/config.toml`・`.npmrc`・`proxy.ts` は無い。`.gitignore` の `.env*` は `.env.example` まで無視する
 - context7 / 公式資料で確認: Next.js v16（middleware → proxy への名前変更と Node.js ランタイム限定、`ssr: false` は Client Component 内だけ、CSP の nonce なしの例、useActionState、redirect は try の外）、Supabase（getClaims、token_hash + verifyOtp、メールテンプレート、Rate limit、Vercel Preview のリダイレクトURL、Storage のバケット・ポリシー・remove・署名付きURL、storage テーブルへの SQL DELETE が拒否されるようになった告知、config.toml）、zod v4.3.6、React（form action 成功時の入力リセット）、react-leaflet 5.0.0 / leaflet 1.9.4 の npm 情報、MDN（createImageBitmap の imageOrientation、toBlob の PNG フォールバック）、国土地理院タイル一覧ページ
 
+
+---
+
+## 18. Sprint 1 レビュー・監査の対応方針（CTO決定・2026-10-06）
+
+code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/High 0・中5・低7）の結果を受けた方針。
+
+### 18.1 Sprint 1 Refactor で直す（TDD: test-writer → backend/frontend）
+| # | 内容 | 担当 |
+|---|---|---|
+| R-1 | `(app)/error.tsx` と `global-error.tsx`（日本語文言＋「もう一度読み込む」） | frontend |
+| R-2 | OtpForm: 入力を `normalize('NFKC')` → 数字以外を除去 → 6桁に切る。全角・貼り付けのテスト | frontend |
+| R-3 | フォーカス: 「メールアドレスを変更」後はメール欄へ、失敗時は入力欄/ボタンへ戻す | frontend |
+| R-4 | LoginForm の型を `RequestMagicLinkState` に統一 | frontend |
+| S-1（中-1） | `config.toml` の `[auth] enable_signup = false` | backend |
+| S-3（中-3） | `over_email_send_rate_limit` も成功と同じ表示（「届かない場合は60秒後に再送」）。IP単位の `over_request_rate_limit` だけ `rate_limited` | backend |
+| S-4（中-4a） | `otp_expiry = 900`（15分）、メール文面も15分に | backend |
+| S-5（中-5） | proxy で nonce 付き CSP（`script-src 'self' 'nonce-…' 'strict-dynamic'`）。テーマスクリプトに nonce。`dangerouslySetInnerHTML` を layout 以外で禁止する lint | backend（proxy/next.config）＋ frontend（layout） |
+| S-6（低-1） | `/auth/confirm` は GET で確認画面だけ表示し、「ログインする」ボタンの Server Action で `verifyOtp`（ログインCSRFとリンク検査によるトークン消費を防ぐ）。route.ts は page.tsx に置き換え | backend（action）＋ frontend（page） |
+| S-7（低-2） | 公開パス判定を `=== '/login' \|\| startsWith('/login/')` と `/auth/` に厳密化 | backend |
+| S-8（低-4・低-5） | user_settings の grant から delete を外し、update は `safety_notice_acknowledged_at` 列だけに。keep_alive は `revoke ... from public` → anon/authenticated に grant（マイグレーション未適用なので 00001/00002 を直接修正） | backend |
+
+### 18.2 Sprint 5（本番設定）で devops-engineer が確認する
+- 中-1(b): 本番ダッシュボードで全体・メールともサインアップ OFF。Hiro は Invite/Add user で作成。
+- 中-2: Redirect URLs は本番ドメインと `https://road-review-*-<team-slug>.vercel.app/**` だけ。`*.vercel.app` 全体は禁止。
+- 中-4(e): 公開前にカスタム SMTP。本番の `otp_expiry` も 900。
+- 低-5: keep-alive workflow に road-review を追加。
+
+### 18.3 受け入れる残りのリスク（記録）
+- 中-3(3): GoTrue を直接呼べば登録の有無は分かる（サーバー側の仕様）。招待制の個人アプリなので受け入れる。
+- 中-4(c)(d): アプリ側の IP/メール単位の回数制限は公開共有の前に再検討。
+- 低-3: matcher は静的拡張子を除外。API ルートを作るときは必ず `getUserId()` で確認する。
+- 低-6: getClaims は JWT 期限まで取り消しを反映しない。BAN 機能が必要になったら重要操作だけ `getUser()`。
+- 低-7: `braces`（開発用、修正版なし）は監視を続ける。
