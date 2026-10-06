@@ -1,17 +1,32 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { RoadList } from '@/components/organisms/RoadList'
+import { RoadsMap } from '@/components/organisms/RoadsMap'
+import { RoadsIndexTemplate } from '@/components/templates/RoadsIndexTemplate'
+import { listRoadSummaries } from '@/features/roads/queries'
 
 export const metadata: Metadata = {
   title: '道の一覧',
 }
 
-// Sprint 1 placeholder. Sprint 2 builds the list + map (S-05).
-export default function RoadsPage() {
+/** S-05 (US-06): the list and the map get the same roads. */
+export default async function RoadsPage() {
+  const roads = await listRoadSummaries()
+
   return (
-    <section aria-labelledby="roads-heading">
-      <h1 id="roads-heading" className="heading-mincho text-2xl text-ink">
-        道の一覧
-      </h1>
-      <p className="mt-4 text-ink-muted">道の一覧と登録は準備中です。</p>
-    </section>
+    <RoadsIndexTemplate
+      actions={
+        <Link
+          href="/roads/new"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-sm border border-transparent bg-primary px-5 text-base font-bold text-on-primary transition-colors duration-140 ease-standard hover:bg-primary-hover active:bg-primary-active"
+        >
+          <Plus aria-hidden="true" className="size-5" />
+          道を登録
+        </Link>
+      }
+      list={<RoadList roads={roads} />}
+      map={roads.length > 0 ? <RoadsMap roads={roads} /> : undefined}
+    />
   )
 }

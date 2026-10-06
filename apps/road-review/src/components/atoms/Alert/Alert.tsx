@@ -1,4 +1,4 @@
-import type { AriaRole, ReactNode } from 'react'
+import type { AriaRole, ReactNode, Ref } from 'react'
 import { CircleAlert } from 'lucide-react'
 import { Info } from 'lucide-react'
 import { TriangleAlert } from 'lucide-react'
@@ -14,6 +14,10 @@ export type AlertProps = {
   /** Replaces the default decorative icon. Rendered inside an aria-hidden wrapper. */
   icon?: ReactNode
   className?: string
+  /** React 19: ref is a regular prop. Used to move focus to an error summary. */
+  ref?: Ref<HTMLDivElement>
+  /** e.g. -1 so the alert can receive programmatic focus. */
+  tabIndex?: number
   children?: ReactNode
 }
 
@@ -36,10 +40,12 @@ const defaultIcons: Record<AlertVariant, typeof Info> = {
 }
 
 /** Status message conveyed by icon + text, never by color only. */
-export function Alert({ variant = 'info', title, role, icon, className, children }: AlertProps) {
+export function Alert({ variant = 'info', title, role, icon, className, ref, tabIndex, children }: AlertProps) {
   const DefaultIcon = defaultIcons[variant]
   return (
     <div
+      ref={ref}
+      tabIndex={tabIndex}
       role={role ?? (variant === 'error' ? 'alert' : undefined)}
       className={cn(
         'flex items-start gap-3 rounded-sm border px-4 py-3 text-sm text-ink',

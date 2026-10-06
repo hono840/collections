@@ -43,6 +43,25 @@
   --rr-pin-selected: #1e2a32;
   --rr-cluster: #f8f9f5;
 
+  /* Road type colors (spec 2-3): symbols / pins / borders only, never text. */
+  --rr-type-pass: #b06a22;
+  --rr-type-pass-subtle: #f3e6d6;
+  --rr-type-skyline: #6a4c93;
+  --rr-type-skyline-subtle: #ece6f4;
+  --rr-type-coastal: #008577;
+  --rr-type-coastal-subtle: #ddf0ec;
+  --rr-type-forest: #3f6326;
+  --rr-type-forest-subtle: #e4ecdb;
+  --rr-type-other: #5f6669;
+  --rr-type-other-subtle: #e7e9e6;
+
+  /* Map pins keep the light type colors in dark mode too (spec 6-3), so these are not overridden in .dark. */
+  --rr-pin-pass: #b06a22;
+  --rr-pin-skyline: #6a4c93;
+  --rr-pin-coastal: #008577;
+  --rr-pin-forest: #3f6326;
+  --rr-pin-other: #5f6669;
+
   --rr-contour-opacity: 0.22;
 
   --rr-shadow-1: 0 1px 0 rgba(30, 42, 50, 0.06), 0 1px 2px rgba(30, 42, 50, 0.08);
@@ -91,6 +110,17 @@
   --rr-scrim: rgba(0, 0, 0, 0.6);
 
   --rr-contour-opacity: 0.2;
+
+  --rr-type-pass: #e8b57a;
+  --rr-type-pass-subtle: #3a2e22;
+  --rr-type-skyline: #b7a6e0;
+  --rr-type-skyline-subtle: #2f2b40;
+  --rr-type-coastal: #3e9e8e;
+  --rr-type-coastal-subtle: #1e3532;
+  --rr-type-forest: #6e9a4e;
+  --rr-type-forest-subtle: #26321f;
+  --rr-type-other: #a3aba8;
+  --rr-type-other-subtle: #2a3134;
 
   --rr-shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --rr-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.35);
@@ -196,6 +226,16 @@
   --color-pin-outline: var(--rr-pin-outline);
   --color-pin-selected: var(--rr-pin-selected);
   --color-cluster: var(--rr-cluster);
+  --color-type-pass: var(--rr-type-pass);
+  --color-type-pass-subtle: var(--rr-type-pass-subtle);
+  --color-type-skyline: var(--rr-type-skyline);
+  --color-type-skyline-subtle: var(--rr-type-skyline-subtle);
+  --color-type-coastal: var(--rr-type-coastal);
+  --color-type-coastal-subtle: var(--rr-type-coastal-subtle);
+  --color-type-forest: var(--rr-type-forest);
+  --color-type-forest-subtle: var(--rr-type-forest-subtle);
+  --color-type-other: var(--rr-type-other);
+  --color-type-other-subtle: var(--rr-type-other-subtle);
 
   --shadow-1: var(--rr-shadow-1);
   --shadow-2: var(--rr-shadow-2);
@@ -239,6 +279,120 @@
     font-family: var(--font-num);
     font-variant-numeric: tabular-nums;
   }
+}
+
+/*
+ * Leaflet (spec 6). leaflet/dist/leaflet.css is imported by the map components;
+ * these rules only adapt it to the tokens.
+ */
+@layer components {
+  .leaflet-container {
+    background-color: var(--color-canvas);
+    font-family: var(--font-sans);
+  }
+
+  /* Dark mode: dim the paper tiles instead of inverting them (spec 6-3). Pins/attribution are untouched. */
+  .dark .leaflet-tile-pane {
+    filter: brightness(0.82) saturate(0.85);
+  }
+
+  .leaflet-container .leaflet-control-attribution {
+    background-color: color-mix(in srgb, var(--color-surface) 85%, transparent);
+    border-top-left-radius: var(--radius-xs);
+    color: var(--color-ink);
+    font-size: 0.75rem;
+  }
+
+  .leaflet-container .leaflet-control-attribution a {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .leaflet-bar a,
+  .leaflet-bar a:hover {
+    width: 2.5rem;
+    height: 2.5rem;
+    line-height: 2.5rem;
+    background-color: var(--color-surface-raised);
+    color: var(--color-ink);
+  }
+
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background-color: var(--color-surface-raised);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-2);
+  }
+
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--radius-sm);
+  }
+
+  /* divIcon markers (spec 4-8). The marker element itself is the 44px hit area. */
+  .rr-pin {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+  }
+
+  .rr-pin:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .rr-pin__drop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.5rem;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    background-color: var(--rr-pin-color, var(--rr-pin-other));
+    border: 2px solid var(--color-pin-ring);
+    outline: 1px solid var(--color-pin-outline);
+    box-shadow: var(--shadow-pin);
+  }
+
+  .rr-pin__label {
+    transform: rotate(45deg);
+    color: #ffffff;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .rr-pin--end {
+    align-items: center;
+  }
+
+  .rr-pin__ring {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background-color: #ffffff;
+    border: 3px solid var(--rr-pin-color, var(--rr-pin-other));
+    box-shadow: var(--shadow-pin);
+    color: #1e2a32;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .rr-pin--pass { --rr-pin-color: var(--rr-pin-pass); }
+  .rr-pin--skyline { --rr-pin-color: var(--rr-pin-skyline); }
+  .rr-pin--coastal { --rr-pin-color: var(--rr-pin-coastal); }
+  .rr-pin--forest { --rr-pin-color: var(--rr-pin-forest); }
+  .rr-pin--other { --rr-pin-color: var(--rr-pin-other); }
+  /* PinPicker pins (no road type yet): primary blue. */
+  .rr-pin--picker { --rr-pin-color: #2b5179; }
 }
 
 @media (prefers-reduced-motion: reduce) {

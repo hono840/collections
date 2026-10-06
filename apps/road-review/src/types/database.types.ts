@@ -1,4 +1,4 @@
-// Hand-written to mirror `supabase gen types typescript --local` for migrations 00001-00002.
+// Hand-written to mirror `supabase gen types typescript --local` for migrations 00001-00003.
 // Regenerate when Docker is available:
 //   pnpm exec supabase gen types typescript --local > src/types/database.types.ts
 
@@ -18,6 +18,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      roads: {
+        Row: {
+          created_at: string
+          end_lat: number | null
+          end_lng: number | null
+          id: string
+          name: string
+          prefecture_code: number
+          road_type: string
+          start_lat: number
+          start_lng: number
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          end_lat?: number | null
+          end_lng?: number | null
+          id?: string
+          name: string
+          prefecture_code: number
+          road_type?: string
+          start_lat: number
+          start_lng: number
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          end_lat?: number | null
+          end_lng?: number | null
+          id?: string
+          name?: string
+          prefecture_code?: number
+          road_type?: string
+          start_lat?: number
+          start_lng?: number
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           created_at: string
