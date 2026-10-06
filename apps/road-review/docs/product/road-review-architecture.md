@@ -143,7 +143,7 @@ apps/road-review/
     │   ├── page.tsx                  # redirect('/roads')
     │   ├── not-found.tsx
     │   ├── auth/
-    │   │   ├── confirm/route.ts      # GET: verifyOtp(token_hash)
+    │   │   ├── confirm/page.tsx      # GET: 確認画面のみ → 「ログインする」で confirmMagicLink（18.1 S-6）
     │   │   └── error/page.tsx
     │   ├── (auth)/
     │   │   ├── layout.tsx            # AuthTemplate
@@ -1018,10 +1018,10 @@ const [drivesResult, photosResult] = await Promise.all([
 |---|---|---|
 | データを読む | **Server Component** から `features/*/queries.ts`（`import 'server-only'`）を呼ぶ | 一覧・詳細・編集フォームの初期値 |
 | データを変える | **Server Action**（`'use server'`、zod で確認 + ログイン確認） | create/update/delete、attachPhoto、acknowledgeSafetyNotice、requestMagicLink、signOut |
-| 認証メールのリンクを受ける | **Route Handler**（`src/app/auth/confirm/route.ts`、GET） | verifyOtp |
+| 認証メールのリンクを受ける | **Server Component の確認画面**（`src/app/auth/confirm/page.tsx`）＋ Server Action `confirmMagicLink` | GET では verifyOtp しない。ボタンの POST で verifyOtp（18.1 S-6） |
 | 画像のアップロード | **ブラウザから Storage へ直接**（5.2） | |
 
-Route Handler を使うのはメールのリンクを受ける1か所だけです（メールのリンクは GET で開かれるので、Server Action では受けられないため）。
+Route Handler は使いません。メールのリンク（GET）は確認画面を表示するだけにし、「ログインする」ボタンの Server Action で verifyOtp します（ログインCSRFと、リンク検査によるトークン消費を防ぐため。18.1 S-6）。
 
 ### 7.1 戻り値の型の決まり（`src/lib/actions/result.ts`）
 
@@ -1526,7 +1526,7 @@ package.json に足す scripts:
 
 ### 11.4 E2E（Playwright）
 
-- `global-setup.ts`: ローカルの Supabase に、generateLink で E2E 用ユーザーのログインリンクを作ります → ブラウザで `/auth/confirm?token_hash=...&type=email` を開く → `storageState`（ログイン状態）を保存します。**メールの受信箱（Mailpit/Inbucket）は読みに行きません**（ポートや HTML の変化に左右されず安定するため）。ただし `auth.spec.ts` の1件だけは、ログインフォームから送信して「メールを送りました」と表示されるところまでを確かめます。
+- `global-setup.ts`: ローカルの Supabase に、generateLink で E2E 用ユーザーのログインリンクを作ります → ブラウザで `/auth/confirm?token_hash=...&type=email` を開いて「ログインする」を押す（18.1 S-6） → `storageState`（ログイン状態）を保存します。**メールの受信箱（Mailpit/Inbucket）は読みに行きません**（ポートや HTML の変化に左右されず安定するため）。ただし `auth.spec.ts` の1件だけは、ログインフォームから送信して「メールを送りました」と表示されるところまでを確かめます。
 - 地図タイルは `page.route('https://cyberjapandata.gsi.go.jp/**', route => route.abort())` で通信を止めます（外部サーバーに負荷をかけず、結果も安定させるため）。地図の確認は「マーカーの数と名前がリストと同じであること」で行います（地図の画像そのものは比べない）。
 - `webServer`: `pnpm build && pnpm start`（本番と同じ動き）。`baseURL: http://127.0.0.1:3000`。
 
@@ -1585,7 +1585,7 @@ export function safeNextPath(raw: string | null | undefined, fallback = '/roads'
    - `/auth/confirm` は `type === 'email'` だけを受け付けます。
 
 ```ts
-// src/app/auth/confirm/route.ts
+// (superseded by 18.1 S-6: page.tsx + confirmMagicLink action) src/app/auth/confirm/route.ts
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { NextRequest } from 'next/server'

@@ -50,8 +50,12 @@ create or replace trigger user_settings_set_updated_at
 -- ---------- RLS + privileges ----------
 alter table public.user_settings enable row level security;
 
-revoke all on table public.user_settings from anon;
-grant select, insert, update, delete on table public.user_settings to authenticated;
+-- Supabase default privileges grant ALL to anon/authenticated; start from nothing (S-8).
+revoke all on table public.user_settings from anon, authenticated;
+-- No DELETE (rows go with the auth.users cascade). UPDATE is limited to the one
+-- column the app writes (acknowledgeSafetyNotice upsert); updated_at is set by the trigger.
+grant select, insert on table public.user_settings to authenticated;
+grant update (safety_notice_acknowledged_at) on table public.user_settings to authenticated;
 
 -- No DELETE policy: rows are removed by the auth.users cascade.
 drop policy if exists "user_settings_select_own" on public.user_settings;

@@ -7,7 +7,7 @@ import { FieldError } from '@/components/atoms/FieldError'
 import { Input } from '@/components/atoms/Input'
 import { Label } from '@/components/atoms/Label'
 import { OtpForm } from '@/components/organisms/OtpForm'
-import { requestMagicLink } from '@/features/auth/actions'
+import { requestMagicLink, type RequestMagicLinkState } from '@/features/auth/actions'
 import { cn } from '@/lib/utils/cn'
 
 // M-23
@@ -22,20 +22,24 @@ export type LoginFormProps = {
   className?: string
 }
 
-type RequestState = Awaited<ReturnType<typeof requestMagicLink>> | null
-
 /**
  * Login screen body (S-01): email -> "send login link", then the sent message
  * and the 6-digit code form on the same screen (CEO decision 15.1-3).
  */
 export function LoginForm({ next, initialError, className }: LoginFormProps) {
-  const [state, formAction, isPending] = useActionState(requestMagicLink, null)
+  const [state, formAction, isPending] = useActionState<RequestMagicLinkState, FormData>(
+    requestMagicLink,
+    null,
+  )
   // The result the user dismissed with "メールアドレスを変更".
-  const [dismissedState, setDismissedState] = useState<RequestState>(null)
+  const [dismissedState, setDismissedState] = useState<RequestMagicLinkState>(null)
   const emailId = useId()
   const hintId = `${emailId}-hint`
   const errorId = `${emailId}-error`
   const sentHeadingRef = useRef<HTMLParagraphElement>(null)
+  const emailInputRef = useRef<HTMLInputElement>(null)
+  // Set by "メールアドレスを変更": the email field takes focus once it is back.
+  const shouldFocusEmail = useRef(false)
 
   const sentEmail = state?.ok && state !== dismissedState ? state.data.email : null
   const emailFieldError =
@@ -50,8 +54,18 @@ export function LoginForm({ next, initialError, className }: LoginFormProps) {
         : null
 
   useEffect(() => {
-    if (sentEmail) sentHeadingRef.current?.focus()
+    if (sentEmail) {
+      sentHeadingRef.current?.focus()
+    } else if (shouldFocusEmail.current) {
+      shouldFocusEmail.current = false
+      emailInputRef.current?.focus()
+    }
   }, [sentEmail])
+
+  function handleChangeEmail() {
+    shouldFocusEmail.current = true
+    setDismissedState(state)
+  }
 
   // Dispatch manually so React does not reset the form after the action:
   // on errors (e.g. rate_limited) the typed address must stay in the field.
@@ -78,6 +92,9 @@ export function LoginForm({ next, initialError, className }: LoginFormProps) {
           <p className="text-sm text-ink-muted">
             このブラウザでメールのリンクを開くか、メールに書かれた6桁のコードを下に入力してください。メールが見当たらないときは、迷惑メールのフォルダも確認してください。
           </p>
+          <p className="text-sm text-ink-muted">
+            届かない場合は60秒後にもう一度お試しください。
+          </p>
         </div>
 
         <OtpForm email={sentEmail} />
@@ -86,7 +103,7 @@ export function LoginForm({ next, initialError, className }: LoginFormProps) {
           variant="ghost"
           size="sm"
           className="w-full"
-          onClick={() => setDismissedState(state)}
+          onClick={handleChangeEmail}
         >
           メールアドレスを変更
         </Button>
@@ -110,6 +127,7 @@ export function LoginForm({ next, initialError, className }: LoginFormProps) {
       <div>
         <Label htmlFor={emailId}>メールアドレス</Label>
         <Input
+          ref={emailInputRef}
           id={emailId}
           name="email"
           type="email"

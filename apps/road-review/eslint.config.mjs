@@ -49,6 +49,9 @@ const eslintConfig = defineConfig([
     files: ["src/components/templates/**/*.{ts,tsx}"],
     rules: layerRule([], noData),
   },
+  // S-5: inline HTML bypasses the nonce CSP. Only the root layout (theme script with nonce) may use it.
+  { files: ["src/**/*.{ts,tsx}"], rules: { "react/no-danger": "error" } },
+  { files: ["src/app/layout.tsx"], rules: { "react/no-danger": "off" } },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     ".next/**",

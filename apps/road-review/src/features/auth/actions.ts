@@ -16,7 +16,12 @@ const INVALID_CODE_MESSAGE = 'コードが正しくないか、有効期限が�
 // Errors GoTrue returns for an address that has no account while signups are disabled.
 // They are reported as success so the form never reveals whether an account exists.
 const UNKNOWN_USER_ERROR_CODES = new Set(['otp_disabled', 'user_not_found', 'signup_disabled'])
-const RATE_LIMIT_ERROR_CODES = new Set(['over_email_send_rate_limit', 'over_request_rate_limit'])
+// Per-address send limit (60s). Reported as success as well (architecture ch.18.1 S-3):
+// only existing accounts get mail, so a distinct error would reveal which addresses exist.
+// The sent screen already says "届かない場合は60秒後にもう一度お試しください".
+const EMAIL_SEND_RATE_LIMIT_CODE = 'over_email_send_rate_limit'
+const RATE_LIMIT_ERROR_CODES = new Set(['over_request_rate_limit'])
+const LINK_INVALID_PATH = '/login?error=link_invalid'
 
 type AuthErrorLike = { status?: number; code?: string; message?: string }
 
@@ -79,7 +84,7 @@ export async function requestMagicLink(
     },
   })
 
-  if (error) {
+  if (error && error.code !== EMAIL_SEND_RATE_LIMIT_CODE) {
     if (isRateLimited(error)) return actionError('rate_limited', RETRY_LATER_MESSAGE)
     if (!isUnknownUser(error)) return actionError('unexpected', RETRY_LATER_MESSAGE)
   }
@@ -109,11 +114,37 @@ export async function verifyOtpCode(
     return actionError('validation', INVALID_CODE_MESSAGE)
   }
 
+  return await redirectToNextPath()
+}
+
+/** Moves to the rr_next path (re-checked with safeNextPath) after a successful login. */
+async function redirectToNextPath(): Promise<never> {
   const cookieStore = await cookies()
   const nextPath = safeNextPath(cookieStore.get(NEXT_PATH_COOKIE)?.value)
   cookieStore.delete(NEXT_PATH_COOKIE)
   // redirect() throws; it must stay outside any try/catch.
   redirect(nextPath)
+}
+
+/**
+ * "ログインする" on /auth/confirm (architecture ch.18.1 S-6). The GET page only shows
+ * a button; the token is consumed here by a POST, so link scanners that prefetch the
+ * mail link and login CSRF cannot log anyone in. Always ends with redirect().
+ */
+export async function confirmMagicLink(
+  _previousState: unknown,
+  formData: FormData,
+): Promise<never> {
+  const tokenHash = formString(formData, 'token_hash')?.trim()
+  if (!tokenHash) redirect(LINK_INVALID_PATH)
+
+  const supabase = await createClient()
+  // Only magic-link (email) tokens are accepted, whatever the form posts as type.
+  const { error } = await supabase.auth.verifyOtp({ type: 'email', token_hash: tokenHash })
+  // Expired / already used: keep rr_next so a fresh link still returns to the same page.
+  if (error) redirect(LINK_INVALID_PATH)
+
+  return await redirectToNextPath()
 }
 
 export async function signOut(): Promise<never> {

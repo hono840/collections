@@ -27,9 +27,13 @@ export function SafetyNoticeDialog({ acknowledged }: SafetyNoticeDialogProps) {
 function SafetyNoticeModal({ onAcknowledged }: { onAcknowledged: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const acknowledgeButtonRef = useRef<HTMLButtonElement>(null)
   const inFlight = useRef(false)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // Bumped on every failed save. The button is disabled while saving and
+  // browsers drop its focus, so focus is put back once it is enabled again.
+  const [failureCount, setFailureCount] = useState(0)
   const headingId = useId()
 
   useEffect(() => {
@@ -60,6 +64,10 @@ function SafetyNoticeModal({ onAcknowledged }: { onAcknowledged: () => void }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (failureCount > 0) acknowledgeButtonRef.current?.focus()
+  }, [failureCount])
+
   async function handleAcknowledge() {
     if (inFlight.current) return
     inFlight.current = true
@@ -76,6 +84,7 @@ function SafetyNoticeModal({ onAcknowledged }: { onAcknowledged: () => void }) {
     setIsSaving(false)
     if (failedMessage) {
       setErrorMessage(failedMessage)
+      setFailureCount((count) => count + 1)
     } else {
       onAcknowledged()
     }
@@ -117,7 +126,7 @@ function SafetyNoticeModal({ onAcknowledged }: { onAcknowledged: () => void }) {
         </Alert>
       ) : null}
 
-      <Button className="mt-6 w-full" loading={isSaving} onClick={handleAcknowledge}>
+      <Button ref={acknowledgeButtonRef} className="mt-6 w-full" loading={isSaving} onClick={handleAcknowledge}>
         {isSaving ? '保存中…' : '確認しました'}
       </Button>
     </dialog>

@@ -1,10 +1,11 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 import { cn } from '@/lib/utils/cn'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost'
 export type ButtonSize = 'md' | 'sm'
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+/** React 19: `ref` is a regular prop, so it passes through to the <button>. */
+export type ButtonProps = ComponentProps<'button'> & {
   variant?: ButtonVariant
   size?: ButtonSize
   /** Shows the busy state: aria-busy="true" and the button cannot be pressed. */

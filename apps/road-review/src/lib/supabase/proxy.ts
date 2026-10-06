@@ -2,13 +2,21 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database.types'
 
-// Paths reachable without a session. Everything else requires login.
-const PUBLIC_PATH_PREFIXES = ['/login', '/auth/']
+function isLoginPath(pathname: string): boolean {
+  return pathname === '/login' || pathname.startsWith('/login/')
+}
 
+// Paths reachable without a session (exact match, architecture ch.18.1 S-7).
+// Everything else (including /loginfoo, /auth, /authx) requires login.
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATH_PREFIXES.some(
-    (prefix) => pathname === prefix.replace(/\/$/, '') || pathname.startsWith(prefix),
-  )
+  return isLoginPath(pathname) || pathname.startsWith('/auth/')
+}
+
+export type SecurityHeaders = {
+  /** Forwarded to rendering as the x-nonce request header. */
+  nonce: string
+  /** Sent to the browser and forwarded to rendering (Next.js extracts the nonce from it). */
+  contentSecurityPolicy: string
 }
 
 /**
@@ -16,8 +24,19 @@ function isPublicPath(pathname: string): boolean {
  * performs the optimistic auth redirects. Based on budget-app's
  * middleware.ts, switched from getUser() to getClaims() (Supabase docs).
  */
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+export async function updateSession(request: NextRequest, security: SecurityHeaders) {
+  // Builds the pass-through response. Called again after a cookie refresh so the
+  // refreshed request cookies AND the CSP/x-nonce headers are both forwarded.
+  const nextResponse = () => {
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-nonce', security.nonce)
+    requestHeaders.set('Content-Security-Policy', security.contentSecurityPolicy)
+    const response = NextResponse.next({ request: { headers: requestHeaders } })
+    response.headers.set('Content-Security-Policy', security.contentSecurityPolicy)
+    return response
+  }
+
+  let supabaseResponse = nextResponse()
   // Cache headers that @supabase/ssr asks us to set when it rewrites auth cookies.
   let cacheHeaders: Record<string, string> = {}
 
@@ -31,7 +50,7 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = nextResponse()
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           )
@@ -68,7 +87,7 @@ export async function updateSession(request: NextRequest) {
     return redirectTo(loginUrl)
   }
 
-  if (isSignedIn && (pathname === '/login' || pathname.startsWith('/login/'))) {
+  if (isSignedIn && isLoginPath(pathname)) {
     const roadsUrl = request.nextUrl.clone()
     roadsUrl.pathname = '/roads'
     roadsUrl.search = ''

@@ -175,7 +175,8 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+# Closed for every provider (architecture ch.18.1 S-1 / CEO decision 15.1).
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
@@ -235,7 +236,8 @@ max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# 15 minutes (architecture ch.18.1 S-4); the email templates say "15分".
+otp_expiry = 900
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]

@@ -14,4 +14,6 @@ begin
 end;
 $$;
 
-grant execute on function public.keep_alive() to anon;
+-- Functions are executable by PUBLIC by default; grant only the API roles (S-8).
+revoke execute on function public.keep_alive() from public;
+grant execute on function public.keep_alive() to anon, authenticated;

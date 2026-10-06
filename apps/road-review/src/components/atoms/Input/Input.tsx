@@ -1,7 +1,8 @@
-import type { InputHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 import { cn } from '@/lib/utils/cn'
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+/** React 19: `ref` is a regular prop, so it passes through to the <input>. */
+export type InputProps = ComponentProps<'input'> & {
   /** Marks the field as invalid (aria-invalid="true" + 2px danger border). */
   invalid?: boolean
 }
