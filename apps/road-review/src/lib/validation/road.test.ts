@@ -79,6 +79,9 @@ describe('roadInputSchema', () => {
         ['CR U+000D inside', '碓氷\r峠'],
         ['ESC U+001B', '碓氷\u001b峠'],
         ['DEL U+007F', '碓氷\u007f峠'],
+        ['C1 U+0080', '碓氷\u0080峠'],
+        ['C1 NEL U+0085', '碓氷\u0085峠'],
+        ['C1 U+009F', '碓氷\u009f峠'],
       ])('rejects a control character (%s)', (_label, name) => {
         expect(fieldErrorsOf({ ...validInput, name }).name).toEqual([NAME_FORBIDDEN_CHARACTER])
       })

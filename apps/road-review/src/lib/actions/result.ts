@@ -3,6 +3,7 @@ export type ActionErrorCode =
   | 'validation'
   | 'not_found'
   | 'photo_limit_exceeded'
+  | 'limit_exceeded'
   | 'rate_limited'
   | 'conflict'
   | 'unexpected'

@@ -7,6 +7,9 @@ import type { LatLng, Road, RoadSummary, RoadType } from '@/types/road'
 
 const roadIdSchema = z.uuid()
 
+/** Per-user road limit (roads_enforce_limit trigger in 00003_roads.sql). */
+const ROAD_LIMIT = 500
+
 // user_id / visibility are deliberately not selected: they never reach the UI.
 const ROAD_COLUMNS =
   'id, name, prefecture_code, road_type, start_lat, start_lng, end_lat, end_lng, created_at, updated_at'
@@ -70,6 +73,8 @@ export async function listRoadSummaries(): Promise<RoadSummary[]> {
     .from('roads')
     .select(ROAD_COLUMNS)
     .order('created_at', { ascending: false })
+    // D-3: matches the per-user road limit enforced by the roads_enforce_limit trigger.
+    .limit(ROAD_LIMIT)
   if (error) throw new Error(`Failed to load roads: ${error.message}`)
 
   return (data ?? []).map(toRoadSummary)

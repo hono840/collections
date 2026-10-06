@@ -12,11 +12,16 @@ export const ROAD_TYPE_REQUIRED_MESSAGE = '種別を選んでください'
 export const START_REQUIRED_MESSAGE = '地図を動かして開始地点のピンを置いてください'
 export const OUT_OF_JAPAN_MESSAGE = '日本国内の位置を指定してください'
 export const COORDINATE_NOT_NUMBER_MESSAGE = '緯度と経度を数値で入力してください'
+export const NAME_FORBIDDEN_CHARACTER_MESSAGE = '使えない文字が含まれています'
 
 export const NAME_MAX_LENGTH = 50
 
 // Japan bounding box (architecture 3.1). Mirrors roads_start_in_japan / roads_end_in_japan.
 export const JAPAN_BOUNDS = { minLat: 20, maxLat: 46, minLng: 122, maxLng: 154 } as const
+
+// D-2: C0 controls, DEL, C1 controls (U+0080-009F) and the bidi embedding/override/isolate controls (U+202A-202E, U+2066-2069).
+// The C0/DEL/C1 part mirrors the roads_name_no_controls check (name !~ '[[:cntrl:]]').
+const FORBIDDEN_NAME_CHARACTERS = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u
 
 // 6 decimals is about 0.1 m.
 const roundTo6 = (value: number) => Math.round(value * 1e6) / 1e6
@@ -40,7 +45,8 @@ export const roadInputSchema = z.object({
     .string({ error: NAME_REQUIRED_MESSAGE })
     .trim()
     .min(1, { error: NAME_REQUIRED_MESSAGE })
-    .max(NAME_MAX_LENGTH, { error: NAME_TOO_LONG_MESSAGE }),
+    .max(NAME_MAX_LENGTH, { error: NAME_TOO_LONG_MESSAGE })
+    .refine((name) => !FORBIDDEN_NAME_CHARACTERS.test(name), { error: NAME_FORBIDDEN_CHARACTER_MESSAGE }),
   // UI state starts as null (nothing selected); the output type is non-null.
   prefectureCode: z
     .number({ error: PREFECTURE_REQUIRED_MESSAGE })

@@ -13,6 +13,7 @@ const UNAUTHORIZED_MESSAGE = 'ログインし直してください'
 const VALIDATION_MESSAGE = '入力内容を確認してください'
 const NOT_FOUND_MESSAGE = 'ページが見つかりません' // M-24
 const SAVE_FAILED_MESSAGE = '保存できませんでした。もう一度お試しください。' // M-31
+const ROAD_LIMIT_MESSAGE = '登録できる道は500件までです' // D-3
 
 const roadIdSchema = z.uuid()
 
@@ -21,7 +22,7 @@ type RoadWriteRow = Pick<
   'name' | 'prefecture_code' | 'road_type' | 'start_lat' | 'start_lng' | 'end_lat' | 'end_lng'
 >
 
-type PostgrestErrorLike = { code?: string } | null
+type PostgrestErrorLike = { code?: string; message?: string } | null
 
 // user_id and visibility are never sent: the DB default auth.uid() and RLS decide ownership,
 // and visibility stays at its default 'private'.
@@ -51,6 +52,12 @@ function isNotFoundError(error: PostgrestErrorLike): boolean {
   return error?.code === 'PGRST116' || error?.code === '42501'
 }
 
+// D-3: raised by the roads_enforce_limit BEFORE INSERT trigger (00003_roads.sql).
+// P0001 alone is any plpgsql RAISE, so the message must match too.
+function isRoadLimitError(error: PostgrestErrorLike): boolean {
+  return error?.code === 'P0001' && error.message === 'road_limit_exceeded'
+}
+
 function revalidateRoad(roadId: string) {
   revalidatePath('/roads')
   revalidatePath(`/roads/${roadId}`)
@@ -66,6 +73,7 @@ export async function createRoad(input: RoadInput): Promise<ActionResult<never>>
   if (!values) return failure
 
   const { data, error } = await supabase.from('roads').insert(toRoadRow(values)).select('id').single()
+  if (isRoadLimitError(error)) return actionError('limit_exceeded', ROAD_LIMIT_MESSAGE)
   if (error || !data) return actionError('unexpected', SAVE_FAILED_MESSAGE)
 
   revalidateRoad(data.id)

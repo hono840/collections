@@ -20,7 +20,11 @@ create table if not exists public.roads (
   visibility       text not null default 'private',
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
-  constraint roads_name_length       check (char_length(name) between 1 and 50 and name = btrim(name)),
+  -- D-2: \S is space-aware in PostgreSQL regex (also rejects U+3000 at either end);
+  -- [[:cntrl:]] rejects tabs, newlines and other control characters anywhere.
+  constraint roads_name_length       check (char_length(name) between 1 and 50),
+  constraint roads_name_edges        check (name ~ '^\S(.*\S)?$'),
+  constraint roads_name_no_controls  check (name !~ '[[:cntrl:]]'),
   constraint roads_prefecture_range  check (prefecture_code between 1 and 47),
   constraint roads_road_type_values  check (road_type in ('pass', 'skyline', 'coastal', 'forest', 'other')),
   constraint roads_visibility_values check (visibility in ('private')),
@@ -36,6 +40,40 @@ create or replace trigger roads_set_updated_at
   before update on public.roads
   for each row execute function public.set_updated_at();
 
+-- D-3: at most 500 roads per user. Runs for every role (service role included).
+-- The per-user advisory lock serialises concurrent inserts for the same user until the
+-- transaction ends, so two parallel inserts at 499 cannot both pass the count.
+-- SECURITY INVOKER: under RLS the count only sees the caller's own rows, which is exactly
+-- what is counted (a row for another user_id is rejected by the insert policy anyway).
+create or replace function public.enforce_road_limit()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  road_count integer;
+begin
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('roads:' || new.user_id::text));
+
+  select pg_catalog.count(*) into road_count
+    from public.roads
+   where user_id = new.user_id;
+
+  if road_count >= 500 then
+    raise exception 'road_limit_exceeded' using errcode = 'P0001';
+  end if;
+
+  return new;
+end;
+$$;
+
+-- Only called by the trigger below; nobody needs to call it directly.
+revoke execute on function public.enforce_road_limit() from public, anon, authenticated;
+
+create or replace trigger roads_enforce_limit
+  before insert on public.roads
+  for each row execute function public.enforce_road_limit();
+
 -- ---------- RLS + privileges ----------
 alter table public.roads enable row level security;
 
@@ -43,9 +81,10 @@ alter table public.roads enable row level security;
 revoke all on table public.roads from anon, authenticated;
 
 grant select, delete on table public.roads to authenticated;
--- INSERT: user_id is not grantable (filled by default auth.uid()); visibility is granted so the
--- check constraint (not a privilege error) is what rejects anything but 'private'.
-grant insert (name, prefecture_code, road_type, start_lat, start_lng, end_lat, end_lng, visibility)
+-- INSERT: only the form columns. user_id is filled by default auth.uid(); visibility is not
+-- grantable either (D-1), so it always takes its default 'private' and any client value is a
+-- privilege error (42501).
+grant insert (name, prefecture_code, road_type, start_lat, start_lng, end_lat, end_lng)
   on table public.roads to authenticated;
 -- UPDATE: only the columns the edit form writes. user_id / visibility / timestamps cannot be
 -- changed by clients (updated_at is set by the trigger).

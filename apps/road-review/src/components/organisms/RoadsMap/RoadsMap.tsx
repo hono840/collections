@@ -3,6 +3,7 @@
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import type * as Leaflet from 'leaflet'
+import { useRouter } from 'next/navigation'
 import {
   GSI_ATTRIBUTION,
   GSI_MAX_ZOOM,
@@ -32,8 +33,11 @@ function roadPinIcon(leaflet: typeof Leaflet, road: RoadSummary): Leaflet.DivIco
   })
 }
 
-/** Popup built with DOM APIs: the road name is set as text, so it can never inject HTML. */
-function roadPopupContent(road: RoadSummary): HTMLElement {
+/**
+ * Popup built with DOM APIs: the road name is set as text, so it can never inject HTML.
+ * The link keeps a real href (open in new tab etc.) but a plain click navigates client-side.
+ */
+function roadPopupContent(road: RoadSummary, navigate: (href: string) => void): HTMLElement {
   const container = document.createElement('div')
   container.className = 'space-y-1'
   const name = document.createElement('p')
@@ -43,6 +47,12 @@ function roadPopupContent(road: RoadSummary): HTMLElement {
   link.href = `/roads/${road.id}`
   link.className = 'inline-flex min-h-11 items-center font-bold text-primary underline'
   link.textContent = '詳細を見る'
+  link.addEventListener('click', (event) => {
+    // Let modified clicks (new tab / window, download) and non-primary buttons behave as normal links.
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    navigate(link.getAttribute('href') ?? `/roads/${road.id}`)
+  })
   container.append(name, link)
   return container
 }
@@ -52,6 +62,7 @@ function roadPopupContent(road: RoadSummary): HTMLElement {
  * Leaflet is loaded inside useEffect (SSR-safe). Never asks for the current location.
  */
 export function RoadsMap({ roads, className }: RoadsMapProps) {
+  const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
   const [leafletContext, setLeafletContext] = useState<{ leaflet: typeof Leaflet; map: Leaflet.Map } | null>(
     null,
@@ -95,7 +106,7 @@ export function RoadsMap({ roads, className }: RoadsMapProps) {
           alt: road.name,
           keyboard: true,
         })
-        .bindPopup(roadPopupContent(road))
+        .bindPopup(roadPopupContent(road, (href) => router.push(href)))
         .addTo(map),
     )
 
@@ -109,7 +120,7 @@ export function RoadsMap({ roads, className }: RoadsMapProps) {
     return () => {
       for (const marker of markers) marker.remove()
     }
-  }, [leafletContext, roads])
+  }, [leafletContext, roads, router])
 
   return (
     <div

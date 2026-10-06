@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import type * as Leaflet from 'leaflet'
 import { Crosshair } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/atoms/Button'
 import { ChoiceGroup } from '@/components/molecules/ChoiceGroup'
@@ -16,6 +17,7 @@ import {
   JAPAN_CENTER,
   JAPAN_DEFAULT_ZOOM,
 } from '@/lib/map/gsi-tiles'
+import { JAPAN_BOUNDS } from '@/lib/validation/road'
 import type { LatLng } from '@/types/road'
 import { cn } from '@/lib/utils/cn'
 
@@ -39,6 +41,25 @@ const PIN_KIND_OPTIONS = [
 const PIN_NOTE = 'ピンは道の上に置いてください。自宅など、道以外の場所には置かないでください。'
 
 const PIN_ZOOM = 13
+
+/** Above the tile pane (200) and overlay pane (400), below the marker pane (600) and controls. */
+const CROSSHAIR_Z_INDEX = 450
+/** White ring + pin shadow (spec tokens) so the crosshair reads on both light and dark tiles. */
+const CROSSHAIR_HALO = 'drop-shadow(0 0 1px var(--color-pin-ring)) drop-shadow(var(--shadow-pin))'
+
+/** Same range as the zod schema: half-typed values such as lng "13" are ignored on the map. */
+function isInJapan(point: LatLng): boolean {
+  return (
+    point.lat >= JAPAN_BOUNDS.minLat &&
+    point.lat <= JAPAN_BOUNDS.maxLat &&
+    point.lng >= JAPAN_BOUNDS.minLng &&
+    point.lng <= JAPAN_BOUNDS.maxLng
+  )
+}
+
+function samePoint(left: LatLng | null, right: LatLng | null): boolean {
+  return left?.lat === right?.lat && left?.lng === right?.lng
+}
 
 /** Coordinates are stored with 6 decimals (about 10 cm), same as the zod schema. */
 function roundPoint(point: { lat: number; lng: number }): LatLng {
@@ -73,6 +94,8 @@ export function PinPicker({ start, end, onChange, startError, endError, classNam
     null,
   )
   const markersRef = useRef<Record<PinKind, Leaflet.Marker | null>>({ start: null, end: null })
+  /** The point each marker currently shows, so only a changed pin is moved / panned to. */
+  const drawnPointsRef = useRef<Record<PinKind, LatLng | null>>({ start: null, end: null })
   const [placingKind, setPlacingKind] = useState<PinKind>('start')
 
   const placePin = useEffectEvent((point: { lat: number; lng: number }) => {
@@ -117,6 +140,7 @@ export function PinPicker({ start, end, onChange, startError, endError, classNam
       cancelled = true
       createdMap?.remove()
       markersRef.current = { start: null, end: null }
+      drawnPointsRef.current = { start: null, end: null }
     }
   }, [])
 
@@ -128,19 +152,34 @@ export function PinPicker({ start, end, onChange, startError, endError, classNam
     for (const kind of ['start', 'end'] as const) {
       const point = pins[kind]
       const marker = markersRef.current[kind]
-      if (point && marker) {
-        marker.setLatLng([point.lat, point.lng])
-      } else if (point) {
-        const label = kind === 'start' ? '開始地点' : '終了地点'
-        markersRef.current[kind] = leaflet
-          .marker([point.lat, point.lng], { icon: pinIcon(leaflet, kind), title: label, alt: label, keyboard: true })
-          .addTo(map)
-        // A pin typed into the inputs may be outside the current view: bring it into view.
-        if (!map.getBounds().contains([point.lat, point.lng])) map.panTo([point.lat, point.lng])
-      } else if (marker) {
-        marker.remove()
-        markersRef.current[kind] = null
+      if (!point) {
+        if (marker) {
+          marker.remove()
+          markersRef.current[kind] = null
+          drawnPointsRef.current[kind] = null
+        }
+        continue
       }
+      // Out-of-Japan values (often half-typed numbers) leave the map as it is.
+      if (!isInJapan(point) || samePoint(drawnPointsRef.current[kind], point)) continue
+      if (marker) {
+        marker.setLatLng([point.lat, point.lng])
+      } else {
+        const label = kind === 'start' ? '開始地点' : '終了地点'
+        // Display only: not focusable and not clickable, so map clicks pass through to the map.
+        markersRef.current[kind] = leaflet
+          .marker([point.lat, point.lng], {
+            icon: pinIcon(leaflet, kind),
+            title: label,
+            alt: label,
+            keyboard: false,
+            interactive: false,
+          })
+          .addTo(map)
+      }
+      drawnPointsRef.current[kind] = point
+      // A pin typed into the inputs may be outside the current view: bring it into view.
+      if (!map.getBounds().contains([point.lat, point.lng])) map.panTo([point.lat, point.lng])
     }
   }, [leafletContext, start, end])
 
@@ -162,13 +201,26 @@ export function PinPicker({ start, end, onChange, startError, endError, classNam
         onChange={setPlacingKind}
       />
 
-      <div className="overflow-hidden rounded-md border border-line">
+      <div className="relative overflow-hidden rounded-md border border-line">
         <div
           ref={containerRef}
           aria-label="ピンを置く地図（矢印キーで動かせます）"
           role="region"
           className="h-72 w-full md:h-80"
         />
+        {/* Shows where "地図の中心に置く" puts the pin. Decorative; clicks go through to the map. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ zIndex: CROSSHAIR_Z_INDEX }}
+        >
+          <Plus
+            aria-hidden="true"
+            strokeWidth={2.5}
+            className="size-8 text-pin-selected"
+            style={{ filter: CROSSHAIR_HALO }}
+          />
+        </span>
       </div>
 
       <div className="flex flex-wrap gap-2">
