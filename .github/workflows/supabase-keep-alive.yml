@@ -15,6 +15,9 @@ jobs:
           - name: budget-app
             url_secret: SUPABASE_BUDGET_APP_URL
             key_secret: SUPABASE_BUDGET_APP_ANON_KEY
+          - name: road-review
+            url_secret: SUPABASE_ROAD_REVIEW_URL
+            key_secret: SUPABASE_ROAD_REVIEW_ANON_KEY
 
     steps:
       - name: Ping ${{ matrix.project.name }}
