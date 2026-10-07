@@ -1890,3 +1890,15 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 8. メモは「2000文字以内で入力してください」。走行日の下限は 2000-01-01。
 9. **既知のリスク（受け入れ）**: createDrive は drives → road_info の2回の insert。road_info 失敗時は drive を削除して戻す（補償処理）。補償の削除も失敗すると road_info なしの drive が残るが、データとしては有効なので受け入れる。公開共有の前に、1トランザクションの RPC 化を再検討する。
 10. 後回し: RoadsMap ポップアップの平均表示、交通量の「選択を解除」、`/collection` の地方別一覧。
+
+## 21. 本番環境とログイン方式の変更（CEO決定・2026-10-07）
+- 本番: Vercel `road-review`（https://road-review.vercel.app）＋ Supabase `road-review`（ref `ejnuzscvuymqlxrfwvnm`、東京）。Sprint 5 の作業を前倒しした。マイグレーション 00001〜00004 は本番に適用済みで、RLS テストは本番 DB で 65/66 合格（残り1件は下のログイン方式の変更で対象外になる 6桁コードのテスト）。
+- **無料プランで標準のメール送信を使う場合、メールテンプレートを変更できない**（Supabase API 400）。CEO は独自 SMTP（Resend / Gmail）を使わないと決定。
+- そのため **ログインは「Supabase 標準の Magic Link メール + PKCE」に変更**する:
+  - `signInWithOtp` の `emailRedirectTo` を `${siteOrigin}/auth/callback` にする（`shouldCreateUser: false` はそのまま）。
+  - 新しい Route Handler `src/app/auth/callback/route.ts`: `?code=` を `exchangeCodeForSession(code)` で交換 → 成功で `rr_next` を消して `safeNextPath(rr_next)` へ、失敗・code なしは `/login?error=link_invalid`。PKCE の code_verifier はリンクを要求したブラウザのクッキーにしかないので、GET で交換してもログインCSRFは成立しない（18.1 S-6 の目的は保たれる）。
+  - 制約: **リンクを要求したのと同じブラウザでメールを開く必要がある**。ログイン画面の送信後の文言で案内する（M-03「このブラウザでリンクを開いてください」系）。
+  - 6桁コード（OtpForm / verifyOtpCode）と `/auth/confirm`（token_hash）は**画面から外すがコードは残す**（独自 SMTP を入れたら復活。E2E の generateLink ヘルパーは token_hash で `/auth/confirm` を使い続けてよい）。
+  - `supabase/config.toml` のテンプレート設定はコメントアウト（独自 SMTP 導入時に戻す）。
+- 本番 Auth 設定は `supabase config push`（`[remotes.production]`）で反映: site_url / redirect URLs（本番ドメインと localhost のみ）/ サインアップ OFF / otp_expiry 900 / 再送間隔 60s。
+- Vercel の Preview 環境変数は未設定（Git 連携していないため）。Git 連携時に設定する。

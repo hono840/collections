@@ -250,13 +250,16 @@ otp_expiry = 900
 # sender_name = "Admin"
 
 # Magic Link and Confirm signup both carry the token_hash link AND the 6-digit code ({{ .Token }}).
-[auth.email.template.magic_link]
-subject = "公道レビュー ログインリンク"
-content_path = "./supabase/templates/magic_link.html"
-
-[auth.email.template.confirmation]
-subject = "公道レビュー ログインリンク"
-content_path = "./supabase/templates/confirmation.html"
+# Custom templates are disabled: free-tier projects using the default email provider cannot modify
+# templates (API 400). Login uses the default Magic Link email + PKCE (/auth/callback). Re-enable
+# these blocks when a custom SMTP provider is configured (architecture ch.21).
+# [auth.email.template.magic_link]
+# subject = "公道レビュー ログインリンク"
+# content_path = "./supabase/templates/magic_link.html"
+# 
+# [auth.email.template.confirmation]
+# subject = "公道レビュー ログインリンク"
+# content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -429,3 +432,18 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Production overrides (applied by `supabase config push` to the linked project)
+[remotes.production]
+project_id = "ejnuzscvuymqlxrfwvnm"
+
+[remotes.production.auth]
+site_url = "https://road-review.vercel.app"
+additional_redirect_urls = ["https://road-review.vercel.app/**", "http://localhost:3000/**", "http://127.0.0.1:3000/**"]
+
+[remotes.production.auth.email]
+max_frequency = "60s"
+
+[remotes.production.db.pooler]
+default_pool_size = 15
+max_client_conn = 200
