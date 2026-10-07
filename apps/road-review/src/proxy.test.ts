@@ -117,7 +117,16 @@ describe('proxy — nonce-based CSP (S-5)', () => {
 })
 
 describe('proxy — public paths (S-7)', () => {
-  it.each(['/login', '/login/', '/login/help', '/auth/confirm', '/auth/confirm?token_hash=abc&type=email'])(
+  it.each([
+    '/login',
+    '/login/',
+    '/login/help',
+    '/auth/confirm',
+    '/auth/confirm?token_hash=abc&type=email',
+    // ch.21: the PKCE magic link lands here before any session exists.
+    '/auth/callback',
+    '/auth/callback?code=abc',
+  ])(
     'lets a signed-out request to %s through',
     async (path) => {
       const response = await proxy(requestTo(path))
@@ -137,6 +146,12 @@ describe('proxy — public paths (S-7)', () => {
       expect(url.searchParams.get('next')).toBe(path)
     },
   )
+
+  it('does not redirect a signed-in user away from /auth/callback (ch.21)', async () => {
+    mocks.claims = { sub: 'user-1' }
+    const response = await proxy(requestTo('/auth/callback?code=abc'))
+    expect(response.headers.get('location')).toBeNull()
+  })
 
   it('sends a signed-in user from /login to /roads', async () => {
     mocks.claims = { sub: 'user-1' }

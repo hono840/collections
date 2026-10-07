@@ -13,6 +13,9 @@ import {
 
 // US-01 (login) — architecture 11.5 / CEO decisions 15.1
 const SENT_MESSAGE = /にログイン用のメールを送りました/
+// ch.21: PKCE links only work in the browser that requested them.
+const SAME_BROWSER_HINT = /このブラウザ/
+const OTP_HIDDEN_REASON = 'OTP UI hidden (ch.21)'
 const LINK_INVALID_MESSAGE =
   'ログインリンクの有効期限が切れているか、すでに使われています。もう一度メールアドレスを入力してください。'
 
@@ -94,6 +97,21 @@ test.describe('unauthenticated access', () => {
     await expect(page.getByText('definitely-not-valid')).toHaveCount(0)
   })
 
+  test('/auth/callback without a valid PKCE code goes to /login?error=link_invalid (ch.21)', async ({
+    page,
+  }) => {
+    await page.goto('/auth/callback?code=definitely-not-valid')
+    await expect(page).toHaveURL(/\/login\?error=link_invalid/)
+    await expect(appAlert(page, LINK_INVALID_MESSAGE)).toBeVisible()
+  })
+
+  test('/auth/callback with token_hash only (no code) goes to /login?error=link_invalid (ch.21)', async ({
+    page,
+  }) => {
+    await page.goto('/auth/callback?token_hash=whatever&type=email')
+    await expect(page).toHaveURL(/\/login\?error=link_invalid/)
+  })
+
   test('an invalid token fails only after pressing "ログインする" -> /login?error=link_invalid', async ({
     page,
   }) => {
@@ -155,7 +173,7 @@ test.describe('login with a real local Supabase', () => {
     user = undefined
   })
 
-  test('sending shows the sent message and the 6-digit code field on the same screen', async ({
+  test('sending shows the sent message, the same-browser hint and no 6-digit code field (ch.21)', async ({
     page,
   }) => {
     await page.goto('/login')
@@ -163,7 +181,32 @@ test.describe('login with a real local Supabase', () => {
     await page.getByRole('button', { name: 'ログインリンクを送る' }).click()
 
     await expect(page.getByText(SENT_MESSAGE)).toBeVisible()
-    await expect(page.getByLabel(/6桁のコード/)).toBeVisible()
+    await expect(page.getByText(SAME_BROWSER_HINT)).toBeVisible()
+    await expect(page.getByText('届かない場合は60秒後にもう一度お試しください', { exact: false })).toBeVisible()
+    await expect(page.getByLabel(/6桁のコード/)).toHaveCount(0)
+  })
+
+  // ch.21: the real PKCE path (mail link -> /auth/callback?code=...) needs the mailbox,
+  // because the code is only delivered by mail. What can be checked here: requesting a
+  // link stores the PKCE code_verifier cookie in this browser, and a bogus code fails
+  // safely while keeping rr_next. The full happy path is covered by route unit tests;
+  // the generateLink + /auth/confirm helper keeps covering the session/RLS side.
+  test('requesting a link stores the PKCE code_verifier in this browser; a bogus code keeps rr_next', async ({
+    page,
+  }) => {
+    await page.goto('/roads?view=list')
+    await expect(page).toHaveURL(/\/login\?next=/)
+    await page.getByLabel(/メールアドレス/).fill(user!.email)
+    await page.getByRole('button', { name: 'ログインリンクを送る' }).click()
+    await expect(page.getByText(SENT_MESSAGE)).toBeVisible()
+
+    const cookies = await page.context().cookies()
+    expect(cookies.some((cookie) => /-code-verifier$/.test(cookie.name))).toBe(true)
+
+    await page.goto('/auth/callback?code=not-a-real-code')
+    await expect(page).toHaveURL(/\/login\?error=link_invalid/)
+    const rrNext = (await page.context().cookies()).find((cookie) => cookie.name === 'rr_next')
+    expect(rrNext).toBeDefined()
   })
 
   test('an unknown address gets the exact same message (no account enumeration)', async ({
@@ -176,7 +219,7 @@ test.describe('login with a real local Supabase', () => {
 
     await expect(page.getByText(SENT_MESSAGE)).toBeVisible()
     await expect(page.getByText(unknownEmail, { exact: false })).toBeVisible()
-    await expect(page.getByLabel(/6桁のコード/)).toBeVisible()
+    await expect(page.getByText(SAME_BROWSER_HINT)).toBeVisible()
   })
 
   test('magic link login returns to the original page (rr_next)', async ({ page }) => {
@@ -205,7 +248,7 @@ test.describe('login with a real local Supabase', () => {
     await expect(page).toHaveURL(/\/roads$/)
   })
 
-  test('6-digit code login works (CEO decision 15.1)', async ({ page }) => {
+  test.skip('6-digit code login works (CEO decision 15.1) — ' + OTP_HIDDEN_REASON, async ({ page }) => {
     await page.goto('/login')
     await page.getByLabel(/メールアドレス/).fill(user!.email)
     await page.getByRole('button', { name: 'ログインリンクを送る' }).click()
@@ -219,7 +262,7 @@ test.describe('login with a real local Supabase', () => {
     await expect(page).toHaveURL(/\/roads$/)
   })
 
-  test('a wrong code shows an error and stays on /login', async ({ page }) => {
+  test.skip('a wrong code shows an error and stays on /login — ' + OTP_HIDDEN_REASON, async ({ page }) => {
     await page.goto('/login')
     await page.getByLabel(/メールアドレス/).fill(user!.email)
     await page.getByRole('button', { name: 'ログインリンクを送る' }).click()

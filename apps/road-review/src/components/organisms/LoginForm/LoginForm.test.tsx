@@ -72,19 +72,38 @@ describe('LoginForm', () => {
     expect(button).toHaveAttribute('aria-busy', 'true')
 
     pending.resolve({ ok: true, data: { email: 'hiro@example.com' } })
-    expect(await screen.findByLabelText(/6桁のコード/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/hiro@example\.com にログイン用のメールを送りました/),
+    ).toBeInTheDocument()
   })
 
-  it('after sending, shows the sent message and the 6-digit code form on the same screen', async () => {
+  // ch.21: login is Supabase's default Magic Link + PKCE. The 6-digit code UI is
+  // hidden (OtpForm stays in the codebase for when custom SMTP is introduced).
+  it('after sending, shows the sent message without the 6-digit code form (ch.21)', async () => {
     mocks.requestMagicLink.mockResolvedValue({ ok: true, data: { email: 'hiro@example.com' } })
-    render(<LoginForm />)
+    const { container } = render(<LoginForm />)
 
     await fillAndSubmit('hiro@example.com')
 
     expect(
-      await screen.findByText(/hiro@example\.com にログイン用のメールを送りました/),
+      await screen.findByText('hiro@example.com にログイン用のメールを送りました。'),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText(/6桁のコード/)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/6桁のコード/)).not.toBeInTheDocument()
+    expect(container.querySelector('input[name="token"]')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'ログインする' })).not.toBeInTheDocument()
+    expect(mocks.verifyOtpCode).not.toHaveBeenCalled()
+  })
+
+  it('tells the user to open the link in this same browser (PKCE constraint, ch.21)', async () => {
+    mocks.requestMagicLink.mockResolvedValue({ ok: true, data: { email: 'hiro@example.com' } })
+    const { container } = render(<LoginForm />)
+
+    await fillAndSubmit('hiro@example.com')
+
+    await screen.findByText('hiro@example.com にログイン用のメールを送りました。')
+    expect(screen.getByText(/このブラウザ/)).toBeInTheDocument()
+    // The sent screen must no longer mention a 6-digit code.
+    expect(container).not.toHaveTextContent(/6桁/)
   })
 
   it('shows the field error for an invalid email (aria-invalid + described by the message)', async () => {

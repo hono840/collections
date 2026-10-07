@@ -69,7 +69,7 @@ afterEach(() => {
 })
 
 describe('requestMagicLink (prevState, formData) — login form action', () => {
-  it('sends the OTP email without creating users and redirecting back to the site origin', async () => {
+  it('sends the magic-link email without creating users, returning to <siteOrigin>/auth/callback (ch.21 PKCE)', async () => {
     const result = await requestMagicLink(null, formDataOf({ email: 'hiro@example.com' }))
 
     expect(mocks.auth.signInWithOtp).toHaveBeenCalledTimes(1)
@@ -77,7 +77,7 @@ describe('requestMagicLink (prevState, formData) — login form action', () => {
       email: 'hiro@example.com',
       options: expect.objectContaining({
         shouldCreateUser: false,
-        emailRedirectTo: 'https://road.example.com',
+        emailRedirectTo: 'https://road.example.com/auth/callback',
       }),
     })
     expect(result).toEqual({ ok: true, data: { email: 'hiro@example.com' } })
@@ -90,12 +90,29 @@ describe('requestMagicLink (prevState, formData) — login form action', () => {
     )
   })
 
-  it('drops a trailing slash from NEXT_PUBLIC_SITE_URL', async () => {
+  it('drops a trailing slash from NEXT_PUBLIC_SITE_URL (no double slash before /auth/callback)', async () => {
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://road.example.com/')
     await requestMagicLink(null, formDataOf({ email: 'hiro@example.com' }))
     expect(mocks.auth.signInWithOtp.mock.calls[0][0].options.emailRedirectTo).toBe(
-      'https://road.example.com',
+      'https://road.example.com/auth/callback',
     )
+  })
+
+  it('trims whitespace around NEXT_PUBLIC_SITE_URL', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', '  https://road.example.com  ')
+    await requestMagicLink(null, formDataOf({ email: 'hiro@example.com' }))
+    expect(mocks.auth.signInWithOtp.mock.calls[0][0].options.emailRedirectTo).toBe(
+      'https://road.example.com/auth/callback',
+    )
+  })
+
+  it('omits emailRedirectTo when neither NEXT_PUBLIC_SITE_URL nor VERCEL_URL is set', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', '')
+    vi.stubEnv('VERCEL_URL', '')
+    await requestMagicLink(null, formDataOf({ email: 'hiro@example.com' }))
+    const options = mocks.auth.signInWithOtp.mock.calls[0][0].options
+    expect(options).not.toHaveProperty('emailRedirectTo')
+    expect(options.shouldCreateUser).toBe(false)
   })
 
   it('falls back to https://${VERCEL_URL} on Preview when NEXT_PUBLIC_SITE_URL is empty', async () => {
@@ -103,7 +120,7 @@ describe('requestMagicLink (prevState, formData) — login form action', () => {
     vi.stubEnv('VERCEL_URL', 'road-review-git-feat.vercel.app')
     await requestMagicLink(null, formDataOf({ email: 'hiro@example.com' }))
     expect(mocks.auth.signInWithOtp.mock.calls[0][0].options.emailRedirectTo).toBe(
-      'https://road-review-git-feat.vercel.app',
+      'https://road-review-git-feat.vercel.app/auth/callback',
     )
   })
 

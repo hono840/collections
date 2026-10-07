@@ -177,7 +177,9 @@ describe.skipIf(!hasSupabaseTestEnv)('magic link token_hash flow (architecture 1
     const email = uniqueTestEmail('link')
     userId = await createConfirmedUser(email)
     const { hashedToken, emailOtp } = await generateMagicLinkTokens(email)
-    expect(emailOtp).toMatch(/^\d{6}$/)
+    // ch.21: the default Supabase template is used, so the OTP length is a project
+    // setting (6-10 digits) the app does not control. Only the format is checked.
+    expect(emailOtp).toMatch(/^\d{6,10}$/)
 
     const first = await createAnonClient().auth.verifyOtp({ type: 'email', token_hash: hashedToken })
     expect(first.error).toBeNull()
@@ -187,7 +189,7 @@ describe.skipIf(!hasSupabaseTestEnv)('magic link token_hash flow (architecture 1
     expect(reused.error).not.toBeNull()
   })
 
-  it('the 6-digit email_otp works with verifyOtp({ email, token, type: "email" })', async () => {
+  it('the email_otp works with verifyOtp({ email, token, type: "email" })', async () => {
     const email = uniqueTestEmail('otp')
     const id = await createConfirmedUser(email)
     try {
