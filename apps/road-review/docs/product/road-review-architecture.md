@@ -1906,3 +1906,12 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 - 本番の Auth で SMS（Twilio）プロバイダが有効扱いになっており、config push では無効化できない。全体のサインアップは OFF なので新規作成はされないが、Sprint 5 でダッシュボードの Phone プロバイダが無効か確認する。
 - **障害記録（2026-10-07）**: `[auth.email] enable_signup = false` を本番に push したところ、ホスト版では「Email プロバイダの有効化」（external_email_enabled）として扱われ、メールログインそのものが無効になった（`email_provider_disabled`）。アプリはアカウント列挙対策で失敗も成功と同じ表示にしているため、画面からは気づけなかった。`[auth.email] enable_signup = true` に戻し、新規登録は全体の `[auth] enable_signup = false` だけで止める（直接 `/auth/v1/signup` を呼んで `signup_disabled` を確認済み）。15.1 の「`[auth.email] enable_signup = false`」はこの記述で置き換える。
 - 教訓: `supabase config push` の前に `config diff` を読むだけでなく、push 後に本番の `/auth/v1/otp` を直接叩いてエラーコードを確認する。
+
+## 22. ログインを Google OAuth のみに変更（CEO決定・2026-10-07）
+- 理由: Supabase 標準のメール送信（試用扱い・到達保証なし）でログインメールが届かず、独自 SMTP は使わない方針のため。
+- 方式: `signInWithOAuth({ provider: 'google', options: { redirectTo: '<siteOrigin>/auth/callback' } })` を Server Action で呼び、返ってきた URL へ `redirect()`。戻りは既存の `/auth/callback`（PKCE の code 交換、`rr_next` → `safeNextPath`）をそのまま使う。
+- 許可するのは Hiro だけ: 全体の `[auth] enable_signup = false` を維持し、新しい Google アカウントではユーザーを作らせない。既存ユーザー（Hiro のアカウント）への Google ID の紐付けは Supabase の自動リンク（同じ確認済みメール）に頼る。**この挙動はサインアップ OFF 時に本番で必ず確認する**（だめなら admin API で Google identity を事前に作る／ダッシュボードで対応）。
+- ログイン失敗（`?error=` 付きの戻り、交換失敗、未登録アカウント）は `/login?error=link_invalid` 系の文言ではなく、OAuth 用の文言「ログインできませんでした。登録済みの Google アカウントでお試しください。」を出す。
+- 画面: ログイン画面は「Google でログイン」ボタン1つ（Google のブランドガイドラインに沿った表示）。メールアドレス入力・Magic Link・6桁コードの UI は外す。Magic Link / OTP / `/auth/confirm` のサーバー側コードは当面残す（未使用）。
+- CSP: OAuth は Supabase → Google へのトップレベル遷移なので `connect-src` の追加は不要。`form-action 'self'` は Server Action からの `redirect()`（303）には影響しないことを E2E で確認する。
+- Supabase 設定: `[auth.external.google] enabled = true`, `client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"`, `secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"`, `skip_nonce_check = false`。Google 側のリダイレクト URI は `https://ejnuzscvuymqlxrfwvnm.supabase.co/auth/v1/callback`。
