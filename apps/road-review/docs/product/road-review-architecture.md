@@ -1907,7 +1907,8 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 - **障害記録（2026-10-07）**: `[auth.email] enable_signup = false` を本番に push したところ、ホスト版では「Email プロバイダの有効化」（external_email_enabled）として扱われ、メールログインそのものが無効になった（`email_provider_disabled`）。アプリはアカウント列挙対策で失敗も成功と同じ表示にしているため、画面からは気づけなかった。`[auth.email] enable_signup = true` に戻し、新規登録は全体の `[auth] enable_signup = false` だけで止める（直接 `/auth/v1/signup` を呼んで `signup_disabled` を確認済み）。15.1 の「`[auth.email] enable_signup = false`」はこの記述で置き換える。
 - 教訓: `supabase config push` の前に `config diff` を読むだけでなく、push 後に本番の `/auth/v1/otp` を直接叩いてエラーコードを確認する。
 
-## 22. ログインを Google OAuth のみに変更（CEO決定・2026-10-07）
+## 22. ［取り下げ］ログインを Google OAuth のみに変更（2026-10-07）
+> **取り下げ（CEO決定・2026-10-07）**: 調査の結果、標準メール送信は Hiro 宛てに届き、アプリからの送信も正しくユーザーを見つけていることを確認したため、メールログイン（21章）を継続する。以下は検討記録として残す。
 - 理由: Supabase 標準のメール送信（試用扱い・到達保証なし）でログインメールが届かず、独自 SMTP は使わない方針のため。
 - 方式: `signInWithOAuth({ provider: 'google', options: { redirectTo: '<siteOrigin>/auth/callback' } })` を Server Action で呼び、返ってきた URL へ `redirect()`。戻りは既存の `/auth/callback`（PKCE の code 交換、`rr_next` → `safeNextPath`）をそのまま使う。
 - 許可するのは Hiro だけ: 全体の `[auth] enable_signup = false` を維持し、新しい Google アカウントではユーザーを作らせない。既存ユーザー（Hiro のアカウント）への Google ID の紐付けは Supabase の自動リンク（同じ確認済みメール）に頼る。**この挙動はサインアップ OFF 時に本番で必ず確認する**（だめなら admin API で Google identity を事前に作る／ダッシュボードで対応）。
@@ -1915,3 +1916,10 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 - 画面: ログイン画面は「Google でログイン」ボタン1つ（Google のブランドガイドラインに沿った表示）。メールアドレス入力・Magic Link・6桁コードの UI は外す。Magic Link / OTP / `/auth/confirm` のサーバー側コードは当面残す（未使用）。
 - CSP: OAuth は Supabase → Google へのトップレベル遷移なので `connect-src` の追加は不要。`form-action 'self'` は Server Action からの `redirect()`（303）には影響しないことを E2E で確認する。
 - Supabase 設定: `[auth.external.google] enabled = true`, `client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"`, `secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"`, `skip_nonce_check = false`。Google 側のリダイレクト URI は `https://ejnuzscvuymqlxrfwvnm.supabase.co/auth/v1/callback`。
+
+### 22.1 「メールが届かない」調査記録（2026-10-07）
+- Auth ログ（Management API `GET /v1/projects/{ref}/analytics/endpoints/logs`、`select timestamp, event_message from logs where source = 'auth_logs'`）で確認。
+- 12:20 / 12:28 JST のアプリからの送信は `otp_disabled`（ユーザー不在扱い）。12:26 まではメールプロバイダ無効（21章の障害）。12:28 の分は設定反映（12:26:44）直後で、全インスタンスへの反映前だった可能性が高いが未証明。
+- 12:33 / 12:35 に直接 `/otp`（PKCE なし・あり）を呼ぶとどちらも 200 で、Hiro の受信箱に届いた。12:36 に本番ログイン画面から送信すると、ユーザーを見つけた上での 429（送信間隔）になり、アプリ経由の経路も正常と確認。
+- 大文字小文字・PKCE・アプリの入力処理はいずれも原因ではない。
+- 学び: アカウント列挙対策で失敗も「送りました」と表示するため、画面からは原因が見えない。今後は Server Action で Supabase のエラーコードを**サーバーログにだけ**出す（メールアドレスは出さない）ことを検討する。
