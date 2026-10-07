@@ -439,7 +439,7 @@ project_id = "ejnuzscvuymqlxrfwvnm"
 
 [remotes.production.auth]
 site_url = "https://road-review.vercel.app"
-additional_redirect_urls = ["https://road-review.vercel.app/**", "http://localhost:3000/**", "http://127.0.0.1:3000/**"]
+additional_redirect_urls = ["https://road-review.vercel.app/**", "http://localhost:3000/**"]  # localhost kept only while local dev uses the production project (no Docker). Remove when a separate dev project exists.
 
 [remotes.production.auth.email]
 max_frequency = "60s"

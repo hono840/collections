@@ -1902,3 +1902,5 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
   - `supabase/config.toml` のテンプレート設定はコメントアウト（独自 SMTP 導入時に戻す）。
 - 本番 Auth 設定は `supabase config push`（`[remotes.production]`）で反映: site_url / redirect URLs（本番ドメインと localhost のみ）/ サインアップ OFF / otp_expiry 900 / 再送間隔 60s。
 - Vercel の Preview 環境変数は未設定（Git 連携していないため）。Git 連携時に設定する。
+- 本番の Redirect URLs に `http://localhost:3000/**` を残すのは、Docker を使わず手元の開発でも本番プロジェクトにつなぐ間だけ（PKCE のため code 単体では悪用できない）。開発用プロジェクトを分けたら削除する。
+- 本番の Auth で SMS（Twilio）プロバイダが有効扱いになっており、config push では無効化できない。全体のサインアップは OFF なので新規作成はされないが、Sprint 5 でダッシュボードの Phone プロバイダが無効か確認する。
