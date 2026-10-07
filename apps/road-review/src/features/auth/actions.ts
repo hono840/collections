@@ -74,7 +74,9 @@ export async function requestMagicLink(
   })
 
   const supabase = await createClient()
-  const emailRedirectTo = siteOrigin()
+  const origin = siteOrigin()
+  // PKCE magic link (architecture ch.21): Supabase's default email returns to /auth/callback.
+  const emailRedirectTo = origin ? `${origin}/auth/callback` : undefined
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {

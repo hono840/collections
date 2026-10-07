@@ -6,7 +6,6 @@ import { Button } from '@/components/atoms/Button'
 import { FieldError } from '@/components/atoms/FieldError'
 import { Input } from '@/components/atoms/Input'
 import { Label } from '@/components/atoms/Label'
-import { OtpForm } from '@/components/organisms/OtpForm'
 import { requestMagicLink, type RequestMagicLinkState } from '@/features/auth/actions'
 import { cn } from '@/lib/utils/cn'
 
@@ -23,8 +22,10 @@ export type LoginFormProps = {
 }
 
 /**
- * Login screen body (S-01): email -> "send login link", then the sent message
- * and the 6-digit code form on the same screen (CEO decision 15.1-3).
+ * Login screen body (S-01): email -> "send login link", then the sent message.
+ * Login uses Supabase's default Magic Link + PKCE (ch.21), so the link must be
+ * opened in this same browser. The 6-digit code form (OtpForm) is hidden until
+ * custom SMTP is introduced.
  */
 export function LoginForm({ next, initialError, className }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState<RequestMagicLinkState, FormData>(
@@ -90,14 +91,12 @@ export function LoginForm({ next, initialError, className }: LoginFormProps) {
             {sentEmail} にログイン用のメールを送りました。
           </p>
           <p className="text-sm text-ink-muted">
-            このブラウザでメールのリンクを開くか、メールに書かれた6桁のコードを下に入力してください。メールが見当たらないときは、迷惑メールのフォルダも確認してください。
+            メールのリンクは、このブラウザで開いてください。別の端末やアプリで開くとログインできません。
           </p>
           <p className="text-sm text-ink-muted">
-            届かない場合は60秒後にもう一度お試しください。
+            メールが見当たらないときは、迷惑メールのフォルダも確認してください。届かない場合は60秒後にもう一度お試しください。
           </p>
         </div>
-
-        <OtpForm email={sentEmail} />
 
         <Button
           variant="ghost"
