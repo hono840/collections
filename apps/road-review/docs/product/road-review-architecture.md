@@ -1776,7 +1776,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-local-service-role-key
 ## 15.1 CEO決定（承認ゲート2・2026-10-06）— 本章が 13章・16章より優先
 
 1. **Supabase は新規プロジェクトを作る**（無料枠に空きあり。16章 #1 は解決）。
-2. **新規登録は Hiro 本人だけ**。`supabase/config.toml` は `[auth.email] enable_signup = false`、本番ダッシュボードも「Allow new users to sign up」を OFF。`signInWithOtp` は `options.shouldCreateUser: false` を指定する。Hiro のユーザーは本番ダッシュボードの「Invite user / Add user」で作る（devops-engineer、Sprint 5）。未登録のメールアドレスでも画面には「メールを送りました」と同じ表示を出し、登録有無を漏らさない。
+2. **新規登録は Hiro 本人だけ**。`supabase/config.toml` は `[auth] enable_signup = false`（`[auth.email]` は true のまま。21章の障害記録参照）、本番ダッシュボードも「Allow new users to sign up」を OFF。`signInWithOtp` は `options.shouldCreateUser: false` を指定する。Hiro のユーザーは本番ダッシュボードの「Invite user / Add user」で作る（devops-engineer、Sprint 5）。未登録のメールアドレスでも画面には「メールを送りました」と同じ表示を出し、登録有無を漏らさない。
 3. **6桁コードでのログインを足す**（16章 #3 は解決）。メールテンプレートにリンクと `{{ .Token }}` の両方を載せる。ログイン画面は「メールを送る → 6桁コード入力欄」を同じ画面で出し、`verifyOtp({ email, token, type: 'email' })` で検証する。リンク経由（`/auth/confirm` の token_hash）はそのまま残す。Sprint 1 の Red テストに `OtpForm`（6桁以外は送信不可）と `verifyOtpCode` アクションを追加する。
 
 ## 16. 未決事項 / リスク
@@ -1904,3 +1904,5 @@ code-reviewer（重大0・重要2・提案3）と security-auditor（Critical/Hi
 - Vercel の Preview 環境変数は未設定（Git 連携していないため）。Git 連携時に設定する。
 - 本番の Redirect URLs に `http://localhost:3000/**` を残すのは、Docker を使わず手元の開発でも本番プロジェクトにつなぐ間だけ（PKCE のため code 単体では悪用できない）。開発用プロジェクトを分けたら削除する。
 - 本番の Auth で SMS（Twilio）プロバイダが有効扱いになっており、config push では無効化できない。全体のサインアップは OFF なので新規作成はされないが、Sprint 5 でダッシュボードの Phone プロバイダが無効か確認する。
+- **障害記録（2026-10-07）**: `[auth.email] enable_signup = false` を本番に push したところ、ホスト版では「Email プロバイダの有効化」（external_email_enabled）として扱われ、メールログインそのものが無効になった（`email_provider_disabled`）。アプリはアカウント列挙対策で失敗も成功と同じ表示にしているため、画面からは気づけなかった。`[auth.email] enable_signup = true` に戻し、新規登録は全体の `[auth] enable_signup = false` だけで止める（直接 `/auth/v1/signup` を呼んで `signup_disabled` を確認済み）。15.1 の「`[auth.email] enable_signup = false`」はこの記述で置き換える。
+- 教訓: `supabase config push` の前に `config diff` を読むだけでなく、push 後に本番の `/auth/v1/otp` を直接叩いてエラーコードを確認する。

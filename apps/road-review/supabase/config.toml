@@ -223,7 +223,10 @@ web3 = 30
 # Allow/disallow new user signups via email to your project.
 # CEO decision 15.1: only Hiro has an account (created via admin / dashboard "Add user").
 # signInWithOtp must use shouldCreateUser: false.
-enable_signup = false
+# NOTE: on the hosted project this key maps to "Email provider enabled" (external_email_enabled).
+# Setting it to false disables email login entirely (error email_provider_disabled). New signups are
+# blocked by the top-level [auth] enable_signup = false instead (architecture ch.21).
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true

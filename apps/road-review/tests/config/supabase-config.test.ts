@@ -52,8 +52,12 @@ describe('supabase/config.toml', () => {
     expect(sections.get('auth')?.get('enable_signup')).toBe('false')
   })
 
-  it('[auth.email] enable_signup = false', () => {
-    expect(sections.get('auth.email')?.get('enable_signup')).toBe('false')
+  // Regression guard (architecture ch.21): on the hosted project `[auth.email] enable_signup` maps to
+  // "Email provider enabled". Setting it to false disables email login entirely (error
+  // `email_provider_disabled`). It must never be false; sign-ups are blocked by the top-level
+  // `[auth] enable_signup = false` above.
+  it('[auth.email] enable_signup = true (must never be false: it disables email login)', () => {
+    expect(sections.get('auth.email')?.get('enable_signup')).toBe('true')
   })
 
   it('[auth.email] otp_expiry = 900 (S-4: 15 minutes)', () => {
