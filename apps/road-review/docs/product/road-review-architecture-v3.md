@@ -795,3 +795,4 @@ PRD v3 12章の Q1〜Q11 が主。作りの側から足すのは次の2つだけ
 ## 付記（CTO決定・2026-10-10・段階4）
 - C1 は**承認済みカタログ（`data/road-catalog.json`）だけ**に適用する。`data/road-catalog-draft.json` は CEO 確認用の資料で 3.3 の形ではない。段階6 の `generate.mjs` が、CEO が承認した行だけを 3.3 の形へ変換して承認済みカタログを作る。
 - C5 の「読みをすべてローマ字にできるか」は段階7（`romaji.ts`）で追加する。段階4 ではひらがなと「ー」だけかを検査する。
+- （段階5）Overpass の User-Agent は `road-review-catalog/<ver> (+https://github.com/hono840/collections)` とする（アプリの URL は未確定のため。個人情報を含めないことをテストで保証）。OSM の見本は `tests/fixtures/osm/`。区間の切り出しは cutFrom/cutTo のみ（bbox は使わない）。

@@ -1,0 +1,209 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API (synthetic test fixture)",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-01T00:00:00Z",
+    "copyright": "Synthetic test data. Not OpenStreetMap data."
+  },
+  "elements": [
+    {
+      "type": "way",
+      "id": 200,
+      "nodes": [
+        10,
+        11
+      ],
+      "geometry": [
+        {
+          "lat": 35,
+          "lon": 139
+        },
+        {
+          "lat": 35.002,
+          "lon": 139.002
+        }
+      ],
+      "tags": {
+        "highway": "secondary",
+        "name": "見本二車線"
+      }
+    },
+    {
+      "type": "way",
+      "id": 201,
+      "nodes": [
+        11,
+        12,
+        13
+      ],
+      "geometry": [
+        {
+          "lat": 35.002,
+          "lon": 139.002
+        },
+        {
+          "lat": 35.004,
+          "lon": 139
+        },
+        {
+          "lat": 35.006,
+          "lon": 139.002
+        }
+      ],
+      "tags": {
+        "highway": "secondary",
+        "name": "見本二車線"
+      }
+    },
+    {
+      "type": "way",
+      "id": 202,
+      "nodes": [
+        11,
+        21,
+        13
+      ],
+      "geometry": [
+        {
+          "lat": 35.002,
+          "lon": 139.002
+        },
+        {
+          "lat": 35.004,
+          "lon": 139.005
+        },
+        {
+          "lat": 35.006,
+          "lon": 139.002
+        }
+      ],
+      "tags": {
+        "highway": "secondary",
+        "name": "見本二車線",
+        "oneway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 203,
+      "nodes": [
+        13,
+        31,
+        32
+      ],
+      "geometry": [
+        {
+          "lat": 35.006,
+          "lon": 139.002
+        },
+        {
+          "lat": 35.006,
+          "lon": 139.006
+        },
+        {
+          "lat": 35.007,
+          "lon": 139.009
+        }
+      ],
+      "tags": {
+        "highway": "service",
+        "service": "parking_aisle"
+      }
+    },
+    {
+      "type": "way",
+      "id": 204,
+      "nodes": [
+        10,
+        41,
+        14
+      ],
+      "geometry": [
+        {
+          "lat": 35,
+          "lon": 139
+        },
+        {
+          "lat": 35.004,
+          "lon": 139
+        },
+        {
+          "lat": 35.008,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "path"
+      }
+    },
+    {
+      "type": "way",
+      "id": 206,
+      "nodes": [
+        10,
+        42,
+        14
+      ],
+      "geometry": [
+        {
+          "lat": 35,
+          "lon": 139
+        },
+        {
+          "lat": 35.004,
+          "lon": 138.9995
+        },
+        {
+          "lat": 35.008,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "tertiary"
+      }
+    },
+    {
+      "type": "way",
+      "id": 207,
+      "nodes": [
+        13,
+        14
+      ],
+      "geometry": [
+        {
+          "lat": 35.006,
+          "lon": 139.002
+        },
+        {
+          "lat": 35.008,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "track",
+        "tracktype": "grade1"
+      }
+    },
+    {
+      "type": "way",
+      "id": 208,
+      "nodes": [
+        10,
+        51
+      ],
+      "geometry": [
+        {
+          "lat": 35,
+          "lon": 139
+        },
+        {
+          "lat": 35.001,
+          "lon": 138.995
+        }
+      ],
+      "tags": {
+        "waterway": "stream"
+      }
+    }
+  ]
+}

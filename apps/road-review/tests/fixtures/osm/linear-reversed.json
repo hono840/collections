@@ -1,0 +1,91 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API (synthetic test fixture)",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-01T00:00:00Z",
+    "copyright": "Synthetic test data. Not OpenStreetMap data."
+  },
+  "elements": [
+    {
+      "type": "way",
+      "id": 103,
+      "nodes": [
+        5,
+        6,
+        7
+      ],
+      "geometry": [
+        {
+          "lat": 35.008,
+          "lon": 139
+        },
+        {
+          "lat": 35.01,
+          "lon": 139.0005
+        },
+        {
+          "lat": 35.012,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "secondary",
+        "name": "見本線"
+      }
+    },
+    {
+      "type": "way",
+      "id": 101,
+      "nodes": [
+        1,
+        2,
+        3
+      ],
+      "geometry": [
+        {
+          "lat": 35,
+          "lon": 139
+        },
+        {
+          "lat": 35.002,
+          "lon": 139.0005
+        },
+        {
+          "lat": 35.004,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "secondary",
+        "name": "見本線"
+      }
+    },
+    {
+      "type": "way",
+      "id": 102,
+      "nodes": [
+        5,
+        4,
+        3
+      ],
+      "geometry": [
+        {
+          "lat": 35.008,
+          "lon": 139
+        },
+        {
+          "lat": 35.006,
+          "lon": 139.0005
+        },
+        {
+          "lat": 35.004,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "secondary",
+        "name": "見本線"
+      }
+    }
+  ]
+}
