@@ -45,3 +45,6 @@ next-env.d.ts
 
 # CI test reports (pnpm test:ci)
 /reports/
+
+# catalog extractor: raw Overpass cache, previews and report stay local (data/geometry/ is committed, ODbL)
+/data/.osm-cache/
