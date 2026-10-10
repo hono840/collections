@@ -1,0 +1,101 @@
+name: road-review CI
+
+# apps/road-review: lint -> typecheck -> unit tests (0 skipped) -> build (static export + hash meta CSP gate).
+# Design: apps/road-review/docs/product/road-review-architecture-v2.md §14 / -v3.md §10 (stage 1),
+#         road-review-adr-static-export.md (build = next build && inject-meta-csp && verify-out).
+#
+# Supply-chain rules (shai-hulud): every action is pinned by full commit SHA (tag in the comment),
+# installs never run lifecycle scripts, the token is read-only, and no untrusted event data
+# (PR title/body/branch name) is interpolated into `run:`.
+#
+# Action versions (looked up 2026-10-10 with `gh api`): latest releases older than the 7-day
+# cooldown used for npm packages. actions/setup-node v7.1.0 (published 2026-10-08) is skipped for now.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/road-review/**'
+      - '.github/workflows/road-review-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/road-review/**'
+      - '.github/workflows/road-review-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: road-review-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/road-review
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm (version from package.json "packageManager")
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: apps/road-review/package.json
+
+      - name: Setup Node.js (version from .node-version)
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: apps/road-review/.node-version
+          cache: pnpm
+          cache-dependency-path: apps/road-review/pnpm-lock.yaml
+
+      - name: Install (frozen lockfile, no lifecycle scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # ARCH v3 3.4 C4 / 3.5: no id may disappear from main's data/catalog-ids.txt (append only).
+      # The repo is public, so this anonymous shallow fetch works with persist-credentials: false
+      # (no token is stored or used). The explicit refspec creates refs/remotes/origin/main.
+      # --allow-missing-base: main has no catalog-ids.txt until stage 4 is merged.
+      # TODO(after stage 4 is on main): drop --allow-missing-base so a wrong path cannot pass silently.
+      - name: Assert catalog ids are append-only (vs origin/main)
+        run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          base_file="$RUNNER_TEMP/catalog-ids.base.txt"
+          if git cat-file -e origin/main:apps/road-review/data/catalog-ids.txt 2>/dev/null; then
+            git show origin/main:apps/road-review/data/catalog-ids.txt > "$base_file"
+          fi
+          node scripts/ci/assert-catalog-ids-append-only.mjs --allow-missing-base "$base_file" data/catalog-ids.txt
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests (JSON report)
+        run: pnpm test:ci
+
+      - name: Assert no skipped / todo tests
+        run: node scripts/ci/assert-no-skips.mjs reports/vitest.json
+
+      # `pnpm build` = next build && inject-meta-csp && verify-out (the CSP gate fails the build).
+      # It is chained inside `build` on purpose: `--ignore-scripts` would skip a postbuild hook.
+      - name: Build (static export + hash meta CSP + verify)
+        run: pnpm build
+
+  # TODO(stage 19, ARCH v3 §10): e2e job.
+  #   needs: verify; build out/ (or download it as an artifact from verify, pinned by SHA),
+  #   `pnpm exec playwright install --with-deps chromium webkit`, serve out/ with
+  #   `node scripts/serve-static.mjs out` (vercel.json headers/redirects, minus
+  #   upgrade-insecure-requests on local http), run `pnpm test:e2e` (iphone-webkit / small-360 /
+  #   desktop), assert CSP violations = 0 and external requests = 0, upload the report (if: always()).
+  #   Branch protection: CEO adds "verify" and "e2e" as required checks once both exist.

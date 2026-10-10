@@ -1,0 +1,1 @@
+export { AppShellTemplate } from './AppShellTemplate'
