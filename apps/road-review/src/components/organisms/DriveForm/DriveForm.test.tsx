@@ -2,12 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-const mocks = vi.hoisted(() => ({ createDrive: vi.fn(), updateDrive: vi.fn() }))
-
-vi.mock('@/features/drives/actions', () => ({
-  createDrive: mocks.createDrive,
-  updateDrive: mocks.updateDrive,
-}))
+const mocks = vi.hoisted(() => ({ onSubmit: vi.fn() }))
 
 import { DriveForm } from './DriveForm'
 
@@ -24,11 +19,14 @@ import { DriveForm } from './DriveForm'
 //     走りやすさ（道幅・見通し） (RatingInput, optional), 交通量 少/普通/多 + M-35, 車両 四輪/二輪, 天候 晴/曇/雨/雪/その他,
 //     メモ (textarea, counter "n/2000"), RoadInfoFieldset (道の情報)
 //   - NO time / duration / speed fields
+//   - onSubmit: (input: DriveInput) => Promise<ActionResult<never> | undefined> (both modes). The form passes
+//     only the validated input; road / drive ids are the caller's business.
 //   - controlled state; submit -> driveInputSchema.safeParse -> errors under fields + summary
-//     "入力内容を確認してください（N件）" (role=alert) that takes focus; else startTransition(createDrive(roadId, input)
-//     | updateDrive(driveId, input)); roadInfo is sent as null when every item is 記録しない
-//   - a returned error never clears the inputs (fieldErrors under fields, other errors' message in an alert)
-//   - while saving, a second submit does nothing; キャンセル links back to /roads/<roadId>
+//     "入力内容を確認してください（N件）" (role=alert) that takes focus; else startTransition(onSubmit(input));
+//     roadInfo is sent as null when every item is 記録しない
+//   - an error result never clears the inputs (fieldErrors under fields, other errors' message in an alert that
+//     takes focus); success (undefined / ok) is handled by the caller, the form shows nothing
+//   - while saving, a second submit does nothing
 
 const ROAD_ID = '6f1c2a8e-3b4d-4e5f-8a9b-0c1d2e3f4a5b'
 const DRIVE_ID = '0a0b0c0d-1e1f-4a2b-8c3d-4e5f6a7b8c9d'
@@ -54,6 +52,7 @@ function renderCreate(overrides: Partial<{ roadType: 'pass' | 'forest'; defaultD
     <DriveForm
       mode="create"
       roadId={ROAD_ID}
+      onSubmit={mocks.onSubmit}
       roadName="碓氷峠"
       roadType={overrides.roadType ?? 'pass'}
       defaultDrivenOn={overrides.defaultDrivenOn ?? '2026-10-06'}
@@ -101,8 +100,7 @@ async function chooseOverall(user: ReturnType<typeof userEvent.setup>, label = '
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-10-06T03:00:00Z')) // 2026-10-06 12:00 JST
-  mocks.createDrive.mockResolvedValue(undefined)
-  mocks.updateDrive.mockResolvedValue(undefined)
+  mocks.onSubmit.mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -214,7 +212,7 @@ describe('DriveForm: fields', () => {
 })
 
 describe('DriveForm: validation on submit', () => {
-  it('without 総合 shows M-14, a focused summary and does not call the server', async () => {
+  it('without 総合 shows M-14, a focused summary and does not call onSubmit', async () => {
     const user = userEvent.setup()
     renderCreate()
 
@@ -225,10 +223,10 @@ describe('DriveForm: validation on submit', () => {
     expect(summary).not.toBeNull()
     await waitFor(() => expect(summary).toHaveFocus())
     expect(ratingGroup(/^総合/)).toHaveAttribute('aria-invalid', 'true')
-    expect(mocks.createDrive).not.toHaveBeenCalled()
+    expect(mocks.onSubmit).not.toHaveBeenCalled()
   })
 
-  it('a future 走行日 shows M-13 under 走行日 (date linked to the error) and does not call the server', async () => {
+  it('a future 走行日 shows M-13 under 走行日 (date linked to the error) and does not call onSubmit', async () => {
     const user = userEvent.setup()
     renderCreate()
     await chooseOverall(user)
@@ -239,7 +237,7 @@ describe('DriveForm: validation on submit', () => {
     expect(screen.getByText('未来の日付は選べません')).toBeInTheDocument()
     expect(drivenOnInput()).toHaveAttribute('aria-invalid', 'true')
     expect(drivenOnInput()).toHaveAccessibleDescription(expect.stringContaining('未来の日付は選べません'))
-    expect(mocks.createDrive).not.toHaveBeenCalled()
+    expect(mocks.onSubmit).not.toHaveBeenCalled()
   })
 
   it('a 2001-character memo shows "2000文字以内で入力してください"', async () => {
@@ -251,7 +249,7 @@ describe('DriveForm: validation on submit', () => {
     await user.click(submitButton())
 
     expect(screen.getByText('2000文字以内で入力してください')).toBeInTheDocument()
-    expect(mocks.createDrive).not.toHaveBeenCalled()
+    expect(mocks.onSubmit).not.toHaveBeenCalled()
   })
 
   it('errors keep every input as typed', async () => {
@@ -271,7 +269,7 @@ describe('DriveForm: validation on submit', () => {
 })
 
 describe('DriveForm: submit (create)', () => {
-  it('calls createDrive(roadId, input) with the values; roadInfo null when nothing is recorded', async () => {
+  it('calls onSubmit(input) once with the values (input only, no ids); roadInfo null when nothing is recorded', async () => {
     const user = userEvent.setup()
     renderCreate()
     await chooseOverall(user)
@@ -283,8 +281,9 @@ describe('DriveForm: submit (create)', () => {
 
     await user.click(submitButton())
 
-    await waitFor(() => expect(mocks.createDrive).toHaveBeenCalledTimes(1))
-    expect(mocks.createDrive).toHaveBeenCalledWith(ROAD_ID, {
+    await waitFor(() => expect(mocks.onSubmit).toHaveBeenCalledTimes(1))
+    expect(mocks.onSubmit.mock.calls[0]).toHaveLength(1)
+    expect(mocks.onSubmit).toHaveBeenCalledWith({
       drivenOn: '2026-10-06',
       vehicleType: 'motorcycle',
       weather: 'cloudy',
@@ -311,17 +310,17 @@ describe('DriveForm: submit (create)', () => {
 
     await user.click(submitButton())
 
-    await waitFor(() => expect(mocks.createDrive).toHaveBeenCalledTimes(1))
-    const [, input] = mocks.createDrive.mock.calls[0]
+    await waitFor(() => expect(mocks.onSubmit).toHaveBeenCalledTimes(1))
+    const [input] = mocks.onSubmit.mock.calls[0]
     expect(input.roadInfo).toEqual({
       confirmedOn: null,
       items: { ...emptyItems, motorcycleBan: { status: 'yes', memo: '土日のみ' } },
     })
   })
 
-  it('a server error keeps the inputs and shows its message (M-31)', async () => {
+  it('an error result from onSubmit keeps the inputs and shows its message (M-31)', async () => {
     const user = userEvent.setup()
-    mocks.createDrive.mockResolvedValue({ ok: false, error: { code: 'unexpected', message: M31 } })
+    mocks.onSubmit.mockResolvedValue({ ok: false, error: { code: 'unexpected', message: M31 } })
     renderCreate()
     await chooseOverall(user, '3、ふつう')
     await user.type(memoInput(), '消えないで')
@@ -333,9 +332,9 @@ describe('DriveForm: submit (create)', () => {
     expect(within(ratingGroup(/^総合/)).getByRole('radio', { name: '3、ふつう' })).toBeChecked()
   })
 
-  it("server fieldErrors are shown under their fields (e.g. the DB's JST future-date check)", async () => {
+  it('fieldErrors returned by onSubmit are shown under their fields (e.g. a future-date check in the repository)', async () => {
     const user = userEvent.setup()
-    mocks.createDrive.mockResolvedValue({
+    mocks.onSubmit.mockResolvedValue({
       ok: false,
       error: { code: 'validation', message: '入力内容を確認してください', fieldErrors: { drivenOn: ['未来の日付は選べません'] } },
     })
@@ -348,9 +347,9 @@ describe('DriveForm: submit (create)', () => {
     expect(drivenOnInput()).toHaveAttribute('aria-invalid', 'true')
   })
 
-  it('server road info errors (dotted paths) are shown in the fieldset', async () => {
+  it('road info fieldErrors returned by onSubmit (dotted paths) are shown in the fieldset', async () => {
     const user = userEvent.setup()
-    mocks.createDrive.mockResolvedValue({
+    mocks.onSubmit.mockResolvedValue({
       ok: false,
       error: {
         code: 'validation',
@@ -374,16 +373,50 @@ describe('DriveForm: submit (create)', () => {
     )
   })
 
-  it('while saving, a second submit does not call the server again', async () => {
+  it('while saving, the button is disabled and a second submit does not call onSubmit again', async () => {
     const user = userEvent.setup()
-    mocks.createDrive.mockReturnValue(new Promise(() => {}))
+    // Resolve at the end: a never-settling async transition would stay entangled with later tests.
+    let finish: (value: unknown) => void = () => {}
+    mocks.onSubmit.mockImplementation(() => new Promise((resolve) => (finish = resolve)))
     renderCreate()
     await chooseOverall(user)
 
     await user.click(submitButton())
+    await waitFor(() => expect(submitButton()).toBeDisabled())
+    await user.click(submitButton())
+    fireEvent.submit(screen.getByRole('form', { name: '走行記録の登録フォーム' }))
+
+    expect(mocks.onSubmit).toHaveBeenCalledTimes(1)
+    finish({ ok: false, error: { code: 'unexpected', message: M31 } })
+    await waitFor(() => expect(submitButton()).toBeEnabled())
+  })
+
+  it('moves focus to the error alert when onSubmit resolves to an error', async () => {
+    const user = userEvent.setup()
+    mocks.onSubmit.mockResolvedValue({ ok: false, error: { code: 'unexpected', message: M31 } })
+    renderCreate()
+    await chooseOverall(user)
+
     await user.click(submitButton())
 
-    expect(mocks.createDrive).toHaveBeenCalledTimes(1)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(M31)
+    await waitFor(() => expect(alert).toHaveFocus())
+  })
+
+  it('shows no error when onSubmit resolves to ok (the caller navigates away)', async () => {
+    const user = userEvent.setup()
+    mocks.onSubmit.mockResolvedValue({ ok: true, data: undefined })
+    renderCreate()
+    await chooseOverall(user)
+    await user.type(memoInput(), '紅葉')
+
+    await user.click(submitButton())
+
+    await waitFor(() => expect(mocks.onSubmit).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(submitButton()).toBeEnabled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(memoInput()).toHaveValue('紅葉')
   })
 })
 
@@ -394,6 +427,7 @@ describe('DriveForm: edit', () => {
         mode="edit"
         roadId={ROAD_ID}
         driveId={DRIVE_ID}
+        onSubmit={mocks.onSubmit}
         roadName="碓氷峠"
         roadType="pass"
         defaultValues={editDefaults}
@@ -420,7 +454,7 @@ describe('DriveForm: edit', () => {
     expect(within(roadInfo).getByLabelText(/確認日/)).toHaveValue('2026-09-14')
   })
 
-  it('calls updateDrive(driveId, input) and never sends a road id', async () => {
+  it('edit: calls onSubmit with the edited input only (no road / drive id inside)', async () => {
     const user = userEvent.setup()
     renderEdit()
     await user.clear(memoInput())
@@ -428,13 +462,13 @@ describe('DriveForm: edit', () => {
 
     await user.click(submitButton())
 
-    await waitFor(() => expect(mocks.updateDrive).toHaveBeenCalledTimes(1))
-    const [driveId, input] = mocks.updateDrive.mock.calls[0]
-    expect(driveId).toBe(DRIVE_ID)
+    await waitFor(() => expect(mocks.onSubmit).toHaveBeenCalledTimes(1))
+    expect(mocks.onSubmit.mock.calls[0]).toHaveLength(1)
+    const [input] = mocks.onSubmit.mock.calls[0]
     expect(input).toMatchObject({ drivenOn: '2026-09-14', ratingOverall: 4, memo: '晴れていた' })
     expect(input).not.toHaveProperty('roadId')
     expect(input).not.toHaveProperty('road_id')
-    expect(mocks.createDrive).not.toHaveBeenCalled()
+    expect(input).not.toHaveProperty('driveId')
   })
 
   it('clearing every road info item sends roadInfo: null (the row is removed)', async () => {
@@ -447,7 +481,7 @@ describe('DriveForm: edit', () => {
 
     await user.click(submitButton())
 
-    await waitFor(() => expect(mocks.updateDrive).toHaveBeenCalledTimes(1))
-    expect(mocks.updateDrive.mock.calls[0][1].roadInfo).toBeNull()
+    await waitFor(() => expect(mocks.onSubmit).toHaveBeenCalledTimes(1))
+    expect(mocks.onSubmit.mock.calls[0][0].roadInfo).toBeNull()
   })
 })

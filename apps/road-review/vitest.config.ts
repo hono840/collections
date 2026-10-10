@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config'
 
-// Unit + component tests (jsdom). DB/RLS tests live in vitest.rls.config.ts
-// because they need a running local Supabase.
+// Unit + component tests (jsdom). E2E lives in tests/e2e (Playwright).
 export default defineConfig({
   test: {
     environment: 'jsdom',
@@ -16,7 +15,6 @@ export default defineConfig({
     ],
     exclude: [
       'node_modules/**',
-      'tests/rls/**',
       'tests/e2e/**',
     ],
   },

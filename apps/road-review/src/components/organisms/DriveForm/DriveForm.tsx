@@ -12,7 +12,6 @@ import { FormField } from '@/components/molecules/FormField'
 import { RatingInput } from '@/components/molecules/RatingInput'
 import { SafetyNoticeBanner } from '@/components/molecules/SafetyNoticeBanner'
 import { RoadInfoFieldset, type RoadInfoFieldsetErrors } from '@/components/organisms/RoadInfoFieldset'
-import { createDrive, updateDrive } from '@/features/drives/actions'
 import type { ActionResult } from '@/lib/actions/result'
 import {
   RATING_AXIS_LABELS,
@@ -34,10 +33,17 @@ import type { TrafficLevel, VehicleType, Weather } from '@/types/drive'
 import type { RoadType } from '@/types/road'
 import { cn } from '@/lib/utils/cn'
 
+/**
+ * Saves the validated input. Resolves to an error result to show it in the form;
+ * on success the caller navigates away (or resolves undefined / ok).
+ */
+export type DriveFormSubmit = (input: DriveInput) => Promise<ActionResult<never> | undefined>
+
 type DriveFormCommonProps = {
   roadId: string
   roadName: string
   roadType: RoadType
+  onSubmit: DriveFormSubmit
   className?: string
 }
 
@@ -176,8 +182,8 @@ function toFormErrors(fieldErrors: Partial<Record<string, string[]>> | undefined
 /**
  * Drive record create / edit form (US-03 / US-04 / US-09; architecture 7.2; UX S-08).
  * The safety banner (M-01) is always the first thing in the form, followed by the 林道 note (M-08).
- * Controlled inputs, zod on submit, then the Server Action is called as a function inside a transition,
- * so a returned error never clears what was typed. On success the action redirects on the server.
+ * Controlled inputs, zod on submit, then the onSubmit callback is awaited inside a transition,
+ * so a returned error never clears what was typed. On success the caller decides where to go.
  * No time / duration / speed fields by design (PRD US-06, US-14).
  */
 export function DriveForm(props: DriveFormProps) {
@@ -216,9 +222,8 @@ export function DriveForm(props: DriveFormProps) {
 
     const input = parsed.data
     startTransition(async () => {
-      const result: ActionResult<never> | undefined =
-        props.mode === 'edit' ? await updateDrive(props.driveId, input) : await createDrive(roadId, input)
-      // Success redirects on the server, so only failures come back here.
+      const result = await props.onSubmit(input)
+      // Success is handled by the caller (navigation), so only failures are shown here.
       if (!result || result.ok) return
       const { errors: serverErrors, count } = toFormErrors(result.error.fieldErrors)
       startTransition(() => {

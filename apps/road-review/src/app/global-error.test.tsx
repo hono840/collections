@@ -24,7 +24,7 @@ describe('global-error.tsx (R-1)', () => {
     expect(markup).toMatch(/^<html[^>]*\slang="ja"/)
     expect(markup).toContain('<body')
     expect(markup).toContain('読み込めませんでした')
-    expect(markup).toContain('通信状態を確かめて、もう一度お試しください。')
+    expect(markup).toContain('もう一度お試しください。')
     expect(markup).toContain('もう一度読み込む')
     expect(markup).not.toContain('secret server detail')
   })

@@ -11,10 +11,9 @@ import { ForestRoadNote } from '@/components/molecules/ForestRoadNote'
 import { FormField } from '@/components/molecules/FormField'
 import { PrefectureSelect } from '@/components/molecules/PrefectureSelect'
 import { PinPicker, type Pins } from '@/components/organisms/PinPicker'
-import { createRoad, updateRoad } from '@/features/roads/actions'
 import type { ActionResult } from '@/lib/actions/result'
 import { ROAD_TYPE_OPTIONS } from '@/lib/constants/labels'
-import { NAME_MAX_LENGTH, roadInputSchema } from '@/lib/validation/road'
+import { NAME_MAX_LENGTH, roadInputSchema, type RoadInput } from '@/lib/validation/road'
 import type { LatLng, RoadType } from '@/types/road'
 import { cn } from '@/lib/utils/cn'
 
@@ -27,9 +26,21 @@ export type RoadFormDefaultValues = {
   end: LatLng | null
 }
 
+/**
+ * Saves the validated input. Resolves to an error result to show it in the form;
+ * on success the caller navigates away (or resolves undefined / ok).
+ */
+export type RoadFormSubmit = (input: RoadInput) => Promise<ActionResult<never> | undefined>
+
 export type RoadFormProps =
-  | { mode: 'create'; className?: string }
-  | { mode: 'edit'; roadId: string; defaultValues: RoadFormDefaultValues; className?: string }
+  | { mode: 'create'; onSubmit: RoadFormSubmit; className?: string }
+  | {
+      mode: 'edit'
+      roadId: string
+      defaultValues: RoadFormDefaultValues
+      onSubmit: RoadFormSubmit
+      className?: string
+    }
 
 type RoadFormValues = {
   name: string
@@ -71,8 +82,8 @@ type SubmitFeedback =
 
 /**
  * Road create / edit form (US-02, US-09; architecture 7.2). Controlled inputs, zod on submit,
- * then the Server Action is called as a function inside a transition, so a returned error never
- * resets the inputs. On success the action redirects on the server.
+ * then the onSubmit callback is awaited inside a transition, so a returned error never
+ * resets the inputs. On success the caller decides where to go.
  */
 export function RoadForm(props: RoadFormProps) {
   const { mode, className } = props
@@ -113,9 +124,8 @@ export function RoadForm(props: RoadFormProps) {
 
     const input = parsed.data
     startTransition(async () => {
-      const result: ActionResult<never> | undefined =
-        props.mode === 'edit' ? await updateRoad(props.roadId, input) : await createRoad(input)
-      // Success redirects on the server, so only failures come back here.
+      const result = await props.onSubmit(input)
+      // Success is handled by the caller (navigation), so only failures are shown here.
       if (!result || result.ok) return
       const serverFieldErrors = pickFieldErrors(result.error.fieldErrors)
       startTransition(() => {

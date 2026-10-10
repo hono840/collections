@@ -21,15 +21,15 @@ pnpm dev
 
 ## コマンド
 
-| コマンド | 内容 |
-|---|---|
-| `pnpm dev` | 開発サーバー |
-| `pnpm build` | 本番ビルド |
-| `pnpm lint` | ESLint（Atomic Design の import 制限を含む） |
-| `pnpm typecheck` | 型チェック |
-| `pnpm test` | 単体・コンポーネントテスト（Vitest / jsdom） |
-| `pnpm test:rls` | DB・RLS テスト（ローカルの Supabase が必要） |
-| `pnpm test:e2e` | E2E テスト（Playwright。ローカルの Supabase が必要） |
+| コマンド         | 内容                                                 |
+| ---------------- | ---------------------------------------------------- |
+| `pnpm dev`       | 開発サーバー                                         |
+| `pnpm build`     | 本番ビルド                                           |
+| `pnpm lint`      | ESLint（Atomic Design の import 制限を含む）         |
+| `pnpm typecheck` | 型チェック                                           |
+| `pnpm test`      | 単体・コンポーネントテスト（Vitest / jsdom）         |
+| `pnpm test:rls`  | DB・RLS テスト（ローカルの Supabase が必要）         |
+| `pnpm test:e2e`  | E2E テスト（Playwright。ローカルの Supabase が必要） |
 
 ## 環境変数
 

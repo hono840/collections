@@ -2,28 +2,24 @@
 import { describe, expect, it } from 'vitest'
 import nextConfig from '../../next.config'
 
-// S-5: the CSP now comes from src/proxy.ts (per-request nonce). next.config.ts
-// keeps only the static security headers.
+// Static export (ARCH v2 3 / ADR static export). The vercel.json CSP checks are added in stage 3.
 
-async function headerKeysForAllRoutes(): Promise<Map<string, string>> {
-  const rules = (await nextConfig.headers?.()) ?? []
-  const allRoutes = rules.find((rule) => rule.source === '/(.*)')
-  return new Map((allRoutes?.headers ?? []).map(({ key, value }) => [key.toLowerCase(), value]))
-}
-
-describe('next.config.ts headers (S-5)', () => {
-  it('no longer sets Content-Security-Policy (proxy sets it with a nonce)', async () => {
-    const rules = (await nextConfig.headers?.()) ?? []
-    const keys = rules.flatMap((rule) => rule.headers.map(({ key }) => key.toLowerCase()))
-    expect(keys).not.toContain('content-security-policy')
-    expect(keys).not.toContain('content-security-policy-report-only')
+describe('next.config.ts (static export)', () => {
+  it('exports static files to out/', () => {
+    expect(nextConfig.output).toBe('export')
   })
 
-  it('keeps the other security headers', async () => {
-    const headers = await headerKeysForAllRoutes()
-    expect(headers.get('x-content-type-options')).toBe('nosniff')
-    expect(headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin')
-    expect(headers.get('x-frame-options')).toBe('DENY')
-    expect(headers.get('permissions-policy')).toContain('geolocation=()')
+  it('uses trailing slashes so /road/ maps to out/road/index.html', () => {
+    expect(nextConfig.trailingSlash).toBe(true)
+  })
+
+  it('does not use the server-side image optimizer', () => {
+    expect(nextConfig.images?.unoptimized).toBe(true)
+  })
+
+  it('does not define server-only features (headers / redirects / rewrites)', () => {
+    expect(nextConfig.headers).toBeUndefined()
+    expect(nextConfig.redirects).toBeUndefined()
+    expect(nextConfig.rewrites).toBeUndefined()
   })
 })

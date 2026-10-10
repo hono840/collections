@@ -6,7 +6,7 @@ import nextTs from "eslint-config-next/typescript";
 //   atoms <- molecules <- organisms <- templates
 // - molecules must not import other molecules
 // - organisms may contain other organisms, but not templates
-// - only organisms (and app/) may import data/actions (@/features, @/lib/supabase)
+// - only organisms (and app/) may import data/hooks (@/features)
 // Relative imports inside a component directory (./Foo) are intentionally not covered.
 const layerRule = (forbidden, extra = []) => ({
   "no-restricted-imports": [
@@ -25,7 +25,7 @@ const layerRule = (forbidden, extra = []) => ({
 
 const noData = [
   {
-    group: ["@/features/*", "@/lib/supabase/*"],
+    group: ["@/features/*"],
     message: "Only organisms (and app/) may touch data/actions.",
   },
 ];
@@ -49,7 +49,7 @@ const eslintConfig = defineConfig([
     files: ["src/components/templates/**/*.{ts,tsx}"],
     rules: layerRule([], noData),
   },
-  // S-5: inline HTML bypasses the nonce CSP. Only the root layout (theme script with nonce) may use it.
+  // Inline HTML bypasses the hash CSP (stage 3). Only the root layout (theme script) may use it.
   { files: ["src/**/*.{ts,tsx}"], rules: { "react/no-danger": "error" } },
   { files: ["src/app/layout.tsx"], rules: { "react/no-danger": "off" } },
   // Override default ignores of eslint-config-next.

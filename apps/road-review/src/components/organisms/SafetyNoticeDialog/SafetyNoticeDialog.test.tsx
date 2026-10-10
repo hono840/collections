@@ -2,11 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-const mocks = vi.hoisted(() => ({ acknowledgeSafetyNotice: vi.fn() }))
-
-vi.mock('@/features/settings/actions', () => ({
-  acknowledgeSafetyNotice: mocks.acknowledgeSafetyNotice,
-}))
+const mocks = vi.hoisted(() => ({ onAcknowledge: vi.fn() }))
 
 import { SafetyNoticeDialog } from './SafetyNoticeDialog'
 
@@ -38,8 +34,8 @@ afterEach(() => {
 })
 
 describe('SafetyNoticeDialog (first-run safety notice, US-08 / PRD US-13)', () => {
-  it('is shown as a modal dialog on first login (not yet acknowledged)', () => {
-    render(<SafetyNoticeDialog acknowledged={false} />)
+  it('is shown as a modal dialog on first run (not yet acknowledged)', () => {
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
     const dialog = screen.getByRole('dialog', { name: 'はじめに' })
     expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(within(dialog).getByText(BODY_M04)).toBeInTheDocument()
@@ -47,20 +43,20 @@ describe('SafetyNoticeDialog (first-run safety notice, US-08 / PRD US-13)', () =
   })
 
   it('is not shown when already acknowledged', () => {
-    render(<SafetyNoticeDialog acknowledged />)
+    render(<SafetyNoticeDialog acknowledged onAcknowledge={mocks.onAcknowledge} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.queryByText(BODY_M04)).not.toBeInTheDocument()
   })
 
   it('has exactly one button, "確認しました" (no × button)', () => {
-    render(<SafetyNoticeDialog acknowledged={false} />)
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
     const buttons = within(screen.getByRole('dialog')).getAllByRole('button')
     expect(buttons).toHaveLength(1)
     expect(buttons[0]).toHaveAccessibleName('確認しました')
   })
 
   it('puts initial focus on the heading', async () => {
-    render(<SafetyNoticeDialog acknowledged={false} />)
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'はじめに' })).toHaveFocus()
     })
@@ -68,20 +64,20 @@ describe('SafetyNoticeDialog (first-run safety notice, US-08 / PRD US-13)', () =
 
   it('does not close on Escape', async () => {
     const user = userEvent.setup()
-    render(<SafetyNoticeDialog acknowledged={false} />)
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
     await user.keyboard('{Escape}')
     expect(screen.getByRole('dialog', { name: 'はじめに' })).toBeInTheDocument()
-    expect(mocks.acknowledgeSafetyNotice).not.toHaveBeenCalled()
+    expect(mocks.onAcknowledge).not.toHaveBeenCalled()
   })
 
-  it('"確認しました" calls acknowledgeSafetyNotice and closes on success', async () => {
+  it('"確認しました" calls onAcknowledge and closes on success', async () => {
     const user = userEvent.setup()
-    mocks.acknowledgeSafetyNotice.mockResolvedValue({ ok: true, data: undefined })
-    render(<SafetyNoticeDialog acknowledged={false} />)
+    mocks.onAcknowledge.mockResolvedValue({ ok: true, data: undefined })
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
 
     await user.click(screen.getByRole('button', { name: '確認しました' }))
 
-    expect(mocks.acknowledgeSafetyNotice).toHaveBeenCalledTimes(1)
+    expect(mocks.onAcknowledge).toHaveBeenCalledTimes(1)
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
@@ -89,8 +85,8 @@ describe('SafetyNoticeDialog (first-run safety notice, US-08 / PRD US-13)', () =
 
   it('blocks double submission while saving', async () => {
     const user = userEvent.setup()
-    mocks.acknowledgeSafetyNotice.mockReturnValue(new Promise(() => {}))
-    render(<SafetyNoticeDialog acknowledged={false} />)
+    mocks.onAcknowledge.mockReturnValue(new Promise(() => {}))
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
 
     const button = screen.getByRole('button', { name: '確認しました' })
     await user.click(button)
@@ -99,16 +95,16 @@ describe('SafetyNoticeDialog (first-run safety notice, US-08 / PRD US-13)', () =
       expect(screen.getByRole('button', { name: /確認しました|保存中/ })).toBeDisabled()
     })
     await user.click(screen.getByRole('button', { name: /確認しました|保存中/ }))
-    expect(mocks.acknowledgeSafetyNotice).toHaveBeenCalledTimes(1)
+    expect(mocks.onAcknowledge).toHaveBeenCalledTimes(1)
   })
 
   it('stays open and shows the M-31 message when saving fails', async () => {
     const user = userEvent.setup()
-    mocks.acknowledgeSafetyNotice.mockResolvedValue({
+    mocks.onAcknowledge.mockResolvedValue({
       ok: false,
       error: { code: 'unexpected', message: '保存できませんでした。もう一度お試しください。' },
     })
-    render(<SafetyNoticeDialog acknowledged={false} />)
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
 
     await user.click(screen.getByRole('button', { name: '確認しました' }))
 
@@ -119,23 +115,38 @@ describe('SafetyNoticeDialog (first-run safety notice, US-08 / PRD US-13)', () =
     expect(screen.getByRole('button', { name: '確認しました' })).toBeEnabled()
   })
 
+  it.each([
+    ['an error result without a message', () => mocks.onAcknowledge.mockResolvedValue({ ok: false, error: { code: 'unexpected', message: '' } })],
+    ['a rejection', () => mocks.onAcknowledge.mockRejectedValue(new Error('IndexedDB unavailable'))],
+  ])('falls back to the M-31 message for %s and keeps the notice open', async (_label, arrange) => {
+    const user = userEvent.setup()
+    arrange()
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
+
+    await user.click(screen.getByRole('button', { name: '確認しました' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('保存できませんでした。もう一度お試しください。')
+    expect(screen.queryByText('IndexedDB unavailable')).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'はじめに' })).toBeInTheDocument()
+  })
+
   // R-3: while saving, the button is disabled and browsers drop its focus, so
   // after a failure focus must be put back on "確認しました" explicitly.
   // fireEvent.click is used on purpose: it does not move focus, so the test
   // cannot pass just because the click focused the button.
   it.each([
     [
-      'the action returns an error',
+      'onAcknowledge resolves to an error',
       () =>
-        mocks.acknowledgeSafetyNotice.mockResolvedValue({
+        mocks.onAcknowledge.mockResolvedValue({
           ok: false,
           error: { code: 'unexpected', message: '保存できませんでした。もう一度お試しください。' },
         }),
     ],
-    ['the action throws', () => mocks.acknowledgeSafetyNotice.mockRejectedValue(new Error('network'))],
+    ['onAcknowledge rejects', () => mocks.onAcknowledge.mockRejectedValue(new Error('network'))],
   ])('moves focus back to "確認しました" when %s', async (_label, arrange) => {
     arrange()
-    render(<SafetyNoticeDialog acknowledged={false} />)
+    render(<SafetyNoticeDialog acknowledged={false} onAcknowledge={mocks.onAcknowledge} />)
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'はじめに' })).toHaveFocus()
     })

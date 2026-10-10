@@ -39,7 +39,7 @@ export default function GlobalError({ error, retry }: GlobalErrorProps) {
         <title>読み込めませんでした | 公道レビュー</title>
         <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-12 text-center">
           <h1 className="text-lg font-bold text-ink">読み込めませんでした</h1>
-          <p className="mt-2 text-base text-ink-muted">通信状態を確かめて、もう一度お試しください。</p>
+          <p className="mt-2 text-base text-ink-muted">もう一度お試しください。</p>
           <Button className="mt-6 w-full" onClick={() => retry()}>
             もう一度読み込む
           </Button>

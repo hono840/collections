@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import SignedInError from './error'
+import AppError from './error'
 
-// R-1: error boundary for the signed-in area. Next.js 16.3 passes both
+// R-1: error boundary for the app area (no account in v2/v3). Next.js 16.3 passes both
 // `retry` (re-fetch + re-render, stable since v16.3) and `reset` (re-render only).
-// A failed load is usually a network/server hiccup, so the button must use `retry`.
+// The button must use `retry` (re-render the segment).
 
 function errorProps() {
   return {
@@ -22,15 +22,15 @@ afterEach(() => {
 describe('(app)/error.tsx (R-1)', () => {
   it('shows the Japanese heading and body copy', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    render(<SignedInError {...errorProps()} />)
+    render(<AppError {...errorProps()} />)
 
     expect(screen.getByRole('heading', { name: '読み込めませんでした' })).toBeInTheDocument()
-    expect(screen.getByText('通信状態を確かめて、もう一度お試しください。')).toBeInTheDocument()
+    expect(screen.getByText('もう一度お試しください。')).toBeInTheDocument()
   })
 
   it('does not show the raw error message to the user', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    render(<SignedInError {...errorProps()} />)
+    render(<AppError {...errorProps()} />)
     expect(screen.queryByText(/secret server detail/)).not.toBeInTheDocument()
   })
 
@@ -38,7 +38,7 @@ describe('(app)/error.tsx (R-1)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const user = userEvent.setup()
     const props = errorProps()
-    render(<SignedInError {...props} />)
+    render(<AppError {...props} />)
 
     await user.click(screen.getByRole('button', { name: 'もう一度読み込む' }))
 

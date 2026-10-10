@@ -3,14 +3,16 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { acknowledgeSafetyNotice } from '@/features/settings/actions'
+import type { ActionResult } from '@/lib/actions/result'
 
 // M-31
 const SAVE_FAILED_MESSAGE = '保存できませんでした。もう一度お試しください。'
 
 export type SafetyNoticeDialogProps = {
-  /** True once the user has pressed "確認しました" (user_settings). */
+  /** True once the user has pressed "確認しました". */
   acknowledged: boolean
+  /** Saves the acknowledgement. A failed result (or a throw) keeps the notice open with an error. */
+  onAcknowledge: () => Promise<ActionResult>
 }
 
 /**
@@ -18,13 +20,19 @@ export type SafetyNoticeDialogProps = {
  * Native modal <dialog>: bottom sheet under 768px, centered dialog above.
  * It cannot be dismissed by Esc, by the backdrop, or by an × button.
  */
-export function SafetyNoticeDialog({ acknowledged }: SafetyNoticeDialogProps) {
+export function SafetyNoticeDialog({ acknowledged, onAcknowledge }: SafetyNoticeDialogProps) {
   const [isOpen, setIsOpen] = useState(!acknowledged)
   if (!isOpen) return null
-  return <SafetyNoticeModal onAcknowledged={() => setIsOpen(false)} />
+  return <SafetyNoticeModal onAcknowledge={onAcknowledge} onAcknowledged={() => setIsOpen(false)} />
 }
 
-function SafetyNoticeModal({ onAcknowledged }: { onAcknowledged: () => void }) {
+function SafetyNoticeModal({
+  onAcknowledge,
+  onAcknowledged,
+}: {
+  onAcknowledge: () => Promise<ActionResult>
+  onAcknowledged: () => void
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const acknowledgeButtonRef = useRef<HTMLButtonElement>(null)
@@ -75,7 +83,7 @@ function SafetyNoticeModal({ onAcknowledged }: { onAcknowledged: () => void }) {
     setErrorMessage(null)
     let failedMessage: string | null = null
     try {
-      const result = await acknowledgeSafetyNotice()
+      const result = await onAcknowledge()
       if (!result.ok) failedMessage = result.error.message || SAVE_FAILED_MESSAGE
     } catch {
       failedMessage = SAVE_FAILED_MESSAGE

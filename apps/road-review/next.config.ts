@@ -1,27 +1,17 @@
 import type { NextConfig } from 'next'
 
-// Static security headers. The Content-Security-Policy is set per request with a
-// nonce in src/proxy.ts (architecture ch.18.1 S-5), so it is not set here.
+// v2/v3: the app is a static export served as-is from `out/` (ADR road-review-adr-static-export).
+// - output 'export': no server, no proxy, no Server Actions, no next.config headers / redirects.
+//   Response headers (CSP etc.) and redirects move to vercel.json in stage 3.
+// - trailingSlash: `/road` is written as `out/road/index.html` and served at `/road/`.
+//   vercel.json must also set "trailingSlash": true (framework: null ignores this file's setting).
+// - images.unoptimized: the default image loader needs a server.
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  trailingSlash: true,
   images: {
-    // Photos are already resized/EXIF-stripped in the browser and served via
-    // short-lived Supabase signed URLs; the Next image optimizer is not needed.
     unoptimized: true,
-  },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-Frame-Options', value: 'DENY' },
-          // The app never uses GPS/geolocation (CEO decision).
-          { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=()' },
-        ],
-      },
-    ]
   },
 }
 
