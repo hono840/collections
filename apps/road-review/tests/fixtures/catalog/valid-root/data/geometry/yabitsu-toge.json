@@ -1,0 +1,45 @@
+{
+  "geometrySchemaVersion": 1,
+  "id": "yabitsu-toge",
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "osm": {
+    "ways": [
+      11111111,
+      22222222
+    ],
+    "dataTimestamp": "2026-10-10T04:13:00Z"
+  },
+  "toleranceM": 15,
+  "lengthM": 2600,
+  "bbox": [
+    35.41,
+    139.202,
+    35.43,
+    139.218
+  ],
+  "lines": [
+    [
+      [
+        35.41,
+        139.202
+      ],
+      [
+        35.415,
+        139.206
+      ],
+      [
+        35.42,
+        139.21
+      ],
+      [
+        35.425,
+        139.214
+      ],
+      [
+        35.43,
+        139.218
+      ]
+    ]
+  ]
+}

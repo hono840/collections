@@ -1,0 +1,44 @@
+{
+  "geometrySchemaVersion": 1,
+  "id": "ashinoko-skyline",
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "osm": {
+    "relations": [
+      12639382
+    ],
+    "dataTimestamp": "2026-10-10T04:13:00Z"
+  },
+  "toleranceM": 15,
+  "lengthM": 2600,
+  "bbox": [
+    35.19512,
+    138.99076,
+    35.21512,
+    139.00676
+  ],
+  "lines": [
+    [
+      [
+        35.19512,
+        138.99076
+      ],
+      [
+        35.20012,
+        138.99476
+      ],
+      [
+        35.20512,
+        138.99876
+      ],
+      [
+        35.21012,
+        139.00276
+      ],
+      [
+        35.21512,
+        139.00676
+      ]
+    ]
+  ]
+}

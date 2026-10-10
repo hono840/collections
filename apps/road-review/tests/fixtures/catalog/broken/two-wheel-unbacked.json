@@ -1,0 +1,74 @@
+{
+  "catalogSchemaVersion": 1,
+  "catalogVersion": "2026-10-10.1",
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "roads": [
+    {
+      "id": "ashinoko-skyline",
+      "status": "approved",
+      "name": "芦ノ湖スカイライン",
+      "reading": "あしのこすかいらいん",
+      "aliases": [
+        {
+          "name": "芦ノ湖スカイ",
+          "reading": "あしのこすかい",
+          "kind": "common"
+        }
+      ],
+      "roadType": "skyline",
+      "prefectureCodes": [
+        14,
+        22
+      ],
+      "rank": 1,
+      "section": {
+        "from": "湖尻峠",
+        "to": "箱根峠"
+      },
+      "representativePoint": {
+        "lat": 35.20512,
+        "lng": 138.99876
+      },
+      "restrictionsChecked": true,
+      "notes": [
+        {
+          "kind": "toll",
+          "text": "有料の道路です",
+          "sourceUrl": "https://www.ashinoko-skyline.co.jp/",
+          "checkedOn": "2026-10-10",
+          "verified": true
+        }
+      ],
+      "flags": {
+        "twoWheelBanned": true,
+        "safetyCaution": false
+      },
+      "osm": {
+        "relations": [
+          12639382
+        ],
+        "cutFrom": {
+          "lat": 35.2301,
+          "lng": 138.9712
+        },
+        "cutTo": {
+          "lat": 35.1801,
+          "lng": 139.0201
+        },
+        "expectedLengthKm": 11
+      },
+      "sources": [
+        {
+          "title": "芦ノ湖スカイライン 公式サイト",
+          "url": "https://www.ashinoko-skyline.co.jp/",
+          "checkedOn": "2026-10-10"
+        }
+      ],
+      "review": {
+        "approvedOn": "2026-10-10",
+        "approvedBy": "ceo"
+      }
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "catalogSchemaVersion": 1,
+  "catalogVersion": "2026-10-10.1",
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "roads": [
+    {
+      "id": "ashinoko-skyline",
+      "status": "approved",
+      "name": "芦ノ湖スカイライン",
+      "reading": "あしのこすかいらいん",
+      "aliases": [
+        { "name": "芦ノ湖スカイ", "reading": "あしのこすかい", "kind": "common" }
+      ],
+      "roadType": "skyline",
+      "prefectureCodes": [14, 22],
+      "rank": 1,
+      "section": { "from": "湖尻峠", "to": "箱根峠" },
+      "representativePoint": { "lat": 35.20512, "lng": 138.99876 },
+      "restrictionsChecked": true,
+      "notes": [
+        {
+          "kind": "motorcycleBan",
+          "text": "排気量125cc以下の二輪車は通れません",
+          "sourceUrl": "https://www.ashinoko-skyline.co.jp/about/route/",
+          "checkedOn": "2026-10-10",
+          "verified": true
+        },
+        {
+          "kind": "toll",
+          "text": "有料の道路です",
+          "sourceUrl": "https://www.ashinoko-skyline.co.jp/",
+          "checkedOn": "2026-10-10",
+          "verified": true
+        }
+      ],
+      "flags": { "twoWheelBanned": true, "safetyCaution": false },
+      "osm": {
+        "relations": [12639382],
+        "cutFrom": { "lat": 35.2301, "lng": 138.9712 },
+        "cutTo": { "lat": 35.1801, "lng": 139.0201 },
+        "expectedLengthKm": 11
+      },
+      "sources": [
+        {
+          "title": "芦ノ湖スカイライン 公式サイト",
+          "url": "https://www.ashinoko-skyline.co.jp/",
+          "checkedOn": "2026-10-10"
+        }
+      ],
+      "review": { "approvedOn": "2026-10-10", "approvedBy": "ceo" }
+    },
+    {
+      "id": "yabitsu-toge",
+      "status": "approved",
+      "name": "ヤビツ峠",
+      "reading": "やびつとうげ",
+      "aliases": [
+        { "name": "神奈川県道70号", "kind": "route" }
+      ],
+      "roadType": "pass",
+      "prefectureCodes": [14],
+      "rank": 2,
+      "section": { "from": "秦野市", "to": "清川村" },
+      "elevationM": 761,
+      "representativePoint": { "lat": 35.42, "lng": 139.21 },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": { "twoWheelBanned": false, "safetyCaution": true },
+      "osm": {
+        "ways": [11111111, 22222222],
+        "cutFrom": { "lat": 35.4002, "lng": 139.2201 },
+        "cutTo": { "lat": 35.4403, "lng": 139.2002 }
+      },
+      "sources": [
+        {
+          "title": "神奈川県 県道70号の情報",
+          "url": "https://www.pref.kanagawa.jp/",
+          "checkedOn": "2026-10-09"
+        }
+      ],
+      "review": { "approvedOn": "2026-10-10", "approvedBy": "ceo" }
+    },
+    {
+      "id": "mihon-kaigan-road",
+      "status": "retired",
+      "name": "見本海岸道路",
+      "reading": "みほんかいがんどうろ",
+      "aliases": [],
+      "roadType": "coastal",
+      "prefectureCodes": [22],
+      "rank": 3,
+      "representativePoint": { "lat": 34.9, "lng": 138.8 },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": { "twoWheelBanned": false, "safetyCaution": false },
+      "osm": {
+        "nameQuery": { "name": "見本海岸線", "bbox": [34.85, 138.75, 34.95, 138.85] },
+        "cutFrom": { "lat": 34.88, "lng": 138.78 },
+        "cutTo": { "lat": 34.92, "lng": 138.82 }
+      },
+      "sources": [
+        {
+          "title": "見本の出典",
+          "url": "https://example.com/mihon",
+          "checkedOn": "2026-10-01"
+        }
+      ],
+      "review": { "approvedOn": "2026-10-01", "approvedBy": "ceo" },
+      "retired": { "on": "2026-10-10", "reason": "見本のための引退" }
+    }
+  ]
+}

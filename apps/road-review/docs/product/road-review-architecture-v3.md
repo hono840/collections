@@ -791,3 +791,7 @@ PRD v3 12章の Q1〜Q11 が主。作りの側から足すのは次の2つだけ
 - Next.js 16.3.6 の同梱 docs（`node_modules/next/dist/docs/`）: `static-exports.md`、`content-security-policy.md`、`use-search-params.md`（ARCH v2 付録のとおり）
 - MDN: `String.prototype.normalize`（https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/String/normalize ）、`Element.animate`（https://developer.mozilla.org/ja/docs/Web/API/Element/animate ）、`SVGGeometryElement.getTotalLength`（https://developer.mozilla.org/ja/docs/Web/API/SVGGeometryElement/getTotalLength ）、`prefers-reduced-motion`（https://developer.mozilla.org/ja/docs/Web/CSS/@media/prefers-reduced-motion ）、`History.pushState`（https://developer.mozilla.org/ja/docs/Web/API/History/pushState ）
 - ODbL 1.0: https://opendatacommons.org/licenses/odbl/1-0/ ／ OSM 著作権: https://www.openstreetmap.org/copyright
+
+## 付記（CTO決定・2026-10-10・段階4）
+- C1 は**承認済みカタログ（`data/road-catalog.json`）だけ**に適用する。`data/road-catalog-draft.json` は CEO 確認用の資料で 3.3 の形ではない。段階6 の `generate.mjs` が、CEO が承認した行だけを 3.3 の形へ変換して承認済みカタログを作る。
+- C5 の「読みをすべてローマ字にできるか」は段階7（`romaji.ts`）で追加する。段階4 ではひらがなと「ー」だけかを検査する。
