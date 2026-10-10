@@ -61,6 +61,20 @@ jobs:
       - name: Install (frozen lockfile, no lifecycle scripts)
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # ARCH v3 3.4 C4 / 3.5: no id may disappear from main's data/catalog-ids.txt (append only).
+      # The repo is public, so this anonymous shallow fetch works with persist-credentials: false
+      # (no token is stored or used). The explicit refspec creates refs/remotes/origin/main.
+      # --allow-missing-base: main has no catalog-ids.txt until stage 4 is merged.
+      # TODO(after stage 4 is on main): drop --allow-missing-base so a wrong path cannot pass silently.
+      - name: Assert catalog ids are append-only (vs origin/main)
+        run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          base_file="$RUNNER_TEMP/catalog-ids.base.txt"
+          if git cat-file -e origin/main:apps/road-review/data/catalog-ids.txt 2>/dev/null; then
+            git show origin/main:apps/road-review/data/catalog-ids.txt > "$base_file"
+          fi
+          node scripts/ci/assert-catalog-ids-append-only.mjs --allow-missing-base "$base_file" data/catalog-ids.txt
+
       - name: Lint
         run: pnpm lint
 
