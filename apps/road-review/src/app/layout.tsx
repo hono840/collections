@@ -27,14 +27,6 @@ const bizUdGothic = BIZ_UDGothic({
   preload: false,
 })
 
-/**
- * Runs before first paint (design spec 5-3): applies the saved theme
- * ("system" | "light" | "dark" in localStorage "rr-theme") and follows the OS
- * setting while on "system". The page is static (output: 'export'), so there is
- * no nonce: stage 3 allows this script through its sha256 hash in the meta CSP.
- */
-const themeScript = `(function(){try{var key='rr-theme';var media=window.matchMedia('(prefers-color-scheme: dark)');var apply=function(){var saved=localStorage.getItem(key);var dark=saved==='dark'||(saved!=='light'&&media.matches);document.documentElement.classList.toggle('dark',dark);};apply();media.addEventListener('change',apply);window.addEventListener('storage',function(event){if(event.key===key)apply();});}catch(error){}})();`
-
 export const metadata: Metadata = {
   title: {
     default: '公道レビュー',
@@ -47,10 +39,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#eef0ea' },
-    { media: '(prefers-color-scheme: dark)', color: '#1b2329' },
-  ],
+  // MVP is light-only (C-09): no theme script, one browser UI color.
+  themeColor: '#eef0ea',
 }
 
 export default function RootLayout({
@@ -59,14 +49,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="ja"
-      suppressHydrationWarning
-      className={`${bizUdpGothic.variable} ${shipporiMincho.variable} ${bizUdGothic.variable}`}
-    >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
+    <html lang="ja" className={`${bizUdpGothic.variable} ${shipporiMincho.variable} ${bizUdGothic.variable}`}>
       <body className="min-h-dvh bg-canvas font-sans text-ink antialiased">{children}</body>
     </html>
   )

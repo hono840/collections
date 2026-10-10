@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 // Static export: the root layout must not read request data (no headers(), no nonce).
-// The inline theme script stays; stage 3 allows it through its sha256 hash in the meta CSP.
+// MVP is light-only (C-09), so there is no inline theme script: the only inline scripts left are
+// Next's RSC payload, which scripts/csp/inject-meta-csp.mjs hashes after the build.
 
 vi.mock('next/font/google', () => {
   const font = () => ({ className: 'font', variable: 'font-variable', style: { fontFamily: 'font' } })
@@ -21,11 +22,15 @@ describe('RootLayout (static export)', () => {
     expect(element).not.toBeInstanceOf(Promise)
   })
 
-  it('keeps the inline theme script without a nonce', () => {
+  it('renders no inline script and no nonce of its own', () => {
     const markup = renderLayout()
-    const themeScript = markup.match(/<script\b[^>]*>[^<]*rr-theme[^<]*<\/script>/)?.[0]
-    expect(themeScript).toBeDefined()
-    expect(themeScript).not.toMatch(/\snonce=/)
+    expect(markup).not.toMatch(/<script\b/)
+    expect(markup).not.toMatch(/\snonce=/)
+    expect(markup).not.toContain('rr-theme')
+  })
+
+  it('does not switch to a dark theme (light-only, C-09)', () => {
+    expect(renderLayout()).not.toMatch(/^<html[^>]*\sclass="[^"]*\bdark\b/)
   })
 
   it('renders <html lang="ja"> and the children', () => {

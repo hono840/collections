@@ -49,9 +49,9 @@ const eslintConfig = defineConfig([
     files: ["src/components/templates/**/*.{ts,tsx}"],
     rules: layerRule([], noData),
   },
-  // Inline HTML bypasses the hash CSP (stage 3). Only the root layout (theme script) may use it.
+  // Inline HTML would need its own CSP hash. No file may use it (the theme script was removed, C-09);
+  // scripts/csp/verify-out.mjs still fails the build if any unhashed inline script appears.
   { files: ["src/**/*.{ts,tsx}"], rules: { "react/no-danger": "error" } },
-  { files: ["src/app/layout.tsx"], rules: { "react/no-danger": "off" } },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     ".next/**",

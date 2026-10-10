@@ -4,17 +4,18 @@
   "private": true,
   "packageManager": "pnpm@10.29.2",
   "engines": {
-    "node": ">=22.0.0",
+    "node": "22.x",
     "pnpm": ">=10.16.0"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && node scripts/csp/inject-meta-csp.mjs out && node scripts/csp/verify-out.mjs out",
+    "start": "node scripts/serve-static.mjs out",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:ci": "vitest run --reporter=default --reporter=json --outputFile.json=reports/vitest.json",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },

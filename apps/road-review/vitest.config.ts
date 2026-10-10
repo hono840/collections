@@ -12,6 +12,8 @@ export default defineConfig({
     include: [
       'src/**/*.test.{ts,tsx}',
       'tests/**/*.test.{ts,tsx}',
+      // Build/CI scripts (scripts/**/*.mjs) keep their tests next to them.
+      'scripts/**/*.test.ts',
     ],
     exclude: [
       'node_modules/**',

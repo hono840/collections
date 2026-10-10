@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest'
 import nextConfig from '../../next.config'
 
-// Static export (ARCH v2 3 / ADR static export). The vercel.json CSP checks are added in stage 3.
+// Static export (ARCH v2 3 / ADR static export). Headers / redirects live in vercel.json
+// (see vercel-config.test.ts); framework:null ignores next.config, so both must agree on trailingSlash.
 
 describe('next.config.ts (static export)', () => {
   it('exports static files to out/', () => {

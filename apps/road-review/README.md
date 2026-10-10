@@ -24,7 +24,9 @@ pnpm dev
 | コマンド         | 内容                                                 |
 | ---------------- | ---------------------------------------------------- |
 | `pnpm dev`       | 開発サーバー                                         |
-| `pnpm build`     | 本番ビルド                                           |
+| `pnpm build`     | 静的ファイルを `out/` に作り、ページ内スクリプトのハッシュ（指紋）を入れた CSP（読み込んでよいものの許可リスト）を各 HTML に足して、検査する |
+| `pnpm start`     | `out/` を手元で配る（`vercel.json` の転送・ヘッダーを同じ順で再現。http なので `upgrade-insecure-requests` だけ外す） |
+| `pnpm test:ci`   | `pnpm test` と同じ。結果を `reports/vitest.json` にも書く（CI でスキップ0件を確かめる） |
 | `pnpm lint`      | ESLint（Atomic Design の import 制限を含む）         |
 | `pnpm typecheck` | 型チェック                                           |
 | `pnpm test`      | 単体・コンポーネントテスト（Vitest / jsdom）         |
@@ -40,4 +42,6 @@ pnpm dev
 - パッケージマネージャーは pnpm だけ（npm / yarn / bun は使えません）。
 - `pnpm-workspace.yaml` の `minimumReleaseAge`（公開から7日たっていない版は入れない）で、公開直後の悪いパッケージを避けます。
 - `supabase/config.toml` はローカル用です。新規登録はオフ（`enable_signup = false`）で、ログインメールにはリンクと6桁のコードの両方が入ります。
-- デプロイは Vercel（Root Directory: `apps/road-review`、Install Command: `pnpm install --frozen-lockfile`）。本番設定は Sprint 5 で行います。
+- デプロイは Vercel。設定の正は `vercel.json`（`framework: null`・`outputDirectory: "out"`・`trailingSlash: true`・セキュリティヘッダー・`/roads/` → `/favorites/` の転送）。インストールは `pnpm install --frozen-lockfile --ignore-scripts`。理由は `docs/product/road-review-adr-static-export.md`。
+- Node は `engines.node: "22.x"`（`.node-version` と同じ大きい番号）に固定。`>=22` だと Vercel が新しい版へ勝手に上げるため（ADR V-8）。
+- CI はリポジトリの `.github/workflows/road-review-ci.yml`（lint → 型 → 単体テスト（スキップ0件）→ ビルドと CSP の検査）。アクションはコミットの SHA で固定。
