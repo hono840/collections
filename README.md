@@ -31,6 +31,7 @@ C-Suite は直接手を動かさず、サブエージェントに委譲 → レ�
 | [budget-app](./apps/budget-app) | プライバシーファーストの家計簿アプリ | Next.js, TypeScript, Supabase, Tailwind CSS | MVP完成・デプロイ済み |
 | [worldcup-kickoff](./apps/worldcup-kickoff) | ルール・選手・国を知らない初心者でも楽しめる 2026 W杯 観戦ガイド | Next.js, TypeScript, Tailwind CSS（全SSG・localStorage・DBなし） | MVP完成 |
 | [carskiida](./apps/carskiida) | 車種を「世代史 × パーツ構造 × 生産地」で立体的に引ける日本語の自動車百科事典 | Next.js, TypeScript, Supabase, Tailwind CSS（SSG/ISR・PGroonga・全フィールド出典付き） | MVP完成（Sprint 1-4：詳細/比較/検索/用語/回遊/お気に入り）・データはシード稼働 |
+| [genka-dentaku](./apps/genka-dentaku) | 仕入れ値を1つ直すだけで全メニューの原価率が即再計算される、個人飲食店向けメニュー原価計算ツール（値上げシミュ・原価率アラート付き） | Next.js, TypeScript, Tailwind CSS（静的エクスポート・localStorage完結・DBなし・Ed25519ライセンス） | MVP完成・デプロイ待ち |
 
 ## デフォルト技術スタック
 

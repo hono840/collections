@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/*
+ * 原価電卓 デザイントークン（Tailwind v4 @theme）。
+ * ソース・オブ・トゥルースは design-spec §2 / §9.1。ライトモードのみ。
+ * ネイビー支配色 + 暖色ニュートラル（サーフェス）+ チャコール（インク）。
+ * すべての UI はこのトークン経由で配色する（ハードコード hex 禁止・design-spec §9.2）。
+ * セマフォは役割固定: テキスト/数字=-fg / 帯・メーターフィル・実塗り地=-solid / ソフト地=-bg。
+ */
+@theme {
+  /* ── サーフェス & インク（暖色ニュートラル・§2.1） ── */
+  --color-bg: #F4F1EB;
+  --color-surface: #FFFFFF;
+  --color-surface-sunken: #EFEBE3;
+  --color-ink: #1C1917;
+  --color-ink-secondary: #57534E;
+  --color-ink-muted: #8A857D;
+  --color-border: #E7E2D9;
+  --color-border-strong: #D9D2C6;
+
+  /* ── ブランド ネイビー（支配色・§2.2） ── */
+  --color-primary: #1E3A5F;
+  --color-primary-hover: #152B47;
+  --color-primary-pressed: #0F2136;
+  --color-primary-ink: #1E3A5F;
+  --color-primary-subtle: #E7EDF4;
+  --color-primary-onnavy: #BBD0E8;
+
+  /* ── Pro プレミアムアクセント（真鍮／ゴールド・装飾記号専用・§2.3） ── */
+  --color-pro: #A9791F;
+  --color-pro-ink: #7A5A12;
+  --color-pro-subtle: #F6EEDC;
+
+  /* ── 原価率セマフォ（機能色・意味論固定: 緑=良好 / 黄=注意 / 赤=危険・§2.4） ── */
+  --color-good-fg: #166534;
+  --color-good-solid: #15803D;
+  --color-good-bg: #E7F4EC;
+  --color-caution-fg: #92400E;
+  --color-caution-solid: #B45309;
+  --color-caution-bg: #FEF3E2;
+  --color-danger-fg: #991B1B;
+  --color-danger-solid: #B91C1C;
+  --color-danger-bg: #FBEAEA;
+
+  /* ── タイポグラフィ（フォントスタック・§2.5） ── */
+  /* 本文/UI: システムファーストの日本語ゴシック（webフォント 0） */
+  --font-sans: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP",
+    "Yu Gothic", "YuGothic", "Meiryo", system-ui, sans-serif;
+  /* 主役数字: システム等幅（桁揃え・電卓/レシート/台帳の精密感） */
+  --font-num: ui-monospace, "SF Mono", "SFMono-Regular", "Consolas", "Menlo",
+    "Hiragino Kaku Gothic ProN", monospace;
+
+  /* ── タイプスケール（§2.5・base 16px） ── */
+  --text-hero: 44px;
+  --text-hero--line-height: 1.05;
+  --text-hero--font-weight: 600;
+  --text-hero--letter-spacing: -0.01em;
+  --text-metric-lg: 22px;
+  --text-metric-lg--line-height: 1.1;
+  --text-metric-lg--font-weight: 700;
+  --text-metric: 18px;
+  --text-metric--line-height: 1.2;
+  --text-metric--font-weight: 600;
+  --text-h1: 24px;
+  --text-h1--line-height: 1.4;
+  --text-h1--font-weight: 700;
+  --text-h2: 20px;
+  --text-h2--line-height: 1.4;
+  --text-h2--font-weight: 700;
+  --text-h3: 17px;
+  --text-h3--line-height: 1.5;
+  --text-h3--font-weight: 700;
+  --text-body: 16px;
+  --text-body--line-height: 1.75;
+  --text-body--font-weight: 400;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 1.7;
+  --text-body-sm--font-weight: 400;
+  --text-label: 14px;
+  --text-label--line-height: 1.4;
+  --text-label--font-weight: 500;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.6;
+  --text-caption--font-weight: 400;
+
+  /* ── 角丸（§2.7） ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* ── シャドウ（暖色チャコール基調・純黒を避ける・§2.7） ── */
+  --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.06);
+  --shadow-md: 0 2px 8px rgba(28, 25, 23, 0.08);
+  --shadow-lg: 0 8px 24px rgba(28, 25, 23, 0.12);
+  --shadow-bar: 0 -2px 12px rgba(28, 25, 23, 0.1);
+
+  /* ── イージング（§2.9） ── */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/*
+ * ユーティリティ名前空間に載らない設計トークンは素の CSS 変数として :root に定義し、
+ * var() で参照する（design-spec §9.1「:root で全定義」）。
+ */
+:root {
+  color-scheme: light;
+
+  /* モーション（§2.9） */
+  --dur-fast: 120ms; /* ホバー・プレス */
+  --dur-base: 200ms; /* 状態遷移 */
+  --dur-slow: 320ms; /* シート/モーダル・カウントアップ */
+  --dur-count: 480ms; /* 数値トゥイーン（ライブ再計算） */
+  --stagger: 40ms; /* 行ごとの波及遅延 */
+
+  /* タッチターゲット（§2.8） */
+  --tap-min: 48px;
+  --tap-min-compact: 44px;
+  --input-min-h: 48px;
+
+  /* フォーカスリング（§2.8） */
+  --focus-ring: 0 0 0 3px rgba(30, 58, 95, 0.45);
+  --focus-outline: 2px solid var(--color-primary);
+  --focus-offset: 2px;
+  --focus-ring-onnavy: 0 0 0 3px rgba(255, 255, 255, 0.65);
+
+  /* ヘアライン（§2.7） */
+  --border-hairline: 1px solid var(--color-border);
+
+  /* z-index（§2.7） */
+  --z-base: 0;
+  --z-sticky-header: 10;
+  --z-bottom-nav: 20;
+  --z-dropdown: 30;
+  --z-recalc-toast: 40;
+  --z-overlay: 50;
+  --z-sheet: 60;
+  --z-toast: 70;
+}
+
+/*
+ * ベーススタイル。
+ * - ページ地は暖色オフホワイト、インクはチャコール（design-spec §2.1）
+ * - 本文は日本語向けに行間を広め（1.75）
+ * - モバイルのタップハイライト無効化
+ */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.75;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* キーボード操作時のみ可視フォーカスリング（マウスクリックでは出さない・§2.8 / §6.5） */
+*:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
+}
+
+/*
+ * 動きに敏感なユーザー向けにアニメーションを抑制（design-spec §6.6）。
+ * ライブ再計算のカウントアップ・行の波及は最終値へ即スナップさせる。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
