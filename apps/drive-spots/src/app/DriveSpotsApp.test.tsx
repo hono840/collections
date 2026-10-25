@@ -5,7 +5,7 @@ import { createSeedData } from '@/lib/spots/seed'
 import type { Spot, SpotsData } from '@/lib/spots/types'
 import { DriveSpotsApp } from './DriveSpotsApp'
 
-// Acceptance tests for docs/product/spec.md (AC1-AC16, AC18 partly, AC22), driven through the UI only:
+// Acceptance tests for docs/product/spec.md (AC1-AC16, AC18 partly, AC22, AC23-AC28), driven through the UI only:
 // roles, accessible names, labels and visible Japanese text. No CSS classes, no test ids.
 //
 // UI contract these tests rely on (beyond the spec text):
@@ -29,6 +29,10 @@ const DELETE_CONFIRM_LABEL = 'もう一度押すと削除します'
 const MARK_DONE_LABEL = '行った！にする'
 const MARK_WANT_LABEL = '「行きたい」に戻す'
 const BACK_LABEL = '一覧にもどる'
+const EDIT_MEMO_LABEL = 'メモを編集'
+const MEMO_FIELD_NAME = 'メモ'
+const EMPTY_MEMO_TEXT = 'メモはまだありません'
+const YABITSU_SEED_MEMO = '峠のホームコースにしたい'
 
 const SEED_NAMES = [
   'ヤビツ峠',
@@ -151,6 +155,52 @@ async function markDone(user: User, spotName: string) {
   await openDetail(user, spotName)
   await user.click(screen.getByRole('button', { name: MARK_DONE_LABEL }))
   await backToList(user)
+}
+
+// ---------- memo editing on the detail screen (AC23-AC29) ----------
+
+function getMemoField(): HTMLElement {
+  return screen.getByRole('textbox', { name: MEMO_FIELD_NAME })
+}
+
+function queryMemoField(): HTMLElement | null {
+  return screen.queryByRole('textbox', { name: MEMO_FIELD_NAME })
+}
+
+function getEditMemoButton(): HTMLElement {
+  return screen.getByRole('button', { name: EDIT_MEMO_LABEL })
+}
+
+async function startEditingMemo(user: User): Promise<HTMLElement> {
+  await user.click(getEditMemoButton())
+  return getMemoField()
+}
+
+/** Starts editing and replaces the draft with `text` (user-event syntax: {Enter} is a line break). */
+async function typeMemoDraft(user: User, text: string): Promise<HTMLElement> {
+  const memoField = await startEditingMemo(user)
+  await user.clear(memoField)
+  if (text !== '') await user.type(memoField, text)
+  return memoField
+}
+
+async function saveMemo(user: User, text: string) {
+  await typeMemoDraft(user, text)
+  await user.click(screen.getByRole('button', { name: '保存' }))
+}
+
+/** Finds text exactly, line breaks included (the detail keeps the memo's line breaks, AC6). */
+function getTextKeepingLineBreaks(text: string): HTMLElement {
+  return screen.getByText(text, { normalizer: getDefaultNormalizer({ collapseWhitespace: false }) })
+}
+
+/** The seed with the memo of one spot replaced. */
+function createSeedWithMemo(id: number, memo: string): SpotsData {
+  const seedData = createSeedData()
+  return {
+    ...seedData,
+    spots: seedData.spots.map((spot) => (spot.id === id ? { ...spot, memo } : spot)),
+  }
 }
 
 // ---------- add screen ----------
@@ -1052,6 +1102,309 @@ describe('DriveSpotsApp', () => {
       expect(screen.getByRole('heading', { name: 'ヤビツ峠' })).toBeInTheDocument()
       expect(screen.getByText('行った')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: MARK_WANT_LABEL })).toBeInTheDocument()
+    })
+  })
+
+  describe('AC23-AC28: editing the memo', () => {
+    it('AC23/AC24: editing and saving shows the trimmed memo on the detail and returns focus to メモを編集', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+
+      const memoField = await startEditingMemo(user)
+
+      expect(memoField).toHaveValue(YABITSU_SEED_MEMO)
+      expect(memoField).toHaveFocus()
+
+      await user.clear(memoField)
+      await user.type(memoField, '  朝7時に出発{Enter}菜の花台で休憩　')
+      await user.click(screen.getByRole('button', { name: '保存' }))
+
+      expect(getTextKeepingLineBreaks('朝7時に出発\n菜の花台で休憩')).toBeInTheDocument()
+      expect(screen.queryByText(YABITSU_SEED_MEMO)).not.toBeInTheDocument()
+      expect(queryMemoField()).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'キャンセル' })).not.toBeInTheDocument()
+      expect(getEditMemoButton()).toHaveFocus()
+      expect(screen.getByRole('heading', { name: 'ヤビツ峠' })).toBeInTheDocument()
+    })
+
+    it("AC24/AC26/AC13: saves only the trimmed memo under 'drive-spots:v1' (every other field, the order and nextId unchanged)", async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+
+      await saveMemo(user, '  朝7時に出発{Enter}菜の花台で休憩　')
+
+      expect(readSavedData()).toEqual(createSeedWithMemo(1, '朝7時に出発\n菜の花台で休憩'))
+    })
+
+    it('AC24: the saved memo is still there after the app is rendered again (reload)', async () => {
+      const { user, unmount } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await saveMemo(user, '朝7時に出発{Enter}菜の花台で休憩')
+
+      unmount()
+      const { user: userAfterReload } = await renderApp()
+      await openDetail(userAfterReload, 'ヤビツ峠')
+
+      expect(getTextKeepingLineBreaks('朝7時に出発\n菜の花台で休憩')).toBeInTheDocument()
+      expect(queryMemoField()).not.toBeInTheDocument()
+      expect(await startEditingMemo(userAfterReload)).toHaveValue('朝7時に出発\n菜の花台で休憩')
+    })
+
+    it.each([
+      ['an emptied text field', ''],
+      ['only half- and full-width spaces', '　 '],
+    ])(`AC24: saving %s empties the memo and shows '${EMPTY_MEMO_TEXT}'`, async (_description, typedText) => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+
+      await saveMemo(user, typedText)
+
+      expect(screen.getByText(EMPTY_MEMO_TEXT)).toBeInTheDocument()
+      expect(screen.queryByText(YABITSU_SEED_MEMO)).not.toBeInTheDocument()
+      expect(readSavedData()).toEqual(createSeedWithMemo(1, ''))
+    })
+
+    it('AC23/AC24: a spot without a memo can get one', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, '箱根ターンパイク')
+      expect(screen.getByText(EMPTY_MEMO_TEXT)).toBeInTheDocument()
+
+      const memoField = await startEditingMemo(user)
+      expect(memoField).toHaveValue('')
+      await user.type(memoField, '大観山で休憩')
+      await user.click(screen.getByRole('button', { name: '保存' }))
+
+      expect(screen.getByText('大観山で休憩')).toBeInTheDocument()
+      expect(screen.queryByText(EMPTY_MEMO_TEXT)).not.toBeInTheDocument()
+      expect(readSavedData()).toEqual(createSeedWithMemo(2, '大観山で休憩'))
+    })
+
+    it('AC26: only the memo changes: name, category, region, distance, season, 行った, ids, order and nextId stay', async () => {
+      const savedData: SpotsData = {
+        version: 1,
+        nextId: 42,
+        spots: [
+          makeSpot({
+            id: 30,
+            name: '大観山',
+            region: '神奈川',
+            category: '絶景ロード',
+            distanceKm: '60',
+            season: '紅葉の季節',
+            memo: '古いメモ',
+            done: true,
+          }),
+          makeSpot({ id: 7, name: '奥多摩', region: '東京', memo: 'そのまま', done: true }),
+          makeSpot({ id: 12, name: '銚子ドーバーライン', region: '千葉', category: '海沿い' }),
+        ],
+      }
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData))
+      const { user } = await renderApp()
+      await user.click(getDoneTab())
+      await openDetail(user, '大観山')
+
+      await saveMemo(user, '新しいメモ')
+
+      expect(readSavedData()).toEqual({
+        ...savedData,
+        spots: [{ ...savedData.spots[0], memo: '新しいメモ' }, savedData.spots[1], savedData.spots[2]],
+      })
+      expect(screen.getByText('行った')).toBeInTheDocument()
+      expect(screen.getByText('絶景ロード')).toBeInTheDocument()
+      expect(getInfoTile('地域')).toHaveTextContent(/^地域\s*神奈川$/)
+      expect(getInfoTile('自宅からの距離（片道）')).toHaveTextContent(
+        /^自宅からの距離（片道）\s*約 60 km$/,
+      )
+      expect(getInfoTile('おすすめ時期')).toHaveTextContent(/^おすすめ時期\s*紅葉の季節$/)
+
+      await backToList(user)
+
+      expectSelected(getDoneTab())
+      expectTabCounts(1, 2)
+      expect(getCardButtons().map((card) => card.textContent)).toEqual([
+        expect.stringContaining('大観山'),
+        expect.stringContaining('奥多摩'),
+      ])
+    })
+
+    it('AC25: キャンセル discards the draft, keeps the saved memo and returns focus to メモを編集', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await typeMemoDraft(user, '捨てる下書き')
+
+      await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+
+      expect(screen.getByText(YABITSU_SEED_MEMO)).toBeInTheDocument()
+      expect(screen.queryByText('捨てる下書き')).not.toBeInTheDocument()
+      expect(queryMemoField()).not.toBeInTheDocument()
+      expect(getEditMemoButton()).toHaveFocus()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+      expect(await startEditingMemo(user)).toHaveValue(YABITSU_SEED_MEMO)
+    })
+
+    it('AC25: going back to the list while editing discards the draft (reopening is not in edit mode)', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await typeMemoDraft(user, '捨てる下書き')
+
+      await backToList(user)
+
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+      await openDetail(user, 'ヤビツ峠')
+
+      expect(screen.getByText(YABITSU_SEED_MEMO)).toBeInTheDocument()
+      expect(screen.queryByText('捨てる下書き')).not.toBeInTheDocument()
+      expect(queryMemoField()).not.toBeInTheDocument()
+      expect(getEditMemoButton()).toBeInTheDocument()
+      expect(await startEditingMemo(user)).toHaveValue(YABITSU_SEED_MEMO)
+    })
+
+    it('AC25: a draft does not follow into the detail of another spot', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await typeMemoDraft(user, '捨てる下書き')
+      await backToList(user)
+
+      await openDetail(user, '志賀草津高原ルート')
+
+      expect(queryMemoField()).not.toBeInTheDocument()
+      expect(screen.getByText('冬は通行止めの期間あり。行く前に通れるか確認')).toBeInTheDocument()
+      expect(await startEditingMemo(user)).toHaveValue('冬は通行止めの期間あり。行く前に通れるか確認')
+    })
+
+    it('AC25: 行った！にする while editing stays in edit mode with the draft, and 保存 then saves it', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await typeMemoDraft(user, '行く前に天気を確認')
+
+      await user.click(screen.getByRole('button', { name: MARK_DONE_LABEL }))
+
+      expect(screen.getByRole('button', { name: MARK_WANT_LABEL })).toBeInTheDocument()
+      expect(screen.getByText('行った')).toBeInTheDocument()
+      expect(getMemoField()).toHaveValue('行く前に天気を確認')
+      expect(readSavedData()).toEqual({
+        ...createSeedData(),
+        spots: createSeedData().spots.map((spot) => (spot.id === 1 ? { ...spot, done: true } : spot)),
+      })
+
+      await user.click(screen.getByRole('button', { name: '保存' }))
+
+      expect(screen.getByText('行く前に天気を確認')).toBeInTheDocument()
+      expect(queryMemoField()).not.toBeInTheDocument()
+      expect(readSavedData()?.spots.find((spot) => spot.id === 1)).toEqual({
+        ...createSeedData().spots[0],
+        memo: '行く前に天気を確認',
+        done: true,
+      })
+
+      await backToList(user)
+
+      expectTabCounts(18, 1)
+    })
+
+    it('AC27/AC22: saving keeps a spot another tab added meanwhile', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      saveFromAnotherTab(createOtherTabData())
+
+      await saveMemo(user, '新しいメモ')
+
+      const savedData = readSavedData()
+      expect(savedData?.spots.find((spot) => spot.id === 20)).toMatchObject({ name: OTHER_TAB_SPOT_NAME })
+      expect(savedData?.spots.find((spot) => spot.id === 1)).toMatchObject({
+        name: 'ヤビツ峠',
+        memo: '新しいメモ',
+      })
+      expect(savedData?.spots).toHaveLength(20)
+      expect(savedData?.nextId).toBe(21)
+      expect(screen.getByText('新しいメモ')).toBeInTheDocument()
+
+      await backToList(user)
+
+      expectTabCounts(20, 0)
+      expect(getCard(OTHER_TAB_SPOT_NAME)).toBeInTheDocument()
+    })
+
+    it('AC27: when another tab deleted the spot, saving does not bring it back and the list is shown', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await typeMemoDraft(user, '新しいメモ')
+      const seedData = createSeedData()
+      const otherTabData: SpotsData = {
+        ...seedData,
+        spots: seedData.spots.filter((spot) => spot.id !== 1),
+      }
+      saveFromAnotherTab(otherTabData)
+
+      await user.click(screen.getByRole('button', { name: '保存' }))
+
+      expect(await screen.findByRole('button', { name: WANT_TAB_NAME })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'ヤビツ峠' })).not.toBeInTheDocument()
+      expect(queryCard('ヤビツ峠')).not.toBeInTheDocument()
+      expect(getCardButtons()).toHaveLength(18)
+      expectTabCounts(18, 0)
+      const savedData = readSavedData()
+      expect(savedData).toEqual(otherTabData)
+      expect(savedData?.spots.find((spot) => spot.id === 1)).toBeUndefined()
+    })
+
+    it('AC28/AC15: when localStorage throws, a saved memo still changes on the screen and nothing is written', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwSecurityError)
+      const { user } = await renderApp()
+      expect(await screen.findByText(NOT_PERSISTENT_NOTICE)).toBeInTheDocument()
+      await openDetail(user, 'ヤビツ峠')
+
+      await saveMemo(user, '  新しいメモ  ')
+
+      expect(screen.getByText('新しいメモ')).toBeInTheDocument()
+      expect(screen.queryByText(YABITSU_SEED_MEMO)).not.toBeInTheDocument()
+
+      await backToList(user)
+
+      expect(getNotice()).toBeInTheDocument()
+
+      await openDetail(user, 'ヤビツ峠')
+
+      expect(screen.getByText('新しいメモ')).toBeInTheDocument()
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC28/AC15: when getItem throws but setItem works, saving a memo does not overwrite what is saved', async () => {
+      const savedRaw = JSON.stringify({
+        version: 1,
+        nextId: 31,
+        spots: [makeSpot({ id: 30, name: '大観山', category: '絶景ロード' })],
+      } satisfies SpotsData)
+      window.localStorage.setItem(STORAGE_KEY, savedRaw)
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const { user } = await renderApp()
+      expect(await screen.findByText(NOT_PERSISTENT_NOTICE)).toBeInTheDocument()
+      await openDetail(user, 'ヤビツ峠')
+
+      await saveMemo(user, '新しいメモ')
+
+      expect(screen.getByText('新しいメモ')).toBeInTheDocument()
+      getItemSpy.mockRestore()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(savedRaw)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC28/AC15: when the save fails (quota exceeded), the memo still changes and the notice appears', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      await saveMemo(user, '新しいメモ')
+
+      expect(screen.getByText('新しいメモ')).toBeInTheDocument()
+
+      await backToList(user)
+
+      expect(await screen.findByText(NOT_PERSISTENT_NOTICE)).toBeInTheDocument()
+      expect(getCard('ヤビツ峠')).toBeInTheDocument()
     })
   })
 

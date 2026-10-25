@@ -149,6 +149,41 @@ describe('TextField', () => {
     })
   })
 
+  // docs/design/memo-edit.md: the detail screen's memo field is named by its メモ heading
+  // (aria-labelledby) and focused through a ref when editing starts (AC23, AC29).
+  describe('labelledBy and ref (memo editing)', () => {
+    it.each([false, true])(
+      'AC29: labelledBy sets aria-labelledby, so the field is named by that element (multiline: %s)',
+      (multiline) => {
+        render(
+          <>
+            <h2 id="memo-heading">メモ</h2>
+            <TextField id="memo" value="" onValueChange={vi.fn()} multiline={multiline} labelledBy="memo-heading" />
+          </>,
+        )
+
+        expect(getField()).toHaveAttribute('aria-labelledby', 'memo-heading')
+        expect(getField()).toHaveAccessibleName('メモ')
+        expect(screen.getByRole('textbox', { name: 'メモ' })).toBe(getField())
+      },
+    )
+
+    it.each([false, true])('has no aria-labelledby by default (multiline: %s)', (multiline) => {
+      render(<TextField id="field" value="" onValueChange={vi.fn()} multiline={multiline} />)
+
+      expect(getField()).not.toHaveAttribute('aria-labelledby')
+    })
+
+    it('AC23: forwards ref to the <textarea> when multiline (used to focus it when editing starts)', () => {
+      const textareaRef = createRef<HTMLTextAreaElement>()
+
+      render(<TextField id="memo" value="" onValueChange={vi.fn()} multiline ref={textareaRef} />)
+
+      expect(textareaRef.current).toBeInstanceOf(HTMLTextAreaElement)
+      expect(textareaRef.current).toBe(getField())
+    })
+  })
+
   describe('focus style (AC18)', () => {
     // Tailwind v4 `outline-none` is `outline-style: none`, which also removes the outline that
     // forced-colors (Windows high contrast) mode relies on. `outline-hidden` keeps it there.

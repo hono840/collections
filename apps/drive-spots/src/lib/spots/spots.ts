@@ -42,6 +42,19 @@ export function removeSpot(data: SpotsData, id: number): SpotsData {
   return { ...data, spots: data.spots.filter((spot) => spot.id !== id) }
 }
 
+/**
+ * Replaces the memo of one spot, trimmed like addSpot does; line breaks inside stay (AC24). Nothing
+ * else changes (AC26). An unknown id changes nothing, so a spot deleted elsewhere is not brought
+ * back (AC27).
+ */
+export function updateMemo(data: SpotsData, id: number, memo: string): SpotsData {
+  const trimmedMemo = memo.trim()
+  return {
+    ...data,
+    spots: data.spots.map((spot) => (spot.id === id ? { ...spot, memo: trimmedMemo } : spot)),
+  }
+}
+
 /** Spots of the tab AND the category, in list order (AC2, AC3). */
 export function filterSpots(spots: Spot[], tab: Tab, category: CategoryFilter): Spot[] {
   return spots.filter(

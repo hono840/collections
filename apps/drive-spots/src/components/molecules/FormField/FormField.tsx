@@ -1,7 +1,7 @@
 import { TextField } from '@/components/atoms/TextField'
 import type { TextFieldProps } from '@/components/atoms/TextField'
 
-type FormFieldProps = Omit<TextFieldProps, 'invalid' | 'describedBy'> & {
+type FormFieldProps = Omit<TextFieldProps, 'invalid' | 'describedBy' | 'labelledBy'> & {
   label: string
   /** Shown under the field and linked with aria-describedby; the field gets aria-invalid. */
   error?: string

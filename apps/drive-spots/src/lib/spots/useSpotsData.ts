@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { addSpot, removeSpot, toggleDone as toggleSpotDone } from './spots'
+import { addSpot, removeSpot, toggleDone as toggleSpotDone, updateMemo as updateSpotMemo } from './spots'
 import { STORAGE_KEY, getBrowserStorage, loadSpotsData, parseSpotsData, updateSpotsData } from './storage'
 import type { SpotInput, SpotsData } from './types'
 
@@ -46,6 +46,7 @@ export function useSpotsData(): {
   add(input: SpotInput): void
   toggleDone(id: number): void
   remove(id: number): void
+  updateMemo(id: number, memo: string): void
 } {
   const [state, setState] = useState<SpotsState>(NOT_LOADED_STATE)
   // The newest state, so an action or refresh that runs before React re-renders builds on it.
@@ -106,5 +107,7 @@ export function useSpotsData(): {
     add: (input) => commit((data) => addSpot(data, input)),
     toggleDone: (id) => commit((data) => toggleSpotDone(data, id)),
     remove: (id) => commit((data) => removeSpot(data, id)),
+    // AC27: applied to the re-read data, so a spot another tab deleted stays deleted.
+    updateMemo: (id, memo) => commit((data) => updateSpotMemo(data, id, memo)),
   }
 }
