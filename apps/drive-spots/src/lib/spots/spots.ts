@@ -1,3 +1,4 @@
+import { MAX_NEXT_ID } from './storage'
 import { ALL_CATEGORIES } from './types'
 import type { CategoryFilter, Spot, SpotInput, SpotsData, Tab } from './types'
 
@@ -13,8 +14,11 @@ const PLAIN_DECIMAL_PATTERN = /^\d+(\.\d+)?$/
 /**
  * Adds a 行きたい spot at the top (AC12). Every field is trimmed (String#trim also removes the
  * full-width space), an empty region becomes '未入力', and the id is nextId (AC16).
+ * Once nextId has reached MAX_NEXT_ID nothing is added (the same content comes back), so the data
+ * never gets a nextId the app would read as corrupt. Only a crafted file gets there, so no message (AC16).
  */
 export function addSpot(data: SpotsData, input: SpotInput): SpotsData {
+  if (data.nextId >= MAX_NEXT_ID) return { ...data, spots: [...data.spots] }
   const region = input.region.trim()
   const spot: Spot = {
     id: data.nextId,

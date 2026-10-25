@@ -2,10 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { addSpot, removeSpot, toggleDone as toggleSpotDone, updateMemo as updateSpotMemo } from './spots'
-import { STORAGE_KEY, getBrowserStorage, loadSpotsData, parseSpotsData, updateSpotsData } from './storage'
+import { STORAGE_KEY, getBrowserStorage, loadSpotsData, readSavedSpots, updateSpotsData } from './storage'
 import type { SpotInput, SpotsData } from './types'
 
-type SpotsState = { ready: boolean; data: SpotsData; persistent: boolean }
+type SpotsState = {
+  ready: boolean
+  data: SpotsData
+  persistent: boolean
+  newerVersion: boolean
+  hasSavedData: boolean
+}
 
 // What the static HTML and the hydration render see. The screens wait for `ready`, so this empty
 // list is never shown (no seed flash, no hydration mismatch with the saved data).
@@ -13,40 +19,35 @@ const NOT_LOADED_STATE: SpotsState = {
   ready: false,
   data: { version: 1, nextId: 1, spots: [] },
   persistent: true,
-}
-
-/**
- * Read-only look at what is saved now. null when storage cannot be read, nothing is saved or the
- * saved string is corrupt; a refresh then keeps what this screen shows (AC22).
- */
-function readLatestSavedData(): SpotsData | null {
-  const storage = getBrowserStorage()
-  if (storage === null) return null
-  try {
-    const raw = storage.getItem(STORAGE_KEY)
-    return raw === null ? null : parseSpotsData(raw)
-  } catch {
-    return null
-  }
+  newerVersion: false,
+  hasSavedData: false,
 }
 
 /**
  * The spots and the actions on them.
  * - Every action goes through updateSpotsData, which re-reads the saved data right before writing
  *   so changes saved by another tab or a restored page are kept (AC13, AC22).
- * - Once `persistent` is false (storage unreadable, corrupt data that could not be backed up, or a
- *   failed save) it stays false and nothing is written again; changes live in memory only (AC14, AC15).
+ * - Once `persistent` is false (storage unreadable, corrupt data that could not be backed up, a
+ *   failed save, or data from a newer version) it stays false and nothing is written again; changes
+ *   live in memory only (AC14, AC15, AC30).
+ * - `newerVersion` turns true when loading, a write or a refresh finds data saved by a newer version
+ *   of the app, and stays true: this page then never writes (AC30).
+ * - `hasSavedData` is true once valid data is known to be saved on this device (loaded, saved or
+ *   refreshed) and stays true (AC38, AC39).
  * - A `storage` event for STORAGE_KEY (or null = cleared) and a `pageshow` restored from the
- *   back/forward cache refresh the view from storage, read-only (AC22).
+ *   back/forward cache refresh the view from storage, read-only (AC22, AC30).
  */
 export function useSpotsData(): {
   ready: boolean
   data: SpotsData
   persistent: boolean
+  newerVersion: boolean
+  hasSavedData: boolean
   add(input: SpotInput): void
   toggleDone(id: number): void
   remove(id: number): void
   updateMemo(id: number, memo: string): void
+  replaceAll(data: SpotsData): void
 } {
   const [state, setState] = useState<SpotsState>(NOT_LOADED_STATE)
   // The newest state, so an action or refresh that runs before React re-renders builds on it.
@@ -62,11 +63,16 @@ export function useSpotsData(): {
     // the hydrated HTML differ from the static export, so it is read after mounting.
     showState({ ready: true, ...loadSpotsData(getBrowserStorage()) })
 
-    // Only replaces the data with valid saved data: never the seed, never a write (AC22).
+    // Read-only (AC22, AC30): valid saved data replaces what is shown; newer data only turns saving
+    // off; nothing saved, unreadable or corrupt storage changes nothing (never the seed, never a
+    // write, not even the corrupt-data backup).
     function refreshFromStorage() {
-      const latestData = readLatestSavedData()
-      if (latestData === null) return
-      showState({ ...latestStateRef.current, data: latestData })
+      const savedSpots = readSavedSpots(getBrowserStorage())
+      if (savedSpots.kind === 'valid') {
+        showState({ ...latestStateRef.current, data: savedSpots.data, hasSavedData: true })
+      } else if (savedSpots.kind === 'newer') {
+        showState({ ...latestStateRef.current, persistent: false, newerVersion: true })
+      }
     }
 
     function handleStorage(event: StorageEvent) {
@@ -89,14 +95,17 @@ export function useSpotsData(): {
     const currentState = latestStateRef.current
     // Writing before the saved data has been read would overwrite it.
     if (!currentState.ready) return
-    // While not persistent, storage is not even offered: data that could not be read or backed up
-    // must not be overwritten (AC14, AC15).
-    const storage = currentState.persistent ? getBrowserStorage() : null
+    // While not persistent, or once a newer version's data was seen, storage is not even offered:
+    // data that could not be read, backed up or understood must not be overwritten (AC14, AC15, AC30).
+    const canWrite = currentState.persistent && !currentState.newerVersion
+    const storage = canWrite ? getBrowserStorage() : null
     const result = updateSpotsData(storage, currentState.data, change)
     const nextState: SpotsState = {
       ready: true,
       data: result.data,
       persistent: currentState.persistent && result.saved,
+      newerVersion: currentState.newerVersion || result.newerVersion,
+      hasSavedData: currentState.hasSavedData || result.saved,
     }
     latestStateRef.current = nextState
     setState(nextState)
@@ -109,5 +118,7 @@ export function useSpotsData(): {
     remove: (id) => commit((data) => removeSpot(data, id)),
     // AC27: applied to the re-read data, so a spot another tab deleted stays deleted.
     updateMemo: (id, memo) => commit((data) => updateSpotMemo(data, id, memo)),
+    // AC36: the file's data as it is (nextId included); what another tab saved is replaced, not merged.
+    replaceAll: (data) => commit(() => data),
   }
 }

@@ -69,6 +69,39 @@ function findSpot(data: SpotsData | null, id: number): Spot | undefined {
   return data?.spots.find((spot) => spot.id === id)
 }
 
+/** Saved by a newer version of the app (AC30): a shape this version cannot read. */
+const NEWER_VERSION_RAW = JSON.stringify({ version: 2, nextId: 40, places: [{ title: '大観山' }] })
+
+/** What a valid backup file holds (AC36): its own spots and nextId. */
+const IMPORTED_DATA: SpotsData = {
+  version: 1,
+  nextId: 50,
+  spots: [
+    {
+      id: 41,
+      name: '道志みち',
+      region: '山梨・神奈川',
+      category: '峠',
+      distanceKm: '80',
+      season: '新緑のころ',
+      memo: '朝早く出る',
+      done: false,
+    },
+    { id: 12, name: '碓氷峠', region: '群馬・長野', category: '峠', distanceKm: '', season: '', memo: '', done: true },
+  ],
+}
+
+type SpotsHook = ReturnType<typeof useSpotsData>
+
+/** Every action that writes (all of them go through updateSpotsData). */
+const SPOT_ACTIONS: [string, (spotsData: SpotsHook) => void][] = [
+  ['add', (spotsData) => spotsData.add(NEW_SPOT_INPUT)],
+  ['toggleDone', (spotsData) => spotsData.toggleDone(1)],
+  ['remove', (spotsData) => spotsData.remove(2)],
+  ['updateMemo', (spotsData) => spotsData.updateMemo(1, '新しいメモ')],
+  ['replaceAll', (spotsData) => spotsData.replaceAll(structuredClone(IMPORTED_DATA))],
+]
+
 beforeEach(() => {
   window.localStorage.clear()
 })
@@ -552,6 +585,404 @@ describe('useSpotsData', () => {
       dispatchPageShow(true)
 
       expect(getItemSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  // ---------- AC30, AC36, AC38, AC39 ----------
+
+  describe('newerVersion and hasSavedData after loading (AC30, AC38, AC39)', () => {
+    it('AC39: with nothing saved, newerVersion and hasSavedData are false', () => {
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.newerVersion).toBe(false)
+      expect(result.current.hasSavedData).toBe(false)
+      expect(result.current.persistent).toBe(true)
+    })
+
+    it('AC38: with valid saved data, hasSavedData is true', () => {
+      writeSavedData(createOtherTabData())
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.hasSavedData).toBe(true)
+      expect(result.current.newerVersion).toBe(false)
+    })
+
+    it('AC38: a saved empty list is saved data too', () => {
+      writeSavedData({ version: 1, nextId: 20, spots: [] })
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.hasSavedData).toBe(true)
+    })
+
+    it('AC39: corrupt data (backed up) is not saved data', () => {
+      window.localStorage.setItem(STORAGE_KEY, '{broken')
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.hasSavedData).toBe(false)
+      expect(result.current.newerVersion).toBe(false)
+      expect(result.current.persistent).toBe(true)
+    })
+
+    it('AC15/AC39: hasSavedData is false when getItem throws', () => {
+      writeSavedData(createOtherTabData())
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.hasSavedData).toBe(false)
+      expect(result.current.newerVersion).toBe(false)
+    })
+
+    it('AC30: data saved by a newer version loads as the seed with persistent false and newerVersion true, writing nothing', () => {
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.ready).toBe(true)
+      expect(result.current.data).toEqual(createSeedData())
+      expect(result.current.persistent).toBe(false)
+      expect(result.current.newerVersion).toBe(true)
+      expect(result.current.hasSavedData).toBe(false)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it("AC30/AC14: version '2' as a string is corrupt, not newer", () => {
+      const corruptRaw = JSON.stringify({ ...createSeedData(), version: '2' })
+      window.localStorage.setItem(STORAGE_KEY, corruptRaw)
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.newerVersion).toBe(false)
+      expect(result.current.persistent).toBe(true)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBe(corruptRaw)
+    })
+
+    it.each(SPOT_ACTIONS)('AC30: after loading newer data, %s changes memory only and never writes', (_name, runAction) => {
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { result } = renderHook(() => useSpotsData())
+      const dataBefore = result.current.data
+
+      act(() => runAction(result.current))
+
+      expect(result.current.data).not.toEqual(dataBefore)
+      expect(result.current.persistent).toBe(false)
+      expect(result.current.newerVersion).toBe(true)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+  })
+
+  describe('AC30: newer data found when re-reading right before a write', () => {
+    it.each(SPOT_ACTIONS)(
+      'AC30: %s writes nothing, keeps the change in memory, and turns persistent off and newerVersion on',
+      (_name, runAction) => {
+        const { result } = renderHook(() => useSpotsData())
+        window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+        const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+        const dataBefore = result.current.data
+
+        act(() => runAction(result.current))
+
+        expect(result.current.data).not.toEqual(dataBefore)
+        expect(result.current.persistent).toBe(false)
+        expect(result.current.newerVersion).toBe(true)
+        expect(setItemSpy).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+        expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+      },
+    )
+
+    it('AC30: toggleDone applies to the data shown here (the newer data is not read into this screen)', () => {
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+
+      act(() => result.current.toggleDone(1))
+
+      const expectedSpots = createSeedData().spots.map((spot) => (spot.id === 1 ? { ...spot, done: true } : spot))
+      expect(result.current.data).toEqual({ ...createSeedData(), spots: expectedSpots })
+    })
+
+    it('AC30: newerVersion and persistent false stay, and nothing is written later, even once storage holds version 1 data again', () => {
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      act(() => result.current.toggleDone(1))
+      writeSavedData(createOtherTabData())
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      act(() => result.current.add(NEW_SPOT_INPUT))
+      act(() => result.current.updateMemo(2, '新しいメモ'))
+
+      expect(result.current.newerVersion).toBe(true)
+      expect(result.current.persistent).toBe(false)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(readSavedData()).toEqual(createOtherTabData())
+    })
+
+    it('AC30: a write that succeeded before stays saved (only later writes stop)', () => {
+      const { result } = renderHook(() => useSpotsData())
+      act(() => result.current.toggleDone(1))
+      const savedBefore = readSavedData()
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+
+      act(() => result.current.toggleDone(2))
+
+      expect(savedBefore).not.toBeNull()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(result.current.newerVersion).toBe(true)
+    })
+  })
+
+  describe('AC30: refreshing finds newer data', () => {
+    it("AC30: a storage event for 'drive-spots:v1' turns persistent off and newerVersion on, keeps the data shown and writes nothing", () => {
+      const { result } = renderHook(() => useSpotsData())
+      act(() => result.current.toggleDone(1))
+      const dataShown = result.current.data
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expect(result.current.persistent).toBe(false)
+      expect(result.current.newerVersion).toBe(true)
+      expect(result.current.data).toEqual(dataShown)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC30: a storage event with key null does the same', () => {
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+
+      dispatchStorageEvent(null)
+
+      expect(result.current.persistent).toBe(false)
+      expect(result.current.newerVersion).toBe(true)
+      expect(result.current.data).toEqual(createSeedData())
+    })
+
+    it('AC30: pageshow with persisted true does the same', () => {
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      dispatchPageShow(true)
+
+      expect(result.current.persistent).toBe(false)
+      expect(result.current.newerVersion).toBe(true)
+      expect(result.current.data).toEqual(createSeedData())
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC30: storage events for other keys and a normal pageshow do not look at it', () => {
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+
+      dispatchStorageEvent('some-other-app')
+      dispatchPageShow(false)
+
+      expect(result.current.persistent).toBe(true)
+      expect(result.current.newerVersion).toBe(false)
+    })
+
+    it('AC30: after a refresh found newer data, actions change memory only and never write', () => {
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      dispatchStorageEvent(STORAGE_KEY)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      act(() => result.current.toggleDone(1))
+      act(() => result.current.add(NEW_SPOT_INPUT))
+
+      expect(findSpot(result.current.data, 1)?.done).toBe(true)
+      expect(result.current.data.spots[0]).toMatchObject({ name: '大観山' })
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+    })
+
+    it('AC30/AC22: a later refresh that finds valid data shows it, but newerVersion and persistent false stay', () => {
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      dispatchStorageEvent(STORAGE_KEY)
+      const otherTabData = createOtherTabData()
+      writeSavedData(otherTabData)
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expect(result.current.data).toEqual(otherTabData)
+      expect(result.current.newerVersion).toBe(true)
+      expect(result.current.persistent).toBe(false)
+    })
+  })
+
+  describe('hasSavedData over time (AC38, AC39)', () => {
+    it('AC39: becomes true after the first successful save', () => {
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.toggleDone(1))
+
+      expect(result.current.hasSavedData).toBe(true)
+    })
+
+    it('AC39: stays false when the save fails', () => {
+      const { result } = renderHook(() => useSpotsData())
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      act(() => result.current.toggleDone(1))
+
+      expect(result.current.hasSavedData).toBe(false)
+    })
+
+    it('AC39: stays false while storage cannot be read', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.toggleDone(1))
+
+      expect(result.current.hasSavedData).toBe(false)
+    })
+
+    it('AC39: corrupt data becomes saved data once the first save backed it up and wrote', () => {
+      window.localStorage.setItem(STORAGE_KEY, '{broken')
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.toggleDone(1))
+
+      expect(result.current.hasSavedData).toBe(true)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBe('{broken')
+    })
+
+    it('AC38/AC22: a refresh that finds valid data sets it to true', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expect(result.current.hasSavedData).toBe(true)
+    })
+
+    it('AC38: stays true once true (a later refresh that finds nothing does not reset it)', () => {
+      writeSavedData(createOtherTabData())
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.clear()
+
+      dispatchStorageEvent(null)
+
+      expect(result.current.hasSavedData).toBe(true)
+    })
+  })
+
+  describe('replaceAll (AC36)', () => {
+    it('AC36: replaces every spot and nextId and saves exactly that', () => {
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.replaceAll(structuredClone(IMPORTED_DATA)))
+
+      expect(result.current.data).toEqual(IMPORTED_DATA)
+      expect(readSavedData()).toEqual(IMPORTED_DATA)
+      expect(result.current.persistent).toBe(true)
+      expect(result.current.hasSavedData).toBe(true)
+    })
+
+    it('AC36: the file wins over what another tab saved meanwhile (nothing is merged)', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      act(() => result.current.replaceAll(structuredClone(IMPORTED_DATA)))
+
+      expect(result.current.data).toEqual(IMPORTED_DATA)
+      expect(readSavedData()).toEqual(IMPORTED_DATA)
+      expect(findSpot(readSavedData(), OTHER_TAB_SPOT.id)).toBeUndefined()
+    })
+
+    it('AC36/AC16: a spot added after the import takes the imported nextId', () => {
+      const { result } = renderHook(() => useSpotsData())
+      act(() => result.current.replaceAll(structuredClone(IMPORTED_DATA)))
+
+      act(() => result.current.add(NEW_SPOT_INPUT))
+
+      expect(result.current.data.spots[0]).toMatchObject({ id: IMPORTED_DATA.nextId, name: '大観山' })
+      expect(readSavedData()?.nextId).toBe(IMPORTED_DATA.nextId + 1)
+    })
+
+    it('AC36/AC14: over corrupt saved data, backs the corrupt string up before writing the imported data', () => {
+      const corruptRaw = '{"version":1,"nextId":'
+      const { result } = renderHook(() => useSpotsData())
+      window.localStorage.setItem(STORAGE_KEY, corruptRaw)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      act(() => result.current.replaceAll(structuredClone(IMPORTED_DATA)))
+
+      expect(setItemSpy.mock.calls.map(([key]) => key)).toEqual([BACKUP_KEY, STORAGE_KEY])
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBe(corruptRaw)
+      expect(readSavedData()).toEqual(IMPORTED_DATA)
+    })
+
+    it('AC36/AC14: when corrupt data could not be backed up, the import changes memory only and the original stays', () => {
+      window.localStorage.setItem(STORAGE_KEY, '{broken')
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(throwQuotaExceededError)
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.replaceAll(structuredClone(IMPORTED_DATA)))
+
+      expect(result.current.data).toEqual(IMPORTED_DATA)
+      expect(result.current.persistent).toBe(false)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe('{broken')
+    })
+
+    it('AC36/AC15: when getItem throws, the import changes memory only and setItem is never called', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.replaceAll(structuredClone(IMPORTED_DATA)))
+
+      expect(result.current.data).toEqual(IMPORTED_DATA)
+      expect(result.current.persistent).toBe(false)
+      expect(result.current.hasSavedData).toBe(false)
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC36/AC15: a failed save turns persistent off and keeps the imported data in memory', () => {
+      const { result } = renderHook(() => useSpotsData())
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      act(() => result.current.replaceAll(structuredClone(IMPORTED_DATA)))
+
+      expect(result.current.data).toEqual(IMPORTED_DATA)
+      expect(result.current.persistent).toBe(false)
+      expect(result.current.hasSavedData).toBe(false)
+    })
+
+    it('AC36: replaceAll called before the saved data has been read does nothing', () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const readyWhenActionRan: boolean[] = []
+
+      // A layout effect runs before the hook's own (passive) load effect, i.e. while ready is false.
+      const { result } = renderHook(() => {
+        const spotsData = useSpotsData()
+        const actionRanRef = useRef(false)
+        useLayoutEffect(() => {
+          if (actionRanRef.current) return
+          actionRanRef.current = true
+          readyWhenActionRan.push(spotsData.ready)
+          spotsData.replaceAll(structuredClone(IMPORTED_DATA))
+        })
+        return spotsData
+      })
+
+      expect(readyWhenActionRan).toEqual([false])
+      expect(result.current.data).toEqual(createSeedData())
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
     })
   })
 })

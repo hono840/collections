@@ -2,11 +2,19 @@ import { createSeedData } from './seed'
 import { CATEGORIES } from './types'
 import type { Category, Spot, SpotsData } from './types'
 
-// localStorage persistence (spec AC13-AC15, AC22). Every function here survives a storage that
-// throws (Safari private mode, blocked cookies, quota exceeded) and reports it instead.
+// localStorage persistence (spec AC13-AC15, AC22, AC30, AC33). Every function here survives a storage
+// that throws (Safari private mode, blocked cookies, quota exceeded) and reports it instead.
 
 export const STORAGE_KEY = 'drive-spots:v1'
 export const BACKUP_KEY = 'drive-spots:v1:backup'
+/** When the data was last exported to a file, as an ISO 8601 string (AC33). */
+export const LAST_BACKUP_KEY = 'drive-spots:v1:last-backup'
+/**
+ * The largest nextId this app accepts (AC16). Far above anything normal use reaches, and far below
+ * Number.MAX_SAFE_INTEGER, so ids can never stop being distinct safe integers. A larger nextId is
+ * corrupt (saved data) or invalid (backup file), and addSpot adds nothing once it is reached.
+ */
+export const MAX_NEXT_ID = 1_000_000_000
 
 /** window.localStorage, or null when there is no window or touching it throws (AC15). */
 export function getBrowserStorage(): Storage | null {
@@ -50,19 +58,15 @@ function parseSpot(value: unknown): Spot | null {
 }
 
 /**
- * Parses a saved string. Returns null if anything differs from { version: 1, nextId, spots },
- * including duplicate ids or a nextId that an existing spot already uses (AC14, AC16).
+ * Checks an already parsed value. Returns null if anything differs from { version: 1, nextId, spots },
+ * including duplicate ids, a nextId that an existing spot already uses, or a nextId above
+ * MAX_NEXT_ID (AC14, AC16). Also used for the data inside a backup file, so a file is checked
+ * exactly as strictly (AC34).
  */
-export function parseSpotsData(raw: string): SpotsData | null {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    return null
-  }
-  if (!isRecord(parsed) || parsed.version !== 1) return null
-  const { nextId, spots: rawSpots } = parsed
-  if (!isPositiveInteger(nextId) || !Array.isArray(rawSpots)) return null
+export function parseSpotsValue(value: unknown): SpotsData | null {
+  if (!isRecord(value) || value.version !== 1) return null
+  const { nextId, spots: rawSpots } = value
+  if (!isPositiveInteger(nextId) || nextId > MAX_NEXT_ID || !Array.isArray(rawSpots)) return null
 
   const spots: Spot[] = []
   const seenIds = new Set<number>()
@@ -75,12 +79,52 @@ export function parseSpotsData(raw: string): SpotsData | null {
   return { version: 1, nextId, spots }
 }
 
-/** What is under STORAGE_KEY right now. */
-type SavedState =
-  | { kind: 'unreadable' } // getItem throws
+/** Parses a saved string with the same strictness as parseSpotsValue (AC14). */
+export function parseSpotsData(raw: string): SpotsData | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  return parseSpotsValue(parsed)
+}
+
+/**
+ * A format version written by a newer version of the app: a safe integer above 1 (AC30, AC34).
+ * The string '2', 2.5 or 2^53 is not; such a value is simply corrupt.
+ */
+export function isNewerVersionNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 1
+}
+
+/** An object whose version is newer than this app reads (AC30), whatever the rest looks like. */
+export function isNewerVersionValue(value: unknown): boolean {
+  return isRecord(value) && isNewerVersionNumber(value.version)
+}
+
+/**
+ * A time written by Date#toISOString (what writeLastBackupAt and backup files store), or null.
+ * Only that exact form is accepted, so an impossible date such as Oct 32 or Feb 30, which Date
+ * would quietly roll over, is refused (AC33, AC34).
+ */
+export function parseIsoDateTime(value: unknown): Date | null {
+  if (typeof value !== 'string') return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toISOString() === value ? date : null
+}
+
+/** What is under STORAGE_KEY, as readSavedSpots reports it. */
+export type SavedSpotsRead =
+  | { kind: 'unreadable' } // no storage / getItem throws
   | { kind: 'nothing' }
   | { kind: 'valid'; data: SpotsData }
-  | { kind: 'corrupt'; raw: string }
+  | { kind: 'corrupt' }
+  | { kind: 'newer' } // saved by a newer version (AC30); not corrupt
+
+/** SavedSpotsRead, plus the corrupt string that has to be backed up before anything overwrites it. */
+type SavedState = Exclude<SavedSpotsRead, { kind: 'corrupt' }> | { kind: 'corrupt'; raw: string }
 
 function readSavedState(storage: Storage): SavedState {
   let raw: string | null
@@ -90,8 +134,23 @@ function readSavedState(storage: Storage): SavedState {
     return { kind: 'unreadable' }
   }
   if (raw === null) return { kind: 'nothing' }
-  const data = parseSpotsData(raw)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return { kind: 'corrupt', raw }
+  }
+  // Checked before the strict check: newer data must never be treated as corrupt (AC30).
+  if (isNewerVersionValue(parsed)) return { kind: 'newer' }
+  const data = parseSpotsValue(parsed)
   return data === null ? { kind: 'corrupt', raw } : { kind: 'valid', data }
+}
+
+/** Reads what is saved without writing anything (AC22, AC30). */
+export function readSavedSpots(storage: Storage | null): SavedSpotsRead {
+  if (storage === null) return { kind: 'unreadable' }
+  const savedState = readSavedState(storage)
+  return savedState.kind === 'corrupt' ? { kind: 'corrupt' } : savedState
 }
 
 /**
@@ -118,19 +177,30 @@ function backUpCorruptString(storage: Storage, corruptRaw: string): boolean {
  * - nothing saved -> seed data, persistent true; nothing is written yet (AC1)
  * - corrupt -> seed data; the original string is copied to BACKUP_KEY. persistent is true when the
  *   copy is there and false when it could not be written, so nothing overwrites the original (AC14)
+ * - saved by a newer version -> seed data, persistent false, newerVersion true; nothing is backed up
+ *   or written (AC30)
+ * hasSavedData is true only for valid data (AC38, AC39).
  */
-export function loadSpotsData(storage: Storage | null): { data: SpotsData; persistent: boolean } {
-  if (storage === null) return { data: createSeedData(), persistent: false }
+export function loadSpotsData(storage: Storage | null): {
+  data: SpotsData
+  persistent: boolean
+  newerVersion: boolean
+  hasSavedData: boolean
+} {
+  const notSaved = { newerVersion: false, hasSavedData: false }
+  if (storage === null) return { data: createSeedData(), persistent: false, ...notSaved }
   const savedState = readSavedState(storage)
   switch (savedState.kind) {
     case 'unreadable':
-      return { data: createSeedData(), persistent: false }
+      return { data: createSeedData(), persistent: false, ...notSaved }
     case 'nothing':
-      return { data: createSeedData(), persistent: true }
+      return { data: createSeedData(), persistent: true, ...notSaved }
     case 'valid':
-      return { data: savedState.data, persistent: true }
+      return { data: savedState.data, persistent: true, newerVersion: false, hasSavedData: true }
     case 'corrupt':
-      return { data: createSeedData(), persistent: backUpCorruptString(storage, savedState.raw) }
+      return { data: createSeedData(), persistent: backUpCorruptString(storage, savedState.raw), ...notSaved }
+    case 'newer':
+      return { data: createSeedData(), persistent: false, newerVersion: true, hasSavedData: false }
   }
 }
 
@@ -154,23 +224,47 @@ export function saveSpotsData(storage: Storage | null, data: SpotsData): boolean
  * - valid data -> change(saved data) is written (spots and nextId from other tabs survive, AC16)
  * - corrupt -> change(fallback) is written once BACKUP_KEY holds the corrupt string (already, or
  *   copied now). If the copy fails nothing is written and saved is false (AC14)
+ * - saved by a newer version -> change(fallback), nothing is written (not even BACKUP_KEY), saved
+ *   false, newerVersion true (AC30)
  * - setItem throws -> saved false (AC15)
  */
 export function updateSpotsData(
   storage: Storage | null,
   fallback: SpotsData,
   change: (data: SpotsData) => SpotsData,
-): { data: SpotsData; saved: boolean } {
-  if (storage === null) return { data: change(fallback), saved: false }
+): { data: SpotsData; saved: boolean; newerVersion: boolean } {
+  if (storage === null) return { data: change(fallback), saved: false, newerVersion: false }
   const savedState = readSavedState(storage)
-  if (savedState.kind === 'unreadable') return { data: change(fallback), saved: false }
+  if (savedState.kind === 'unreadable') return { data: change(fallback), saved: false, newerVersion: false }
+  if (savedState.kind === 'newer') return { data: change(fallback), saved: false, newerVersion: true }
   if (savedState.kind === 'valid') {
     const data = change(savedState.data)
-    return { data, saved: saveSpotsData(storage, data) }
+    return { data, saved: saveSpotsData(storage, data), newerVersion: false }
   }
   const data = change(fallback)
   if (savedState.kind === 'corrupt' && !backUpCorruptString(storage, savedState.raw)) {
-    return { data, saved: false }
+    return { data, saved: false, newerVersion: false }
   }
-  return { data, saved: saveSpotsData(storage, data) }
+  return { data, saved: saveSpotsData(storage, data), newerVersion: false }
+}
+
+/** The last export time, or null when there is none, it is not a time, or storage cannot be read (AC33). */
+export function readLastBackupAt(storage: Storage | null): Date | null {
+  if (storage === null) return null
+  try {
+    return parseIsoDateTime(storage.getItem(LAST_BACKUP_KEY))
+  } catch {
+    return null
+  }
+}
+
+/** Records an export time under LAST_BACKUP_KEY only. Returns false instead of throwing (AC33). */
+export function writeLastBackupAt(storage: Storage | null, at: Date): boolean {
+  if (storage === null) return false
+  try {
+    storage.setItem(LAST_BACKUP_KEY, at.toISOString())
+    return true
+  } catch {
+    return false
+  }
 }

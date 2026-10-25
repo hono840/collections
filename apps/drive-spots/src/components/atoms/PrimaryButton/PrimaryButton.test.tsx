@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PrimaryButton } from './PrimaryButton'
 
-const TONES = ['accent', 'done', 'outline'] as const
+const TONES = ['accent', 'done', 'outline', 'danger'] as const
 
 describe('PrimaryButton', () => {
   it.each(TONES)('AC18: the %s button is a real <button type="button"> named by its text', (tone) => {
@@ -72,5 +72,49 @@ describe('PrimaryButton', () => {
     })
 
     expect(new Set(toneClassNames).size).toBe(TONES.length)
+  })
+
+  it('AC36: the danger tone (置き換える) calls onClick once per press, from the mouse and the keyboard', async () => {
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    render(
+      <PrimaryButton tone="danger" onClick={onClick}>
+        置き換える
+      </PrimaryButton>,
+    )
+
+    await user.click(screen.getByRole('button', { name: '置き換える' }))
+    await user.keyboard('{Enter}')
+
+    expect(onClick).toHaveBeenCalledTimes(2)
+  })
+
+  it('AC32: is enabled by default', () => {
+    render(
+      <PrimaryButton tone="accent" onClick={vi.fn()}>
+        ファイルに書き出す
+      </PrimaryButton>,
+    )
+
+    expect(screen.getByRole('button', { name: 'ファイルに書き出す' })).toBeEnabled()
+  })
+
+  it('AC32: when disabled, it is a disabled button that neither a press nor the keyboard reaches', async () => {
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    render(
+      <PrimaryButton tone="accent" onClick={onClick} disabled>
+        ファイルに書き出す
+      </PrimaryButton>,
+    )
+
+    const button = screen.getByRole('button', { name: 'ファイルに書き出す' })
+    expect(button).toBeDisabled()
+    await user.click(button)
+    await user.tab()
+    await user.keyboard('{Enter}')
+
+    expect(onClick).not.toHaveBeenCalled()
+    expect(button).not.toHaveFocus()
   })
 })

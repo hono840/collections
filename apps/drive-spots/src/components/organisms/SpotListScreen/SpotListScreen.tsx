@@ -6,40 +6,58 @@ import { CategoryChips } from '@/components/molecules/CategoryChips'
 import { EmptyState } from '@/components/molecules/EmptyState'
 import { SpotCard } from '@/components/molecules/SpotCard'
 import { TabSwitch } from '@/components/molecules/TabSwitch'
+import type { BackupReminder } from '@/lib/spots/backup'
 import { countByTab, filterSpots } from '@/lib/spots/spots'
-import { ALL_CATEGORIES, CATEGORIES, CATEGORY_MARKS } from '@/lib/spots/types'
-import type { CategoryFilter, Spot, Tab } from '@/lib/spots/types'
+import { ALL_CATEGORIES, CATEGORIES, CATEGORY_MARKS, SAVE_NOTICE_TEXTS } from '@/lib/spots/types'
+import type { CategoryFilter, SaveNotice, Spot, Tab } from '@/lib/spots/types'
 
 const CATEGORY_FILTERS: readonly CategoryFilter[] = [ALL_CATEGORIES, ...CATEGORIES]
-const NOT_PERSISTENT_NOTICE = 'この端末では保存できません（再読み込みで消えます）'
+const RESTORE_HINT = '前に使っていたデータは「バックアップ」から読み込めます'
+// Every name starts with the visible text バックアップ (WCAG 2.5.3, AC38).
+const BACKUP_BUTTON_LABELS: Record<BackupReminder, string> = {
+  none: 'バックアップ',
+  never: 'バックアップ（まだしていません）',
+  stale: 'バックアップ（30日以上していません）',
+}
 
 type SpotListScreenProps = {
   /** Every spot; the screen filters by tab and category itself. */
   spots: Spot[]
   tab: Tab
   category: CategoryFilter
-  /** false shows the cannot-save notice above the list (AC15). */
-  persistent: boolean
+  /** Which save notice to show above the list, if any (AC15, AC30). */
+  saveNotice: SaveNotice
+  /** 'never' / 'stale' mark the backup button and change its name (AC38). */
+  backupReminder: BackupReminder
+  /** Shows the hint that old data can be imported from バックアップ (AC39). */
+  showRestoreHint: boolean
   onTabChange: (tab: Tab) => void
   onCategoryChange: (category: CategoryFilter) => void
   onOpenSpot: (id: number) => void
   onAddSpot: () => void
+  onOpenBackup: () => void
   /** Move focus here when the screen appears after a screen change (not on the first load). */
   focusOnMount?: boolean
   /** With focusOnMount: focus this spot's card if it is visible (coming back from its detail), else the heading. */
   focusSpotId?: number | null
 }
 
-/** 一覧: heading, tabs, category chips, cards (or the empty state) and the add button. */
+/**
+ * 一覧: heading with the backup button, tabs, category chips, a save notice or the restore hint,
+ * cards (or the empty state) and the add button.
+ */
 export function SpotListScreen({
   spots,
   tab,
   category,
-  persistent,
+  saveNotice,
+  backupReminder,
+  showRestoreHint,
   onTabChange,
   onCategoryChange,
   onOpenSpot,
   onAddSpot,
+  onOpenBackup,
   focusOnMount = false,
   focusSpotId = null,
 }: SpotListScreenProps) {
@@ -60,15 +78,34 @@ export function SpotListScreen({
     <section aria-labelledby={headingId} className="relative flex min-h-0 flex-1 flex-col">
       <header className="flex flex-col gap-4 px-5 pb-3.5 pt-safe-list">
         <div className="flex flex-col gap-0.5">
-          <p className="font-display text-14 font-semibold tracking-eyebrow text-accent">DRIVE LIST</p>
-          <h1
-            id={headingId}
-            ref={headingRef}
-            tabIndex={-1}
-            className="text-26 font-bold tracking-title focus:outline-none"
-          >
-            行きたい道ノート
-          </h1>
+          <p className="font-display text-14 font-semibold tracking-eyebrow text-accent">DRIVE SPOTS</p>
+          {/* On narrow phones the button wraps to the right of the next line; the heading never wraps. */}
+          <div className="flex flex-wrap items-center gap-x-1">
+            <h1
+              id={headingId}
+              ref={headingRef}
+              tabIndex={-1}
+              className="text-26 font-bold tracking-title focus:outline-none"
+            >
+              ドライブスポット帳
+            </h1>
+            {/* -my-1 keeps the 44px button from moving the heading; -mr-2 lines its text up with the tabs. */}
+            <button
+              type="button"
+              onClick={() => onOpenBackup()}
+              aria-label={BACKUP_BUTTON_LABELS[backupReminder]}
+              className="relative -my-1 -mr-2 ml-auto h-11 shrink-0 bg-transparent px-2 text-13 font-medium text-ink-soft"
+            >
+              バックアップ
+              {/* The mark is a shape, not only a color; border-4 survives forced-colors mode (AC38). */}
+              {backupReminder === 'none' ? null : (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-0.5 top-3 size-2 rounded-full border-4 border-accent"
+                />
+              )}
+            </button>
+          </div>
         </div>
         <TabSwitch
           activeTab={tab}
@@ -85,11 +122,15 @@ export function SpotListScreen({
         label="種類で絞り込み"
       />
 
-      {persistent ? null : (
-        <p role="status" className="mx-5 mb-3 rounded-xl bg-panel px-3.5 py-2.5 text-12 text-danger">
-          {NOT_PERSISTENT_NOTICE}
+      {/* The newer-version notice takes the cannot-save notice's place and box (AC15, AC30). */}
+      {saveNotice === 'none' ? null : (
+        <p role="status" className="mx-5 mb-3 rounded-xl bg-panel px-3.5 py-2.5 text-12 leading-note text-danger">
+          {SAVE_NOTICE_TEXTS[saveNotice]}
         </p>
       )}
+
+      {/* A quiet hint, not a warning: no box, no role (AC39). */}
+      {showRestoreHint ? <p className="mx-5 mb-3 text-12 leading-note text-ink-muted">{RESTORE_HINT}</p> : null}
 
       {/* pt-1/-mt-1: room for the first card's focus outline inside the scroll container. */}
       <div className="scrollbar-hidden -mt-1 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 pb-safe-list pt-1">

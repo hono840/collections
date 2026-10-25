@@ -175,6 +175,59 @@ describe('addSpot', () => {
     expect(data).toEqual(dataSnapshot)
     expect(input).toEqual(inputSnapshot)
   })
+
+  describe('at the nextId cap (AC16, MAX_NEXT_ID = 1,000,000,000)', () => {
+    /** The largest data AC16 allows: nextId exactly at the cap, the newest spot right below it. */
+    function makeCappedData(nextId: number): SpotsData {
+      return makeData([makeSpot({ id: nextId - 1, name: '細工したファイルのスポット' }), makeSpot({ id: 1 })], nextId)
+    }
+
+    it('AC16: with nextId exactly at the cap, adds nothing and returns the same content', () => {
+      const data = makeCappedData(1_000_000_000)
+
+      const result = addSpot(data, makeInput({ name: '大観山' }))
+
+      expect(result).toEqual(data)
+      expect(result.nextId).toBe(1_000_000_000)
+      expect(result.spots.map((spot) => spot.name)).not.toContain('大観山')
+    })
+
+    it('AC16: with nextId above the cap, adds nothing either', () => {
+      const data = makeCappedData(1_000_000_001)
+
+      expect(addSpot(data, makeInput())).toEqual(data)
+    })
+
+    it('AC16: at the cap it still does not mutate the data (returns a new object)', () => {
+      const data = deepFreeze(makeCappedData(1_000_000_000))
+      const dataSnapshot = structuredClone(data)
+
+      const result = addSpot(data, makeInput())
+
+      expect(result).not.toBe(data)
+      expect(result.spots).not.toBe(data.spots)
+      expect(data).toEqual(dataSnapshot)
+    })
+
+    it('AC16: with nextId just below the cap, adds normally and reaches the cap exactly', () => {
+      const data = makeCappedData(999_999_999)
+
+      const result = addSpot(data, makeInput({ name: '大観山' }))
+
+      expect(result.spots).toHaveLength(3)
+      expect(result.spots[0]).toMatchObject({ id: 999_999_999, name: '大観山' })
+      expect(result.nextId).toBe(1_000_000_000)
+    })
+
+    it('AC16: the add after reaching the cap is the one that adds nothing', () => {
+      const atCap = addSpot(makeCappedData(999_999_999), makeInput({ name: '一つ目' }))
+
+      const afterCap = addSpot(atCap, makeInput({ name: '二つ目' }))
+
+      expect(afterCap).toEqual(atCap)
+      expect(afterCap.spots.map((spot) => spot.name)).not.toContain('二つ目')
+    })
+  })
 })
 
 describe('toggleDone', () => {
