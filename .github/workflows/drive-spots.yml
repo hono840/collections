@@ -1,0 +1,152 @@
+name: drive-spots CI / Pages
+
+# apps/drive-spots: lint -> typecheck -> unit tests -> build (static export + hash meta CSP gate),
+# then (main only) deploy out/ to GitHub Pages: https://hono840.github.io/collections/drive-spots/
+#
+# Pages layout: the repository hono840/collections is a project site served under /collections/.
+#   _site/index.html     -> script-free meta refresh to ./drive-spots/ (the site root /collections/)
+#   _site/drive-spots/   -> apps/drive-spots/out/  (built with basePath /collections/drive-spots)
+#   _site/404.html       -> copy of out/404.html. Pages serves only the 404.html at the root of the
+#                           deployed site for every unknown path (/collections/<anything>), never a
+#                           nested drive-spots/404.html. Every URL in it is absolute under
+#                           /collections/drive-spots/, so it renders the app's 404 from any path.
+# A Pages deployment replaces the WHOLE site. If another app ever deploys to Pages, both must be
+# built into one _site/ by one workflow, or the later deploy wipes the earlier app.
+#
+# Supply-chain rules (shai-hulud): every action is pinned by full commit SHA (tag in the comment),
+# installs never run lifecycle scripts, the token is read-only except pages/id-token in the deploy job,
+# and no untrusted event data (PR title/body/branch name) is interpolated into `run:`.
+#
+# Action versions (looked up 2026-10-24 with `gh api repos/<owner>/<repo>/releases` and
+# `gh api repos/<owner>/<repo>/git/ref/tags/<tag>`; tags dereferenced to commits): latest releases
+# older than the 7-day cooldown used for npm packages.
+#   actions/checkout v7.0.1, pnpm/action-setup v6.1.0, actions/setup-node v7.0.0: same pins as
+#     road-review-ci.yml (re-verified).
+#   actions/upload-pages-artifact v5.0.0 (published 2026-04-10; it pins actions/upload-artifact
+#     v7.0.0 by SHA internally).
+#   actions/deploy-pages v5.0.1 (published 2026-09-01).
+#
+# One-time repository setup (done by a human, not by this workflow):
+#   Settings > Pages > Build and deployment > Source = "GitHub Actions". That creates the
+#   `github-pages` environment, which by default only lets the default branch deploy.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/drive-spots/**'
+      - '.github/workflows/drive-spots.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/drive-spots/**'
+      - '.github/workflows/drive-spots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# PRs: a newer push cancels the older run. main: never cancel (a cancelled run could stop mid-deploy).
+concurrency:
+  group: drive-spots-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: apps/drive-spots
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm (version from package.json "packageManager")
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: apps/drive-spots/package.json
+
+      - name: Setup Node.js (version from .node-version)
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: apps/drive-spots/.node-version
+          cache: pnpm
+          cache-dependency-path: apps/drive-spots/pnpm-lock.yaml
+
+      - name: Install (frozen lockfile, no lifecycle scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      # `pnpm build` = next build && inject-meta-csp && verify-out (the CSP / asset-path gate fails
+      # the build). It is chained inside `build` on purpose: `--ignore-scripts` would skip a postbuild
+      # hook. next/font downloads the Google fonts here, at build time; the browser never does.
+      - name: Build (static export + hash meta CSP + verify)
+        run: pnpm build
+
+      - name: Assemble Pages site
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          site_dir="$RUNNER_TEMP/_site"
+          rm -rf "$site_dir"
+          mkdir -p "$site_dir/drive-spots"
+          cp -R out/. "$site_dir/drive-spots/"
+          # Pages only uses the site-root 404.html (see the layout note at the top of this file).
+          cp out/404.html "$site_dir/404.html"
+          cat > "$site_dir/index.html" <<'HTML'
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+          <meta charset="utf-8">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'">
+          <meta name="robots" content="noindex">
+          <meta http-equiv="refresh" content="0; url=./drive-spots/">
+          <title>ドライブスポット帳</title>
+          </head>
+          <body>
+          <p><a href="./drive-spots/">ドライブスポット帳をひらく</a></p>
+          </body>
+          </html>
+          HTML
+          test -f "$site_dir/drive-spots/index.html"
+          test -f "$site_dir/drive-spots/404.html"
+          test -f "$site_dir/404.html"
+          ls -la "$site_dir" "$site_dir/drive-spots"
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/_site/
+
+  deploy:
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

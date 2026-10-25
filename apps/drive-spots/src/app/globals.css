@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/* Fonts come from next/font in layout.tsx (CSS variables). `inline` makes the utilities use those
+   variables directly instead of a theme copy. */
+@theme inline {
+  --font-sans: var(--font-zen), sans-serif;
+  --font-display: var(--font-barlow), var(--font-zen), sans-serif;
+}
+
+/* Design tokens from docs/design/Main.dc.html. The app is dark only, like the design. */
+@theme {
+  --color-canvas: #0e1013; /* page background, text on colored buttons */
+  --color-panel: #171a1f; /* cards, tiles, fields, tab track */
+  --color-panel-raised: #23272e; /* card mark */
+  --color-edge: #2a2f37; /* field border */
+  --color-edge-card: #22262d; /* card border */
+  --color-edge-chip: #2e333b; /* unselected chip, outline button */
+  --color-ink: #f2f3f5; /* main text */
+  --color-ink-memo: #e2e4e8;
+  --color-ink-soft: #c9cdd4; /* unselected chip text, キャンセル */
+  --color-ink-muted: #a3a9b3; /* labels, sub text */
+  --color-ink-faint: #7d8490; /* placeholder */
+  --color-ink-dim: #5e6570; /* chevron, empty-state icon */
+  --color-accent: #ff7a1a;
+  --color-done: #5aa9ff;
+  --color-danger: #ff8a80;
+
+  /* Font sizes in px as in the design. No line-height: the design uses the browser default
+     (normal) everywhere except the three leading-* values below. */
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-16: 16px;
+  --text-17: 17px;
+  --text-18: 18px;
+  --text-26: 26px;
+  --text-30: 30px;
+
+  --leading-title: 1.3;
+  --leading-note: 1.6;
+  --leading-memo: 1.7;
+
+  --tracking-eyebrow: 0.18em;
+  --tracking-title: 0.02em;
+
+  --radius-tab: 11px;
+  --radius-tile: 14px;
+
+  --shadow-fab: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  --container-app: 480px; /* max-w-app: the phone column on desktop (AC17) */
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: normal;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  /* AC18: one visible keyboard focus style for every button. Text fields use their accent border. */
+  button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* Scroll areas keep scrolling but hide the bar (the design's .scroll). */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Safe areas (AC17). The design's fixed top padding (52px list, 48px detail/add) assumes a ~44px
+   status bar, so the notch inset replaces that part and a smaller floor applies without one. */
+@utility pt-safe-list {
+  padding-top: max(32px, calc(env(safe-area-inset-top) + 8px));
+}
+
+@utility pt-safe-bar {
+  padding-top: max(28px, calc(env(safe-area-inset-top) + 4px));
+}
+
+@utility pb-safe-list {
+  padding-bottom: calc(120px + env(safe-area-inset-bottom)); /* room for the FAB */
+}
+
+@utility pb-safe-detail {
+  padding-bottom: max(32px, calc(env(safe-area-inset-bottom) + 16px));
+}
+
+@utility pb-safe-form {
+  padding-bottom: max(40px, calc(env(safe-area-inset-bottom) + 16px));
+}
+
+@utility bottom-safe-fab {
+  bottom: max(32px, calc(env(safe-area-inset-bottom) + 16px));
+}
+
+@utility px-safe {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Add screen header: キャンセル | title | 保存 */
+@utility grid-cols-form-header {
+  grid-template-columns: 96px 1fr 96px;
+}

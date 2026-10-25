@@ -1,0 +1,411 @@
+import { act, renderHook } from '@testing-library/react'
+import { useLayoutEffect, useRef } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createSeedData } from './seed'
+import { BACKUP_KEY, STORAGE_KEY } from './storage'
+import type { Spot, SpotInput, SpotsData } from './types'
+import { useSpotsData } from './useSpotsData'
+
+// useSpotsData against jsdom's real localStorage (cleared around every test).
+// "Another tab" is simulated by writing localStorage directly; jsdom does not fire `storage` events
+// in the same window, so the tests dispatch them by hand where the spec says the browser would.
+
+const NEW_SPOT_INPUT: SpotInput = {
+  name: '大観山',
+  region: '神奈川',
+  category: '絶景ロード',
+  distanceKm: '',
+  season: '',
+  memo: '',
+}
+
+const OTHER_TAB_SPOT: Spot = {
+  id: 20,
+  name: '房総フラワーライン',
+  region: '千葉',
+  category: '海沿い',
+  distanceKm: '',
+  season: '',
+  memo: '',
+  done: false,
+}
+
+/** What another tab saved after this tab loaded: the seed plus one new spot (id 20, nextId 21). */
+function createOtherTabData(): SpotsData {
+  const seedData = createSeedData()
+  return { version: 1, nextId: 21, spots: [OTHER_TAB_SPOT, ...seedData.spots] }
+}
+
+function writeSavedData(data: SpotsData) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}
+
+function readSavedData(): SpotsData | null {
+  const raw = window.localStorage.getItem(STORAGE_KEY)
+  return raw === null ? null : (JSON.parse(raw) as SpotsData)
+}
+
+function dispatchStorageEvent(key: string | null) {
+  act(() => {
+    window.dispatchEvent(new StorageEvent('storage', { key }))
+  })
+}
+
+function dispatchPageShow(persisted: boolean) {
+  act(() => {
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted }))
+  })
+}
+
+function throwSecurityError(): never {
+  throw new DOMException('The operation is insecure.', 'SecurityError')
+}
+
+function throwQuotaExceededError(): never {
+  throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+}
+
+function findSpot(data: SpotsData | null, id: number): Spot | undefined {
+  return data?.spots.find((spot) => spot.id === id)
+}
+
+beforeEach(() => {
+  window.localStorage.clear()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  window.localStorage.clear()
+})
+
+describe('useSpotsData', () => {
+  describe('loading', () => {
+    it('AC1: ready is false on the first render and true after mounting, with the seed data', () => {
+      const readyHistory: boolean[] = []
+
+      const { result } = renderHook(() => {
+        const spotsData = useSpotsData()
+        readyHistory.push(spotsData.ready)
+        return spotsData
+      })
+
+      expect(readyHistory[0]).toBe(false)
+      expect(result.current.ready).toBe(true)
+      expect(result.current.data).toEqual(createSeedData())
+      expect(result.current.persistent).toBe(true)
+    })
+
+    it('AC1: loading alone writes nothing', () => {
+      renderHook(() => useSpotsData())
+
+      expect(window.localStorage.length).toBe(0)
+    })
+
+    it('AC13: loads the saved data after mounting', () => {
+      const otherTabData = createOtherTabData()
+      writeSavedData(otherTabData)
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.data).toEqual(otherTabData)
+      expect(result.current.persistent).toBe(true)
+    })
+
+    it('AC15: persistent is false when getItem throws', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.ready).toBe(true)
+      expect(result.current.data).toEqual(createSeedData())
+      expect(result.current.persistent).toBe(false)
+    })
+
+    it('AC14: persistent is false when the corrupt data cannot be backed up', () => {
+      window.localStorage.setItem(STORAGE_KEY, '{broken')
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.data).toEqual(createSeedData())
+      expect(result.current.persistent).toBe(false)
+    })
+  })
+
+  describe('actions before ready', () => {
+    it('AC13: add / toggleDone / remove called before the saved data has been read do nothing', () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const readyWhenActionsRan: boolean[] = []
+
+      // A layout effect runs before the hook's own (passive) load effect, i.e. while ready is false.
+      const { result } = renderHook(() => {
+        const spotsData = useSpotsData()
+        const actionsRanRef = useRef(false)
+        useLayoutEffect(() => {
+          if (actionsRanRef.current) return
+          actionsRanRef.current = true
+          readyWhenActionsRan.push(spotsData.ready)
+          spotsData.add(NEW_SPOT_INPUT)
+          spotsData.toggleDone(1)
+          spotsData.remove(2)
+        })
+        return spotsData
+      })
+
+      expect(readyWhenActionsRan).toEqual([false])
+      expect(result.current.ready).toBe(true)
+      expect(result.current.data).toEqual(createSeedData())
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    })
+  })
+
+  describe('actions (AC13)', () => {
+    it('AC13: add, toggleDone and remove update data and save it', () => {
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.add(NEW_SPOT_INPUT))
+      act(() => result.current.toggleDone(1))
+      act(() => result.current.remove(2))
+
+      const expectedIds = [20, 1, ...createSeedData().spots.map((spot) => spot.id).slice(2)]
+      expect(result.current.data.spots.map((spot) => spot.id)).toEqual(expectedIds)
+      expect(result.current.data.nextId).toBe(21)
+      expect(findSpot(result.current.data, 1)?.done).toBe(true)
+      expect(readSavedData()).toEqual(result.current.data)
+      expect(result.current.persistent).toBe(true)
+    })
+  })
+
+  describe('AC22: every write goes on top of the latest saved data', () => {
+    it('AC22: toggleDone keeps a spot that another tab saved after this tab loaded', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      act(() => result.current.toggleDone(1))
+
+      const savedData = readSavedData()
+      expect(findSpot(savedData, OTHER_TAB_SPOT.id)).toEqual(OTHER_TAB_SPOT)
+      expect(findSpot(savedData, 1)?.done).toBe(true)
+      expect(savedData?.nextId).toBe(21)
+      expect(result.current.data).toEqual(savedData)
+    })
+
+    it('AC22/AC16: add after another tab added a spot takes the next id instead of reusing it', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      act(() => result.current.add(NEW_SPOT_INPUT))
+
+      const savedData = readSavedData()
+      expect(savedData?.spots.slice(0, 2).map((spot) => [spot.id, spot.name])).toEqual([
+        [21, '大観山'],
+        [20, '房総フラワーライン'],
+      ])
+      expect(savedData?.nextId).toBe(22)
+      expect(result.current.data).toEqual(savedData)
+    })
+
+    it('AC22: remove keeps a spot that another tab saved after this tab loaded', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      act(() => result.current.remove(1))
+
+      const savedData = readSavedData()
+      expect(findSpot(savedData, OTHER_TAB_SPOT.id)).toEqual(OTHER_TAB_SPOT)
+      expect(findSpot(savedData, 1)).toBeUndefined()
+      expect(savedData?.spots).toHaveLength(19)
+    })
+  })
+
+  describe('AC15: persistent', () => {
+    it('AC15: when getItem throws, actions still change the data in memory but never call setItem', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.toggleDone(1))
+      act(() => result.current.add(NEW_SPOT_INPUT))
+
+      expect(findSpot(result.current.data, 1)?.done).toBe(true)
+      expect(result.current.data.spots[0]).toMatchObject({ id: 20, name: '大観山' })
+      expect(result.current.persistent).toBe(false)
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC14/AC15: when the corrupt data could not be backed up, later actions never write (the original stays)', () => {
+      window.localStorage.setItem(STORAGE_KEY, '{broken')
+      // Only the backup attempt while loading fails; storage would work again afterwards.
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(throwQuotaExceededError)
+      const { result } = renderHook(() => useSpotsData())
+      const setItemCallsAfterLoad = setItemSpy.mock.calls.length
+
+      act(() => result.current.toggleDone(1))
+
+      expect(result.current.persistent).toBe(false)
+      expect(findSpot(result.current.data, 1)?.done).toBe(true)
+      expect(setItemSpy).toHaveBeenCalledTimes(setItemCallsAfterLoad)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe('{broken')
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC15: a failed save turns persistent off and keeps the change in memory', () => {
+      const { result } = renderHook(() => useSpotsData())
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      act(() => result.current.toggleDone(1))
+
+      expect(result.current.persistent).toBe(false)
+      expect(findSpot(result.current.data, 1)?.done).toBe(true)
+    })
+
+    it('AC15: once off, persistent stays false even when storage works again', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementation(throwQuotaExceededError)
+      act(() => result.current.toggleDone(1))
+      setItemSpy.mockRestore()
+
+      act(() => result.current.toggleDone(2))
+
+      expect(result.current.persistent).toBe(false)
+      expect(findSpot(result.current.data, 2)?.done).toBe(true)
+    })
+
+    it('AC15: after a failed save, later actions do not try to write', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(throwQuotaExceededError)
+      act(() => result.current.toggleDone(1))
+      const setItemCallsAfterFailure = setItemSpy.mock.calls.length
+
+      act(() => result.current.toggleDone(2))
+      act(() => result.current.add(NEW_SPOT_INPUT))
+
+      expect(setItemSpy).toHaveBeenCalledTimes(setItemCallsAfterFailure)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+      expect(findSpot(result.current.data, 2)?.done).toBe(true)
+      expect(result.current.data.spots[0]).toMatchObject({ name: '大観山' })
+    })
+  })
+
+  describe('AC22: refreshing the view', () => {
+    it("AC22: a storage event for 'drive-spots:v1' refreshes data with what another tab saved", () => {
+      const { result } = renderHook(() => useSpotsData())
+      const otherTabData = createOtherTabData()
+      writeSavedData(otherTabData)
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expect(result.current.data).toEqual(otherTabData)
+      expect(result.current.ready).toBe(true)
+      expect(result.current.persistent).toBe(true)
+    })
+
+    it('AC22: a storage event with key null (storage cleared or rewritten elsewhere) refreshes data', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const otherTabData = createOtherTabData()
+      writeSavedData(otherTabData)
+
+      dispatchStorageEvent(null)
+
+      expect(result.current.data).toEqual(otherTabData)
+    })
+
+    it('AC22: storage events for other keys do not refresh data', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      dispatchStorageEvent('some-other-app')
+      dispatchStorageEvent(BACKUP_KEY)
+
+      expect(result.current.data).toEqual(createSeedData())
+    })
+
+    it('AC22: pageshow with persisted true (restored by back/forward) refreshes data', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const otherTabData = createOtherTabData()
+      writeSavedData(otherTabData)
+
+      dispatchPageShow(true)
+
+      expect(result.current.data).toEqual(otherTabData)
+    })
+
+    it('AC22: pageshow with persisted false (a normal load) does not refresh data', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      dispatchPageShow(false)
+
+      expect(result.current.data).toEqual(createSeedData())
+    })
+
+    it('AC22: refreshing does not write anything', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const otherTabData = createOtherTabData()
+      writeSavedData(otherTabData)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      dispatchStorageEvent(STORAGE_KEY)
+      dispatchPageShow(true)
+
+      expect(result.current.data).toEqual(otherTabData)
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC22/AC15: a refresh after a failed save shows the latest data but keeps persistent false', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementation(throwQuotaExceededError)
+      act(() => result.current.toggleDone(1))
+      setItemSpy.mockRestore()
+      const otherTabData = createOtherTabData()
+      writeSavedData(otherTabData)
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expect(result.current.data).toEqual(otherTabData)
+      expect(result.current.persistent).toBe(false)
+    })
+
+    it('AC22: removes its storage and pageshow listeners on unmount', () => {
+      const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
+      const { unmount } = renderHook(() => useSpotsData())
+
+      unmount()
+
+      for (const eventType of ['storage', 'pageshow']) {
+        const addedListeners = addEventListenerSpy.mock.calls
+          .filter(([type]) => type === eventType)
+          .map(([, listener]) => listener)
+        const removedListeners = removeEventListenerSpy.mock.calls
+          .filter(([type]) => type === eventType)
+          .map(([, listener]) => listener)
+        expect(addedListeners, `a '${eventType}' listener is added`).not.toHaveLength(0)
+        for (const listener of addedListeners) {
+          expect(removedListeners, `the '${eventType}' listener is removed`).toContain(listener)
+        }
+      }
+    })
+
+    it('AC22: after unmount, storage and pageshow events no longer read localStorage', () => {
+      const { unmount } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+      unmount()
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem')
+
+      dispatchStorageEvent(STORAGE_KEY)
+      dispatchPageShow(true)
+
+      expect(getItemSpy).not.toHaveBeenCalled()
+    })
+  })
+})

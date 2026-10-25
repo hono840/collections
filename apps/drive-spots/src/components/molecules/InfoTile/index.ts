@@ -1,0 +1,1 @@
+export { InfoTile } from './InfoTile'
