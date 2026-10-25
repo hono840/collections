@@ -39,6 +39,8 @@ export function addSpot(data: SpotsData, input: SpotInput): SpotsData
 //   前後の空白を削る / region が空なら '未入力' / 先頭に追加 / done=false / id=nextId / nextId+1
 export function toggleDone(data: SpotsData, id: number): SpotsData
 export function removeSpot(data: SpotsData, id: number): SpotsData // nextId は変えない
+export function updateMemo(data: SpotsData, id: number, memo: string): SpotsData
+//   AC23〜AC27: その id のメモだけを memo.trim() に変える。ほかの項目・並び順・nextId は変えない。id が無ければ同じ中身を返す（よみがえらせない）
 export function filterSpots(spots: Spot[], tab: Tab, category: CategoryFilter): Spot[]
 export function countByTab(spots: Spot[]): { want: number; done: number }
 export type SpotInputErrors = { name?: string; distanceKm?: string }
@@ -83,6 +85,7 @@ export function useSpotsData(): {
   add(input: SpotInput): void
   toggleDone(id: number): void
   remove(id: number): void
+  updateMemo(id: number, memo: string): void // AC24, AC27, AC28
 }
 ```
 
@@ -102,7 +105,7 @@ export function useSpotsData(): {
 | molecules | `InfoTile` | 詳細の「地域」「距離」「時期」の箱 |
 | molecules | `EmptyState` | 「まだありません」 |
 | organisms | `SpotListScreen` | 一覧画面（見出し・タブ・チップ・保存できないお知らせ・カード・追加ボタン） |
-| organisms | `SpotDetailScreen` | 詳細画面。削除の2回押し状態を中に持つ（画面を離れると消える） |
+| organisms | `SpotDetailScreen` | 詳細画面。削除の2回押し状態と、メモの編集中かどうか・編集中の文字を中に持つ（画面を離れると消える）。保存は `onUpdateMemo(memo)` で親に渡す |
 | organisms | `SpotFormScreen` | 追加画面。入力値とエラー表示を中に持ち、`validateSpotInput` を使う |
 | templates | `AppShell` | 画面の枠（最大幅 480px・`100dvh`・safe-area・背景色）。データは持たない |
 

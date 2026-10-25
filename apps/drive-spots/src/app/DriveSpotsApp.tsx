@@ -17,7 +17,7 @@ type Screen = 'list' | 'detail' | 'add'
  * rendered, and nothing until the saved data has been read.
  */
 export function DriveSpotsApp() {
-  const { ready, data, persistent, add, toggleDone, remove } = useSpotsData()
+  const { ready, data, persistent, add, toggleDone, remove, updateMemo } = useSpotsData()
   const [screen, setScreen] = useState<Screen>('list')
   const [tab, setTab] = useState<Tab>('want')
   const [category, setCategory] = useState<CategoryFilter>(ALL_CATEGORIES)
@@ -64,6 +64,12 @@ export function DriveSpotsApp() {
     if (selectedSpotId !== null) toggleDone(selectedSpotId)
   }
 
+  // AC27: if another tab deleted the spot meanwhile, nothing comes back and the check below shows
+  // the list instead of the detail.
+  function updateSelectedMemo(memo: string) {
+    if (selectedSpotId !== null) updateMemo(selectedSpotId, memo)
+  }
+
   function removeSelected() {
     if (selectedSpotId !== null) remove(selectedSpotId)
     setSelectedSpotId(null)
@@ -95,6 +101,7 @@ export function DriveSpotsApp() {
           onBack={backFromDetail}
           onToggleDone={toggleSelectedDone}
           onRemove={removeSelected}
+          onUpdateMemo={updateSelectedMemo}
           focusOnMount={hasNavigated}
         />
       </AppShell>

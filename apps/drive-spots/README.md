@@ -3,7 +3,7 @@
 行きたい道（峠・絶景ロードなど）を自分用にメモして、行ったら「行った」に移すスマホ向けアプリです。
 
 - **公開先**: https://hono840.github.io/collections/drive-spots/ （GitHub Pages）
-- **仕様**: [`docs/product/spec.md`](docs/product/spec.md)（受入条件 AC1〜AC22）
+- **仕様**: [`docs/product/spec.md`](docs/product/spec.md)（受入条件 AC1〜AC29。AC23〜AC29 はメモの編集）
 - **次の実装の計画（案）**: [`docs/product/plan-v2.md`](docs/product/plan-v2.md)（メモの編集・ユーザーごとのデータベース保存）
 - **デザイン原本**: [`docs/design/Main.dc.html`](docs/design/Main.dc.html)
 

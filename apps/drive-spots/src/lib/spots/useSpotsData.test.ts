@@ -294,6 +294,152 @@ describe('useSpotsData', () => {
     })
   })
 
+  describe('updateMemo (AC24, AC26-AC28)', () => {
+    /** The seed with the memo of one spot replaced; everything else as loaded. */
+    function createSeedWithMemo(id: number, memo: string): SpotsData {
+      const seedData = createSeedData()
+      return {
+        ...seedData,
+        spots: seedData.spots.map((spot) => (spot.id === id ? { ...spot, memo } : spot)),
+      }
+    }
+
+    /** What another tab saved after this tab loaded: the seed without the given spot. */
+    function createOtherTabDataWithout(id: number): SpotsData {
+      const seedData = createSeedData()
+      return { ...seedData, spots: seedData.spots.filter((spot) => spot.id !== id) }
+    }
+
+    it('AC24/AC26: changes only that memo, trimmed, and saves it', () => {
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.updateMemo(1, '  朝7時に出発\n菜の花台で休憩　'))
+
+      const expectedData = createSeedWithMemo(1, '朝7時に出発\n菜の花台で休憩')
+      expect(result.current.data).toEqual(expectedData)
+      expect(readSavedData()).toEqual(expectedData)
+      expect(result.current.persistent).toBe(true)
+      expect(result.current.ready).toBe(true)
+    })
+
+    it('AC24: a blank memo is saved as an empty memo', () => {
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.updateMemo(1, ' 　\n'))
+
+      expect(findSpot(result.current.data, 1)?.memo).toBe('')
+      expect(readSavedData()).toEqual(createSeedWithMemo(1, ''))
+    })
+
+    it('AC27/AC22: keeps a spot that another tab saved after this tab loaded', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      act(() => result.current.updateMemo(1, '新しいメモ'))
+
+      const savedData = readSavedData()
+      expect(findSpot(savedData, OTHER_TAB_SPOT.id)).toEqual(OTHER_TAB_SPOT)
+      expect(findSpot(savedData, 1)?.memo).toBe('新しいメモ')
+      expect(savedData?.spots).toHaveLength(20)
+      expect(savedData?.nextId).toBe(21)
+      expect(result.current.data).toEqual(savedData)
+    })
+
+    it('AC27: does not bring back a spot that another tab deleted after this tab loaded', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const otherTabData = createOtherTabDataWithout(1)
+      writeSavedData(otherTabData)
+
+      act(() => result.current.updateMemo(1, '新しいメモ'))
+
+      const savedData = readSavedData()
+      expect(savedData).toEqual(otherTabData)
+      expect(findSpot(savedData, 1)).toBeUndefined()
+      expect(findSpot(result.current.data, 1)).toBeUndefined()
+      expect(result.current.data).toEqual(otherTabData)
+    })
+
+    it('AC13: updateMemo called before the saved data has been read does nothing', () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const readyWhenActionRan: boolean[] = []
+
+      // A layout effect runs before the hook's own (passive) load effect, i.e. while ready is false.
+      const { result } = renderHook(() => {
+        const spotsData = useSpotsData()
+        const actionRanRef = useRef(false)
+        useLayoutEffect(() => {
+          if (actionRanRef.current) return
+          actionRanRef.current = true
+          readyWhenActionRan.push(spotsData.ready)
+          spotsData.updateMemo(1, '新しいメモ')
+        })
+        return spotsData
+      })
+
+      expect(readyWhenActionRan).toEqual([false])
+      expect(result.current.ready).toBe(true)
+      expect(result.current.data).toEqual(createSeedData())
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    })
+
+    it('AC28/AC15: when getItem throws, the memo changes in memory but setItem is never called', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.updateMemo(1, '  新しいメモ  '))
+
+      expect(result.current.data).toEqual(createSeedWithMemo(1, '新しいメモ'))
+      expect(result.current.persistent).toBe(false)
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC28/AC14: when the corrupt data could not be backed up, the memo changes in memory and the original stays', () => {
+      window.localStorage.setItem(STORAGE_KEY, '{broken')
+      // Only the backup attempt while loading fails; storage would work again afterwards.
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(throwQuotaExceededError)
+      const { result } = renderHook(() => useSpotsData())
+      const setItemCallsAfterLoad = setItemSpy.mock.calls.length
+
+      act(() => result.current.updateMemo(1, '新しいメモ'))
+
+      expect(findSpot(result.current.data, 1)?.memo).toBe('新しいメモ')
+      expect(result.current.persistent).toBe(false)
+      expect(setItemSpy).toHaveBeenCalledTimes(setItemCallsAfterLoad)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe('{broken')
+    })
+
+    it('AC28/AC15: a failed save turns persistent off and keeps the new memo in memory', () => {
+      const { result } = renderHook(() => useSpotsData())
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      act(() => result.current.updateMemo(1, '新しいメモ'))
+
+      expect(result.current.persistent).toBe(false)
+      expect(findSpot(result.current.data, 1)?.memo).toBe('新しいメモ')
+    })
+
+    it('AC28/AC15: after a failed save, updateMemo changes the memo in memory without trying to write', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(throwQuotaExceededError)
+      act(() => result.current.toggleDone(1))
+      const setItemCallsAfterFailure = setItemSpy.mock.calls.length
+
+      act(() => result.current.updateMemo(2, '新しいメモ'))
+
+      expect(setItemSpy).toHaveBeenCalledTimes(setItemCallsAfterFailure)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+      expect(findSpot(result.current.data, 2)?.memo).toBe('新しいメモ')
+      expect(findSpot(result.current.data, 1)?.done).toBe(true)
+      expect(result.current.persistent).toBe(false)
+    })
+  })
+
   describe('AC22: refreshing the view', () => {
     it("AC22: a storage event for 'drive-spots:v1' refreshes data with what another tab saved", () => {
       const { result } = renderHook(() => useSpotsData())

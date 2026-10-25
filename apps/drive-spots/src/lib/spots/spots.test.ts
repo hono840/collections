@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { addSpot, countByTab, filterSpots, removeSpot, toggleDone, validateSpotInput } from './spots'
+import {
+  addSpot,
+  countByTab,
+  filterSpots,
+  removeSpot,
+  toggleDone,
+  updateMemo,
+  validateSpotInput,
+} from './spots'
 import type { Spot, SpotInput, SpotsData } from './types'
 
 const NAME_REQUIRED_MESSAGE = 'スポット名を入れてください'
@@ -271,6 +279,138 @@ describe('removeSpot', () => {
     const dataSnapshot = structuredClone(data)
 
     const result = removeSpot(data, 1)
+
+    expect(result).not.toBe(data)
+    expect(result.spots).not.toBe(data.spots)
+    expect(data).toEqual(dataSnapshot)
+  })
+})
+
+describe('updateMemo', () => {
+  // Non-sequential ids, every field filled and a 行った spot, so "only the memo changes" (AC26) means something.
+  function makeFilledData(): SpotsData {
+    return makeData(
+      [
+        makeSpot({
+          id: 7,
+          name: '奥多摩',
+          region: '東京',
+          category: '峠',
+          distanceKm: '45',
+          season: '新緑の頃',
+          memo: '古いメモ',
+          done: true,
+        }),
+        makeSpot({ id: 3, name: '箱根ターンパイク', category: '絶景ロード', memo: '' }),
+        makeSpot({
+          id: 12,
+          name: '銚子ドーバーライン',
+          region: '千葉',
+          category: '海沿い',
+          distanceKm: '120',
+          season: '夏の夕方',
+          memo: '灯台に寄る',
+        }),
+      ],
+      30,
+    )
+  }
+
+  function findMemo(data: SpotsData, id: number): string | undefined {
+    return data.spots.find((spot) => spot.id === id)?.memo
+  }
+
+  it('AC24: replaces the memo of the spot with that id', () => {
+    const result = updateMemo(makeFilledData(), 7, '朝のうちに走る')
+
+    expect(findMemo(result, 7)).toBe('朝のうちに走る')
+  })
+
+  it('AC24: fills in a memo that was empty', () => {
+    const result = updateMemo(makeFilledData(), 3, '新しいメモ')
+
+    expect(findMemo(result, 3)).toBe('新しいメモ')
+  })
+
+  it.each([
+    ['half-width spaces', '  早朝に行く  '],
+    ['full-width spaces', '　早朝に行く　'],
+    ['tabs and line breaks', '\t\n早朝に行く\n\t'],
+    ['a mix of half-width spaces, full-width spaces and line breaks', ' 　\n早朝に行く \n　'],
+  ])('AC24: trims %s around the memo (%j), like adding does', (_description, rawMemo) => {
+    const result = updateMemo(makeFilledData(), 7, rawMemo)
+
+    expect(findMemo(result, 7)).toBe('早朝に行く')
+  })
+
+  it('AC24: keeps line breaks and spaces inside the memo while trimming its ends', () => {
+    const result = updateMemo(makeFilledData(), 7, '\n 一行目\n\n二行目 　三行目 \n')
+
+    expect(findMemo(result, 7)).toBe('一行目\n\n二行目 　三行目')
+  })
+
+  it.each(['', '   ', '　', '\n\t　 '])('AC24: the blank memo %j empties the memo', (blankMemo) => {
+    const result = updateMemo(makeFilledData(), 7, blankMemo)
+
+    expect(findMemo(result, 7)).toBe('')
+  })
+
+  it('AC26: changes nothing but the memo (other fields, other spots, order, nextId, version)', () => {
+    const data = makeFilledData()
+
+    const result = updateMemo(data, 7, '  新しいメモ  ')
+
+    expect(result).toEqual({
+      version: 1,
+      nextId: 30,
+      spots: [{ ...data.spots[0], memo: '新しいメモ' }, data.spots[1], data.spots[2]],
+    })
+    expect(result.spots.map((spot) => spot.id)).toEqual([7, 3, 12])
+    expect(result.spots[0]).toMatchObject({
+      id: 7,
+      name: '奥多摩',
+      region: '東京',
+      category: '峠',
+      distanceKm: '45',
+      season: '新緑の頃',
+      done: true,
+    })
+  })
+
+  it('AC26: changing the memo of a 行きたい spot keeps it 行きたい and in place', () => {
+    const data = makeFilledData()
+
+    const result = updateMemo(data, 12, '新しいメモ')
+
+    expect(result.spots[2]).toEqual({ ...data.spots[2], memo: '新しいメモ' })
+    expect(result.spots.slice(0, 2)).toEqual(data.spots.slice(0, 2))
+  })
+
+  it('AC27: leaves the content unchanged for an unknown id (no spot is created)', () => {
+    const data = makeFilledData()
+
+    const result = updateMemo(data, 999, '新しいメモ')
+
+    expect(result).toEqual(data)
+    expect(result.spots).toHaveLength(3)
+    expect(result.spots.map((spot) => spot.memo)).not.toContain('新しいメモ')
+  })
+
+  it('AC27: does not bring back a spot that has been removed', () => {
+    const afterRemove = removeSpot(makeFilledData(), 7)
+
+    const result = updateMemo(afterRemove, 7, '新しいメモ')
+
+    expect(result).toEqual(afterRemove)
+    expect(result.spots.map((spot) => spot.id)).toEqual([3, 12])
+    expect(result.nextId).toBe(30)
+  })
+
+  it('does not mutate the data (returns a new object)', () => {
+    const data = deepFreeze(makeFilledData())
+    const dataSnapshot = structuredClone(data)
+
+    const result = updateMemo(data, 7, '  新しいメモ  ')
 
     expect(result).not.toBe(data)
     expect(result.spots).not.toBe(data.spots)
