@@ -31,6 +31,7 @@ C-Suite は直接手を動かさず、サブエージェントに委譲 → レ�
 | [budget-app](./apps/budget-app) | プライバシーファーストの家計簿アプリ | Next.js, TypeScript, Supabase, Tailwind CSS | MVP完成・デプロイ済み |
 | [worldcup-kickoff](./apps/worldcup-kickoff) | ルール・選手・国を知らない初心者でも楽しめる 2026 W杯 観戦ガイド | Next.js, TypeScript, Tailwind CSS（全SSG・localStorage・DBなし） | MVP完成 |
 | [carskiida](./apps/carskiida) | 車種を「世代史 × パーツ構造 × 生産地」で立体的に引ける日本語の自動車百科事典 | Next.js, TypeScript, Supabase, Tailwind CSS（SSG/ISR・PGroonga・全フィールド出典付き） | MVP完成（Sprint 1-4：詳細/比較/検索/用語/回遊/お気に入り）・データはシード稼働 |
+| [drive-spots](./apps/drive-spots) | 行きたい道（峠・絶景ロードなど）をメモし、行ったら「行った」に移すスマホ向けノート | Next.js, TypeScript, Tailwind CSS（静的書き出し・localStorage・GitHub Pages） | v1・[GitHub Pages](https://hono840.github.io/collections/drive-spots/) で公開 |
 
 ## デフォルト技術スタック
 
@@ -60,10 +61,14 @@ collections/
 │   ├── worldcup-kickoff/ # 2026 W杯 初心者向け観戦ガイド
 │   │   ├── src/         # ソースコード（Atomic Design）
 │   │   └── docs/        # PRD・設計・マーケティング
-│   └── carskiida/       # 自動車百科事典（世代史 × パーツ構造 × 生産地）
+│   ├── carskiida/       # 自動車百科事典（世代史 × パーツ構造 × 生産地）
+│   │   ├── src/         # ソースコード（Atomic Design）
+│   │   ├── supabase/    # マイグレーション（スキーマ・RLS・keep-alive）
+│   │   └── docs/        # 市場分析・PRD・アーキ・デザイン仕様・コスト
+│   └── drive-spots/     # ドライブスポット帳（GitHub Pages で公開）
 │       ├── src/         # ソースコード（Atomic Design）
-│       ├── supabase/    # マイグレーション（スキーマ・RLS・keep-alive）
-│       └── docs/        # 市場分析・PRD・アーキ・デザイン仕様・コスト
+│       ├── scripts/     # ビルド後の CSP 埋め込み・出力チェック
+│       └── docs/        # 仕様・設計・デザイン原本
 ├── docs/
 │   └── security/        # サプライチェーン監査レポート・運用ガイド
 ├── .github/
