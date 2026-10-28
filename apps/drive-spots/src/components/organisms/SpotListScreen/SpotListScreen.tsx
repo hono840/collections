@@ -162,6 +162,7 @@ export function SpotListScreen({
                   name={spot.name}
                   region={spot.region}
                   category={spot.category}
+                  exitInterchange={spot.exitInterchange}
                   done={spot.done}
                   onOpen={() => onOpenSpot(spot.id)}
                 />

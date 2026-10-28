@@ -26,15 +26,22 @@ export type Spot = {
   region: string
   category: Category
   distanceKm: string // '' = not entered
+  exitInterchange: string // 降りるIC; '' = not entered (added in version 2, AC46)
   season: string
   memo: string
   done: boolean
 }
 
-/** The saved shape under localStorage 'drive-spots:v1' (AC13). */
-export type SpotsData = { version: 1; nextId: number; spots: Spot[] }
+/**
+ * The format version this app writes, and the newest it reads (AC13, AC46). Version 1 (no
+ * exitInterchange) is still read and handed on as version 2; anything above this is AC30.
+ */
+export const SPOTS_DATA_VERSION = 2
 
-/** What the add form collects. id and done are assigned by addSpot. */
+/** The saved shape under localStorage 'drive-spots:v1' (AC13). */
+export type SpotsData = { version: typeof SPOTS_DATA_VERSION; nextId: number; spots: Spot[] }
+
+/** What the add and edit forms collect. id and done are kept by addSpot / updateSpot. */
 export type SpotInput = Omit<Spot, 'id' | 'done'>
 
 /**

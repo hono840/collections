@@ -22,6 +22,7 @@ const WANT_SPOT: Spot = {
   region: '神奈川',
   category: '絶景ロード',
   distanceKm: '60',
+  exitInterchange: '小田原西IC',
   season: '紅葉の季節',
   memo: '一行目\n二行目',
   done: false,
@@ -33,12 +34,26 @@ const DONE_SPOT: Spot = {
   region: '静岡・神奈川',
   category: '絶景ロード',
   distanceKm: '',
+  exitInterchange: '',
   season: '',
   memo: '',
   done: true,
 }
 
-const BACKUP_DATA: SpotsData = { version: 1, nextId: 23, spots: [WANT_SPOT, DONE_SPOT] }
+const BACKUP_DATA: SpotsData = { version: 2, nextId: 23, spots: [WANT_SPOT, DONE_SPOT] }
+
+/** BACKUP_DATA as a file written by version 1 of the app holds it: no exitInterchange (AC46). */
+const VERSION_1_BACKUP_DATA = {
+  version: 1,
+  nextId: 23,
+  spots: [WANT_SPOT, DONE_SPOT].map((spot) => withoutKey({ ...spot }, 'exitInterchange')),
+}
+/** What reading VERSION_1_BACKUP_DATA must give: version 2 with every exitInterchange empty. */
+const VERSION_1_BACKUP_DATA_READ: SpotsData = {
+  version: 2,
+  nextId: 23,
+  spots: [WANT_SPOT, DONE_SPOT].map((spot) => ({ ...spot, exitInterchange: '' })),
+}
 
 /** Local 2026-10-20 21:30, i.e. 2026-10-20 in the device calendar whatever the zone. */
 const EXPORTED_AT = new Date(2026, 9, 20, 21, 30, 15)
@@ -116,6 +131,19 @@ describe('createBackupFileContent', () => {
     expect(content.startsWith('{\n  "app": "drive-spots",\n  "backupVersion": 1,\n')).toBe(true)
   })
 
+  it('AC46: writes backupVersion 1 (unchanged) around data of version 2', () => {
+    const parsedContent = JSON.parse(createBackupFileContent(createSeedData(), EXPORTED_AT))
+
+    expect(parsedContent.backupVersion).toBe(1)
+    expect(parsedContent.data.version).toBe(2)
+  })
+
+  it('AC46/AC47: writes the exitInterchange of every spot', () => {
+    const parsedContent = JSON.parse(createBackupFileContent(BACKUP_DATA, EXPORTED_AT))
+
+    expect(parsedContent.data.spots.map((spot: Spot) => spot.exitInterchange)).toEqual(['小田原西IC', ''])
+  })
+
   it('AC32: keeps the data as it is (nextId, ids, order, line breaks)', () => {
     const seedData = createSeedData()
 
@@ -176,7 +204,7 @@ describe('parseBackupFile', () => {
 
     it('AC35/AC37: round-trips names that look like HTML as plain strings', () => {
       const htmlLikeData: SpotsData = {
-        version: 1,
+        version: 2,
         nextId: 8,
         spots: [{ ...WANT_SPOT, id: 7, name: '<img src=x onerror=alert(1)>', memo: '<script>alert(1)</script>' }],
       }
@@ -187,7 +215,7 @@ describe('parseBackupFile', () => {
     })
 
     it('AC16/AC35: reads a file whose nextId is exactly 1,000,000,000 (the largest allowed)', () => {
-      const largestData: SpotsData = { version: 1, nextId: 1_000_000_000, spots: [{ ...WANT_SPOT, id: 999_999_999 }] }
+      const largestData: SpotsData = { version: 2, nextId: 1_000_000_000, spots: [{ ...WANT_SPOT, id: 999_999_999 }] }
 
       const parsed = parseBackupFile(createBackupFileContent(largestData, EXPORTED_AT))
 
@@ -201,11 +229,53 @@ describe('parseBackupFile', () => {
     })
 
     it('AC35: reads a backup of an empty list', () => {
-      const emptyData: SpotsData = { version: 1, nextId: 20, spots: [] }
+      const emptyData: SpotsData = { version: 2, nextId: 20, spots: [] }
 
       const parsed = parseBackupFile(JSON.stringify(createBackupObject({ data: emptyData })))
 
       expect(parsed).toEqual({ kind: 'ok', data: emptyData, exportedAt: EXPORTED_AT })
+    })
+
+    it('AC46: reads a file whose data is version 1 (made before the version 2 release) as version 2 with exitInterchange empty', () => {
+      const parsed = parseBackupFile(JSON.stringify(createBackupObject({ data: VERSION_1_BACKUP_DATA })))
+
+      expect(parsed).toEqual({ kind: 'ok', data: VERSION_1_BACKUP_DATA_READ, exportedAt: EXPORTED_AT })
+    })
+
+    it('AC46: reads a version 1 empty list as a version 2 empty list', () => {
+      const parsed = parseBackupFile(JSON.stringify(createBackupObject({ data: { version: 1, nextId: 20, spots: [] } })))
+
+      expect(parsed).toEqual({ kind: 'ok', data: { version: 2, nextId: 20, spots: [] }, exportedAt: EXPORTED_AT })
+    })
+
+    it('AC46: an exitInterchange key inside version 1 data is ignored', () => {
+      const dataWithKey = {
+        ...VERSION_1_BACKUP_DATA,
+        spots: VERSION_1_BACKUP_DATA.spots.map((spot) => ({ ...spot, exitInterchange: '小田原西IC' })),
+      }
+
+      const parsed = parseBackupFile(JSON.stringify(createBackupObject({ data: dataWithKey })))
+
+      expect(parsed).toEqual({ kind: 'ok', data: VERSION_1_BACKUP_DATA_READ, exportedAt: EXPORTED_AT })
+    })
+
+    it('AC46/AC1: the seed in a version 1 file reads as the version 2 seed', () => {
+      const seedData = createSeedData()
+      const version1Seed = {
+        version: 1,
+        nextId: seedData.nextId,
+        spots: seedData.spots.map((spot) => withoutKey({ ...spot }, 'exitInterchange')),
+      }
+
+      const parsed = parseBackupFile(JSON.stringify(createBackupObject({ data: version1Seed })))
+
+      expect(parsed).toEqual({ kind: 'ok', data: seedData, exportedAt: EXPORTED_AT })
+    })
+
+    it('AC34/AC46: data.version 2 is this version now, so a valid version 2 file is ok (not newer)', () => {
+      const parsed = parseBackupFile(JSON.stringify(createBackupObject({ data: BACKUP_DATA })))
+
+      expect(parsed).toEqual({ kind: 'ok', data: BACKUP_DATA, exportedAt: EXPORTED_AT })
     })
 
     it('AC35: exportedAt comes back as a Date', () => {
@@ -284,6 +354,37 @@ describe('parseBackupFile', () => {
         'a spot id equal to nextId (the id would be reused, AC16)',
         createBackupObject({ data: { ...BACKUP_DATA, spots: [{ ...WANT_SPOT, id: BACKUP_DATA.nextId }] } }),
       ],
+      // AC34/AC46: version 2 is this version's own format, so a broken one is invalid, not newer.
+      ['data that is only { version: 2 }', createBackupObject({ data: { version: 2 } })],
+      ['data.version 2 in an unknown shape', createBackupObject({ data: { version: 2, places: [{ title: '大観山' }] } })],
+      [
+        'data.version 2 with a spot without exitInterchange',
+        createBackupObject({ data: { ...BACKUP_DATA, spots: [withoutKey({ ...WANT_SPOT }, 'exitInterchange')] } }),
+      ],
+      [
+        'data.version 2 with exitInterchange as a number',
+        createBackupObject({ data: { ...BACKUP_DATA, spots: [{ ...WANT_SPOT, exitInterchange: 0 }] } }),
+      ],
+      ['data.version 2 with the version 1 shape', createBackupObject({ data: { ...VERSION_1_BACKUP_DATA, version: 2 } })],
+      ["data.version as the string '3' (corrupt, not newer)", createBackupObject({ data: { ...BACKUP_DATA, version: '3' } })],
+      ['data.version 2.5', createBackupObject({ data: { ...BACKUP_DATA, version: 2.5 } })],
+      // AC46: version 1 data is checked as strictly as before (AC14, AC16).
+      [
+        'data.version 1 with a spot without memo',
+        createBackupObject({
+          data: { ...VERSION_1_BACKUP_DATA, spots: [withoutKey({ ...VERSION_1_BACKUP_DATA.spots[0] }, 'memo')] },
+        }),
+      ],
+      [
+        'data.version 1 with duplicate spot ids',
+        createBackupObject({
+          data: { ...VERSION_1_BACKUP_DATA, spots: [VERSION_1_BACKUP_DATA.spots[0], VERSION_1_BACKUP_DATA.spots[0]] },
+        }),
+      ],
+      [
+        'data.version 1 with nextId 1,000,000,001 (AC16)',
+        createBackupObject({ data: { ...VERSION_1_BACKUP_DATA, nextId: 1_000_000_001 } }),
+      ],
     ])('AC34: is invalid for a file with %s', (_description, fileObject) => {
       expect(parseBackupFile(JSON.stringify(fileObject))).toEqual({ kind: 'invalid' })
     })
@@ -296,14 +397,146 @@ describe('parseBackupFile', () => {
       ['backupVersion 2 and no data', withoutKey(createBackupObject({ backupVersion: 2 }), 'data')],
       ['backupVersion 2 and no exportedAt', withoutKey(createBackupObject({ backupVersion: 2 }), 'exportedAt')],
       ['the largest safe integer as backupVersion', createBackupObject({ backupVersion: Number.MAX_SAFE_INTEGER })],
-      ['backupVersion 1 and data.version 2', createBackupObject({ data: { ...BACKUP_DATA, version: 2 } })],
+      ['backupVersion 2 and version 1 data', createBackupObject({ backupVersion: 2, data: VERSION_1_BACKUP_DATA })],
+      ['backupVersion 1 and data.version 3', createBackupObject({ data: { ...BACKUP_DATA, version: 3 } })],
       [
         'backupVersion 1 and data.version 3 in an unknown shape',
         createBackupObject({ data: { version: 3, places: [{ title: '大観山' }] } }),
       ],
-      ['backupVersion 1 and data that is only { version: 2 }', createBackupObject({ data: { version: 2 } })],
+      ['backupVersion 1 and data that is only { version: 3 }', createBackupObject({ data: { version: 3 } })],
+      ['backupVersion 1 and the largest safe integer as data.version', createBackupObject({ data: { version: Number.MAX_SAFE_INTEGER } })],
     ])('AC34: is newer for a file with %s', (_description, fileObject) => {
       expect(parseBackupFile(JSON.stringify(fileObject))).toEqual({ kind: 'newer' })
+    })
+  })
+
+  // JSON.parse makes "__proto__" an ordinary own key, so a crafted file can carry one. It must never
+  // stand in for a missing field, and nothing extra in the file may reach the result or
+  // Object.prototype (security; AC34, AC35, AC46).
+  describe('crafted "__proto__" keys and extra keys (security; AC34, AC35, AC46)', () => {
+    /** The 9 fields every spot that comes back has, no more and no fewer (AC46). */
+    const SPOT_KEYS = ['id', 'name', 'region', 'category', 'distanceKm', 'exitInterchange', 'season', 'memo', 'done']
+    /** What a crafted "__proto__" or constructor.prototype key tries to slip into every object. */
+    const POLLUTING_PROTO_JSON = '{"isAdmin":true,"exitInterchange":"汚染"}'
+
+    type DataLike = { version: number; nextId: number; spots: Record<string, unknown>[] }
+
+    /** The JSON text of `ownFields` with `"__proto__": <protoJson>` as its first key. */
+    function jsonWithOwnProtoKey(ownFields: Record<string, unknown>, protoJson: string): string {
+      const ownFieldsJson = JSON.stringify(ownFields).slice(1, -1)
+      return ownFieldsJson === '' ? `{"__proto__":${protoJson}}` : `{"__proto__":${protoJson},${ownFieldsJson}}`
+    }
+
+    /** A backup file as JSON text whose data is the given JSON text; app, backupVersion and exportedAt are valid. */
+    function backupFileTextWithDataJson(dataJson: string): string {
+      const fileFieldsJson = JSON.stringify(withoutKey(createBackupObject(), 'data')).slice(1, -1)
+      return `{${fileFieldsJson},"data":${dataJson}}`
+    }
+
+    /** Data with one spot as JSON text, where `key` is not an own field of the spot but sits under its own "__proto__" key. */
+    function dataJsonWithSpotFieldOnlyUnderProto(validData: DataLike, key: string): string {
+      const validSpot = validData.spots[0]
+      const spotJson = jsonWithOwnProtoKey(withoutKey(validSpot, key), JSON.stringify({ [key]: validSpot[key] }))
+      return `{"version":${validData.version},"nextId":${validData.nextId},"spots":[${spotJson}]}`
+    }
+
+    /**
+     * A valid file as JSON text with hostile extras: every spot carries isAdmin: true and its own
+     * "__proto__" key; data and the file itself carry extra keys and their own "__proto__" key.
+     */
+    function backupFileTextWithHostileExtras(validData: DataLike): string {
+      const spotJsonTexts = validData.spots.map((spot) => jsonWithOwnProtoKey({ ...spot, isAdmin: true }, POLLUTING_PROTO_JSON))
+      const dataFields = [
+        `"__proto__":${POLLUTING_PROTO_JSON}`,
+        `"version":${validData.version}`,
+        `"nextId":${validData.nextId}`,
+        `"spots":[${spotJsonTexts.join(',')}]`,
+        '"extra":"data level"',
+        `"constructor":{"prototype":${POLLUTING_PROTO_JSON}}`,
+      ]
+      const fileFields = [
+        `"__proto__":${POLLUTING_PROTO_JSON}`,
+        JSON.stringify(withoutKey(createBackupObject(), 'data')).slice(1, -1),
+        `"data":{${dataFields.join(',')}}`,
+        '"isAdmin":true',
+      ]
+      return `{${fileFields.join(',')}}`
+    }
+
+    it.each<[string, string]>([
+      [
+        'a version 2 spot whose exitInterchange is only under its own "__proto__" key',
+        backupFileTextWithDataJson(dataJsonWithSpotFieldOnlyUnderProto(BACKUP_DATA, 'exitInterchange')),
+      ],
+      [
+        'a version 2 spot whose memo is only under its own "__proto__" key',
+        backupFileTextWithDataJson(dataJsonWithSpotFieldOnlyUnderProto(BACKUP_DATA, 'memo')),
+      ],
+      [
+        'a version 1 spot whose done is only under its own "__proto__" key',
+        backupFileTextWithDataJson(dataJsonWithSpotFieldOnlyUnderProto(VERSION_1_BACKUP_DATA, 'done')),
+      ],
+      [
+        'data.version 2 only under the data\'s own "__proto__" key',
+        backupFileTextWithDataJson(jsonWithOwnProtoKey(withoutKey({ ...BACKUP_DATA }, 'version'), '{"version":2}')),
+      ],
+      [
+        'data.version 1 only under the data\'s own "__proto__" key',
+        backupFileTextWithDataJson(jsonWithOwnProtoKey(withoutKey(VERSION_1_BACKUP_DATA, 'version'), '{"version":1}')),
+      ],
+      [
+        'data.version 3 only under the data\'s own "__proto__" key (not newer either)',
+        backupFileTextWithDataJson(jsonWithOwnProtoKey(withoutKey({ ...BACKUP_DATA }, 'version'), '{"version":3}')),
+      ],
+      [
+        'the whole data only under the data\'s own "__proto__" key',
+        backupFileTextWithDataJson(jsonWithOwnProtoKey({}, JSON.stringify(BACKUP_DATA))),
+      ],
+      [
+        'data only under the file\'s own "__proto__" key',
+        jsonWithOwnProtoKey(withoutKey(createBackupObject(), 'data'), JSON.stringify({ data: BACKUP_DATA })),
+      ],
+      [
+        'app only under the file\'s own "__proto__" key',
+        jsonWithOwnProtoKey(withoutKey(createBackupObject(), 'app'), '{"app":"drive-spots"}'),
+      ],
+      [
+        'backupVersion only under the file\'s own "__proto__" key',
+        jsonWithOwnProtoKey(withoutKey(createBackupObject(), 'backupVersion'), '{"backupVersion":1}'),
+      ],
+    ])('AC34: is invalid for a file with %s', (_description, text) => {
+      expect(parseBackupFile(text)).toEqual({ kind: 'invalid' })
+    })
+
+    it.each<[string, DataLike, SpotsData]>([
+      ['version 2', BACKUP_DATA, BACKUP_DATA],
+      ['version 1', VERSION_1_BACKUP_DATA, VERSION_1_BACKUP_DATA_READ],
+    ])(
+      'AC35/AC46: reads a valid file with %s data and isAdmin, extra, constructor and "__proto__" keys as fresh objects with only the known fields',
+      (_description, validData, expectedData) => {
+        const parsed = parseBackupFile(backupFileTextWithHostileExtras(validData))
+
+        expect(parsed).toEqual({ kind: 'ok', data: expectedData, exportedAt: EXPORTED_AT })
+        if (parsed.kind !== 'ok') return
+        expect(Object.keys(parsed.data).sort()).toEqual(['nextId', 'spots', 'version'])
+        expect(Object.getPrototypeOf(parsed.data)).toBe(Object.prototype)
+        for (const spot of parsed.data.spots) {
+          expect(Object.keys(spot).sort()).toEqual([...SPOT_KEYS].sort())
+          expect(Object.getPrototypeOf(spot)).toBe(Object.prototype)
+        }
+      },
+    )
+
+    it('AC34: reading crafted files leaves Object.prototype untouched (no prototype pollution)', () => {
+      parseBackupFile(backupFileTextWithHostileExtras(BACKUP_DATA))
+      parseBackupFile(backupFileTextWithHostileExtras(VERSION_1_BACKUP_DATA))
+      parseBackupFile(backupFileTextWithDataJson(dataJsonWithSpotFieldOnlyUnderProto(BACKUP_DATA, 'exitInterchange')))
+
+      const freshObject: Record<string, unknown> = {}
+      expect(freshObject.exitInterchange).toBeUndefined()
+      expect(freshObject.isAdmin).toBeUndefined()
+      expect(Object.hasOwn(Object.prototype, 'exitInterchange')).toBe(false)
+      expect(Object.hasOwn(Object.prototype, 'isAdmin')).toBe(false)
     })
   })
 })

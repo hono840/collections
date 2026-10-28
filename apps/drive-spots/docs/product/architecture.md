@@ -24,11 +24,13 @@ export type Spot = {
   region: string
   category: Category
   distanceKm: string // 空文字 = 未入力
+  exitInterchange: string // 降りるIC。空文字 = 未入力（version 2 で追加、AC46）
   season: string
   memo: string
   done: boolean
 }
-export type SpotsData = { version: 1; nextId: number; spots: Spot[] }
+export const SPOTS_DATA_VERSION = 2 // この版が書く・読める一番新しい version（AC46）
+export type SpotsData = { version: typeof SPOTS_DATA_VERSION; nextId: number; spots: Spot[] }
 export type SpotInput = Omit<Spot, 'id' | 'done'>
 
 // seed.ts
@@ -97,10 +99,10 @@ export function useSpotsData(): {
 export const LAST_BACKUP_KEY = 'drive-spots:v1:last-backup' // 最後に書き出した日時（ISO 8601 の文字列）
 export function parseSpotsValue(value: unknown): SpotsData | null // parseSpotsData の中身。JSON.parse 済みの値を同じ厳しさで検査
 export const MAX_NEXT_ID = 1_000_000_000 // これより大きい nextId は壊れている扱い（AC16）
-export function isNewerVersionNumber(value: unknown): boolean // 1 より大きい安全な整数か（ファイルと保存データで共通）
+export function isNewerVersionNumber(value: unknown, newestReadable: number): value is number // newestReadable より大きい安全な整数か（AC46 で引数を追加）
 export function parseIsoDateTime(value: unknown): Date | null // Date#toISOString() と同じ形の文字列だけ受け付ける
 export function isNewerVersionValue(value: unknown): boolean
-//   オブジェクトで、version が 1 より大きい安全な整数のとき true（AC30）。'2' のような文字列は false（壊れている扱い）
+//   オブジェクトで、version が SPOTS_DATA_VERSION（2）より大きい安全な整数のとき true（AC30）。'3' のような文字列は false（壊れている扱い）
 export type SavedSpotsRead =
   | { kind: 'unreadable' } // storage が null / getItem が例外
   | { kind: 'nothing' }
@@ -133,7 +135,7 @@ export type ParsedBackupFile =
   | { kind: 'invalid' }
 export function parseBackupFile(text: string): ParsedBackupFile
 //   JSON でない・オブジェクトでない・app が 'drive-spots' でない → invalid
-//   backupVersion か data.version が 1 より大きい安全な整数 → newer（厳しい検査より先に見る）
+//   backupVersion が 1 より大きい、または data.version が 2 より大きい安全な整数 → newer（厳しい検査より先に見る。AC34・AC46）
 //   backupVersion が 1 でない・exportedAt が日時の文字列でない・parseSpotsValue(data) が null → invalid
 export function calendarDaysBetween(from: Date, to: Date): number // 端末の暦の日付の差。未来の日時なら 0
 export function formatBackupDate(at: Date, now: Date): string // '2026年10月25日（今日）' / '2026年10月20日（5日前）'
@@ -155,6 +157,50 @@ export function useLastBackup(): { lastBackupAt: Date | null; recordBackup(at: D
 //   マウントのあとで readLastBackupAt を読む。recordBackup は writeLastBackupAt を試し、失敗しても画面上は at にする
 ```
 
+## スポットの編集と降りるIC（AC41〜AC48）
+
+見た目・文言・フォーカスは `../design/spot-edit.md`。
+
+```ts
+// storage.ts（変えるもの）
+export function parseSpotsValue(value: unknown): SpotsData | null
+//   version 1 と 2 を受け付け、いつも version 2 の形で返す（AC46）
+//   version 1: 各スポットは今までの8項目を同じ厳しさで検査し、exitInterchange: '' を足す（exitInterchange というキーがあっても無視する）
+//   version 2: 各スポットは exitInterchange も文字列であること（無い・文字列でない → null）
+//   nextId・ID の重なり・MAX_NEXT_ID の検査は今のまま
+export function isNewerVersionNumber(value: unknown, newestReadable: number): value is number
+//   newestReadable より大きい安全な整数か。保存データは SPOTS_DATA_VERSION（2）、バックアップの backupVersion は 1 と比べる
+export function isNewerVersionValue(value: unknown): boolean // version が SPOTS_DATA_VERSION より大きい（AC30）
+//   loadSpotsData / readSavedSpots は version 1 を valid として返すだけで、書き込まない（次の変更で version 2 になる）
+
+// backup.ts（変えるもの）
+//   parseBackupFile: backupVersion が 1 より大きい、または data.version が 2 より大きい → newer（AC34）
+//   data は parseSpotsValue を通すので version 1 のファイルも読める（version 2 になって返る）。書き出しの backupVersion は 1 のまま
+
+// spots.ts（足すもの・変えるもの）
+//   addSpot: exitInterchange も前後の空白を削る。返す version は SPOTS_DATA_VERSION
+export function spotToInput(spot: Spot): SpotInput
+//   編集画面の最初の値（AC42）。region がちょうど '未入力' なら ''。ほかの項目はそのまま
+export function updateSpot(data: SpotsData, id: number, input: SpotInput): SpotsData
+//   AC43: その id の 名前・種類・地域・距離・降りるIC・時期・メモ を、addSpot と同じ整え方（前後の空白を削る・地域が空なら '未入力'）で変える
+//   done・id・並び順・nextId は変えない。id が無ければ同じ中身を返す（よみがえらせない、AC45）
+//   整え方は addSpot と1つの関数を共有する（2か所で書かない）
+
+// seed.ts: 各スポットに exitInterchange: ''、version は SPOTS_DATA_VERSION
+
+// useSpotsData.ts（足すもの）
+//   updateSpot(id: number, input: SpotInput): void // commit((data) => updateSpot(data, id, input))。AC45
+//   読み込む前の空のデータ（NOT_LOADED_STATE）も version 2
+```
+
+- `SpotFormScreen` に `mode?: 'add' | 'edit'`（既定 'add'。見出しが「スポットを追加」／「スポットを編集」になる）と `initialInput?: SpotInput`（既定は今の空の入力）を足す。`initialInput` は `useState` の初期値として1回だけ使う（別のタブの変更で入力を書きかえない、AC45）。降りるIC の欄は「地域 ｜ 距離」のすぐ下（`id` は `${fieldIdPrefix}-exit-interchange`）。
+- `SpotDetailScreen` に `onEdit: () => void` と `focusTarget?: 'heading' | 'editSpot'`（既定 'heading'。`focusOnMount` が true のときだけ効く。'editSpot' なら「スポットを編集」にフォーカス）を足す。降りるIC の箱を足す。
+- `SpotCard` に `exitInterchange: string` を足す（`''` なら3行目を作らない）。`SpotListScreen` は `spot.exitInterchange` を渡す。
+- `DriveSpotsApp`: 画面に `'edit'` を足す。編集画面は `<SpotFormScreen key={選択中の id} mode="edit" initialInput={spotToInput(選択中のスポット)} />`。
+  - 保存 → `updateSpot(選択中の id, input)` → 詳細へ（`focusTarget='editSpot'`）。キャンセル → 詳細へ（`focusTarget='editSpot'`）。一覧から詳細を開くときは `focusTarget='heading'`。
+  - 選択中のスポットが無くなったら一覧へ、の今の判定を `'edit'` にも効かせる（AC45）。`selectedSpotId` は編集中もそのまま。
+  - タブ・種類の絞り込みは編集では変えない（AC43）。
+
 ## コンポーネント（Atomic Design、`src/components/`）
 
 | 階層 | コンポーネント | 役目 |
@@ -166,17 +212,17 @@ export function useLastBackup(): { lastBackupAt: Date | null; recordBackup(at: D
 | atoms | `PrimaryButton` | 56px の大きいボタン（色を指定できる） |
 | molecules | `TabSwitch` | 「行きたい N / 行った N」 |
 | molecules | `CategoryChips` | 横スクロールのチップ列 |
-| molecules | `SpotCard` | 一覧の1行（押すと詳細） |
+| molecules | `SpotCard` | 一覧の1行（押すと詳細）。降りるIC が入っていれば3行目に「{降りるIC}で降りる」 |
 | molecules | `FormField` | `label` + 入力欄 + エラー文 |
-| molecules | `InfoTile` | 詳細の「地域」「距離」「時期」の箱 |
+| molecules | `InfoTile` | 詳細の「地域」「距離」「降りるIC」「時期」の箱 |
 | molecules | `EmptyState` | 「まだありません」 |
 | organisms | `SpotListScreen` | 一覧画面（見出し・バックアップボタン・タブ・チップ・お知らせ・カード・追加ボタン）。`persistent` の代わりに `saveNotice: 'none' \| 'unavailable' \| 'newer-version'`、ほかに `backupReminder: 'none' \| 'never' \| 'stale'`・`showRestoreHint: boolean`・`onOpenBackup()` を受け取る |
-| organisms | `SpotDetailScreen` | 詳細画面。削除の2回押し状態と、メモの編集中かどうか・編集中の文字を中に持つ（画面を離れると消える）。保存は `onUpdateMemo(memo)` で親に渡す |
-| organisms | `SpotFormScreen` | 追加画面。入力値とエラー表示を中に持ち、`validateSpotInput` を使う |
+| organisms | `SpotDetailScreen` | 詳細画面。削除の2回押し状態と、メモの編集中かどうか・編集中の文字を中に持つ（画面を離れると消える）。保存は `onUpdateMemo(memo)` で親に渡す。「スポットを編集」は `onEdit()` |
+| organisms | `SpotFormScreen` | 追加画面と編集画面（`mode`）。入力値とエラー表示を中に持ち、`validateSpotInput` を使う |
 | organisms | `BackupScreen` | バックアップ画面。props は `spots`・`lastBackupAt`・`saveNotice`（SpotListScreen と同じ型。'newer-version' ならお知らせを出して書き出し・読み込みを使えなくする、'unavailable' なら読み込み後に保存できなかったと出す）・`onBack()`・`onExport()`・`onReplace(data)`・`focusOnMount?`。ファイルの検査結果（エラー・中身の確認・読み込み済み）は中に持ち、画面を離れたら消える。`parseBackupFile` と `BACKUP_FILE_MAX_BYTES` を使う |
 | templates | `AppShell` | 画面の枠（最大幅 480px・`100dvh`・safe-area・背景色）。データは持たない |
 
-依存の向きは atoms ← molecules ← organisms ← templates。organisms は `src/lib/spots/` の型と関数を使ってよい。画面の切り替え（一覧/詳細/追加/バックアップ）・タブ・カテゴリ・選択中の ID は `DriveSpotsApp` が持つ。書き出しは `DriveSpotsApp` が `createBackupFileContent` → `downloadTextFile` → `recordBackup` の順に呼ぶ。
+依存の向きは atoms ← molecules ← organisms ← templates。organisms は `src/lib/spots/` の型と関数を使ってよい。画面の切り替え（一覧/詳細/追加/編集/バックアップ）・タブ・カテゴリ・選択中の ID は `DriveSpotsApp` が持つ。書き出しは `DriveSpotsApp` が `createBackupFileContent` → `downloadTextFile` → `recordBackup` の順に呼ぶ。
 
 ## テストの置き場所
 

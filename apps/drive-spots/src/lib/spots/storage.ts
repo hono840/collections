@@ -1,9 +1,9 @@
 import { createSeedData } from './seed'
-import { CATEGORIES } from './types'
+import { CATEGORIES, SPOTS_DATA_VERSION } from './types'
 import type { Category, Spot, SpotsData } from './types'
 
-// localStorage persistence (spec AC13-AC15, AC22, AC30, AC33). Every function here survives a storage
-// that throws (Safari private mode, blocked cookies, quota exceeded) and reports it instead.
+// localStorage persistence (spec AC13-AC15, AC22, AC30, AC33, AC46). Every function here survives a
+// storage that throws (Safari private mode, blocked cookies, quota exceeded) and reports it instead.
 
 export const STORAGE_KEY = 'drive-spots:v1'
 export const BACKUP_KEY = 'drive-spots:v1:backup'
@@ -38,45 +38,60 @@ function isCategory(value: unknown): value is Category {
   return CATEGORIES.some((category) => category === value)
 }
 
-/** A Spot with exactly the known fields, or null if any field is missing or has the wrong type. */
-function parseSpot(value: unknown): Spot | null {
+/** What this app saved before the version 2 release: the same shape, but spots have no exitInterchange (AC46). */
+const VERSION_WITHOUT_EXIT_INTERCHANGE = 1
+type ReadableVersion = typeof VERSION_WITHOUT_EXIT_INTERCHANGE | typeof SPOTS_DATA_VERSION
+
+function isReadableVersion(value: unknown): value is ReadableVersion {
+  return value === VERSION_WITHOUT_EXIT_INTERCHANGE || value === SPOTS_DATA_VERSION
+}
+
+/**
+ * A Spot with exactly the known fields, or null if any field is missing or has the wrong type.
+ * A version 1 spot gets exitInterchange '' and any exitInterchange key in it is ignored; a version 2
+ * spot must carry it as a string (AC46).
+ */
+function parseSpot(value: unknown, version: ReadableVersion): Spot | null {
   if (!isRecord(value)) return null
   const { id, name, region, category, distanceKm, season, memo, done } = value
+  const exitInterchange = version === VERSION_WITHOUT_EXIT_INTERCHANGE ? '' : value.exitInterchange
   if (
     !isPositiveInteger(id) ||
     typeof name !== 'string' ||
     typeof region !== 'string' ||
     !isCategory(category) ||
     typeof distanceKm !== 'string' ||
+    typeof exitInterchange !== 'string' ||
     typeof season !== 'string' ||
     typeof memo !== 'string' ||
     typeof done !== 'boolean'
   ) {
     return null
   }
-  return { id, name, region, category, distanceKm, season, memo, done }
+  return { id, name, region, category, distanceKm, exitInterchange, season, memo, done }
 }
 
 /**
- * Checks an already parsed value. Returns null if anything differs from { version: 1, nextId, spots },
- * including duplicate ids, a nextId that an existing spot already uses, or a nextId above
- * MAX_NEXT_ID (AC14, AC16). Also used for the data inside a backup file, so a file is checked
- * exactly as strictly (AC34).
+ * Checks an already parsed value. Returns null if anything differs from { version: 1 or 2, nextId,
+ * spots }, including duplicate ids, a nextId that an existing spot already uses, or a nextId above
+ * MAX_NEXT_ID (AC14, AC16). Version 1 is checked as strictly and always comes back as version 2
+ * (AC46). Also used for the data inside a backup file, so a file is checked exactly as strictly (AC34).
  */
 export function parseSpotsValue(value: unknown): SpotsData | null {
-  if (!isRecord(value) || value.version !== 1) return null
-  const { nextId, spots: rawSpots } = value
+  if (!isRecord(value)) return null
+  const { version, nextId, spots: rawSpots } = value
+  if (!isReadableVersion(version)) return null
   if (!isPositiveInteger(nextId) || nextId > MAX_NEXT_ID || !Array.isArray(rawSpots)) return null
 
   const spots: Spot[] = []
   const seenIds = new Set<number>()
   for (const rawSpot of rawSpots) {
-    const spot = parseSpot(rawSpot)
+    const spot = parseSpot(rawSpot, version)
     if (spot === null || seenIds.has(spot.id) || spot.id >= nextId) return null
     seenIds.add(spot.id)
     spots.push(spot)
   }
-  return { version: 1, nextId, spots }
+  return { version: SPOTS_DATA_VERSION, nextId, spots }
 }
 
 /** Parses a saved string with the same strictness as parseSpotsValue (AC14). */
@@ -91,16 +106,17 @@ export function parseSpotsData(raw: string): SpotsData | null {
 }
 
 /**
- * A format version written by a newer version of the app: a safe integer above 1 (AC30, AC34).
- * The string '2', 2.5 or 2^53 is not; such a value is simply corrupt.
+ * A format version written by a newer version of the app: a safe integer above `newestReadable`,
+ * which is SPOTS_DATA_VERSION for saved data and 1 for a backup file's backupVersion (AC30, AC34, AC46).
+ * The string '3', 3.5 or 2^53 is not; such a value is simply corrupt.
  */
-export function isNewerVersionNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value > 1
+export function isNewerVersionNumber(value: unknown, newestReadable: number): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > newestReadable
 }
 
-/** An object whose version is newer than this app reads (AC30), whatever the rest looks like. */
+/** An object whose version is above SPOTS_DATA_VERSION (AC30), whatever the rest looks like. */
 export function isNewerVersionValue(value: unknown): boolean {
-  return isRecord(value) && isNewerVersionNumber(value.version)
+  return isRecord(value) && isNewerVersionNumber(value.version, SPOTS_DATA_VERSION)
 }
 
 /**
@@ -146,7 +162,7 @@ function readSavedState(storage: Storage): SavedState {
   return data === null ? { kind: 'corrupt', raw } : { kind: 'valid', data }
 }
 
-/** Reads what is saved without writing anything (AC22, AC30). */
+/** Reads what is saved without writing anything; version 1 is valid and stays as saved (AC22, AC30, AC46). */
 export function readSavedSpots(storage: Storage | null): SavedSpotsRead {
   if (storage === null) return { kind: 'unreadable' }
   const savedState = readSavedState(storage)
@@ -179,6 +195,7 @@ function backUpCorruptString(storage: Storage, corruptRaw: string): boolean {
  *   copy is there and false when it could not be written, so nothing overwrites the original (AC14)
  * - saved by a newer version -> seed data, persistent false, newerVersion true; nothing is backed up
  *   or written (AC30)
+ * Valid version 1 data comes back as version 2 and is not rewritten; the next change saves version 2 (AC46).
  * hasSavedData is true only for valid data (AC38, AC39).
  */
 export function loadSpotsData(storage: Storage | null): {

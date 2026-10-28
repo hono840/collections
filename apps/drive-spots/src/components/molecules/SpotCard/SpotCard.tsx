@@ -7,16 +7,18 @@ type SpotCardProps = {
   name: string
   region: string
   category: string
+  /** 降りるIC; '' = not entered, then the third line is left out (AC47). */
+  exitInterchange: string
   done: boolean
   onOpen: () => void
   ref?: Ref<HTMLButtonElement>
 }
 
 /**
- * One list row (AC4). The whole card is a single button whose text reads mark, name, 「地域・種類」.
- * Only phrasing content (span) is used inside the button.
+ * One list row (AC4). The whole card is a single button whose text reads mark, name, 「地域・種類」
+ * and, when one is entered, 「{降りるIC}で降りる」 (AC47). Only phrasing content (span) is used inside the button.
  */
-export function SpotCard({ mark, name, region, category, done, onOpen, ref }: SpotCardProps) {
+export function SpotCard({ mark, name, region, category, exitInterchange, done, onOpen, ref }: SpotCardProps) {
   return (
     <button
       ref={ref}
@@ -35,6 +37,10 @@ export function SpotCard({ mark, name, region, category, done, onOpen, ref }: Sp
         <span className="text-13 text-ink-muted wrap-anywhere">
           {region}・{category}
         </span>
+        {/* One text node, wrapped rather than cut, so 「…で降りる」 always stays readable (AC47). */}
+        {exitInterchange === '' ? null : (
+          <span className="text-13 text-ink-muted wrap-anywhere">{`${exitInterchange}で降りる`}</span>
+        )}
       </span>
       {done ? <Icon name="check" size={22} strokeWidth={2.4} className="shrink-0 text-done" /> : null}
       <Icon name="chevronRight" size={18} className="shrink-0 text-ink-dim" />

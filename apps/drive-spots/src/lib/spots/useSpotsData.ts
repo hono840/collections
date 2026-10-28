@@ -1,8 +1,15 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { addSpot, removeSpot, toggleDone as toggleSpotDone, updateMemo as updateSpotMemo } from './spots'
+import {
+  addSpot,
+  removeSpot,
+  toggleDone as toggleSpotDone,
+  updateMemo as updateSpotMemo,
+  updateSpot as updateSpotFields,
+} from './spots'
 import { STORAGE_KEY, getBrowserStorage, loadSpotsData, readSavedSpots, updateSpotsData } from './storage'
+import { SPOTS_DATA_VERSION } from './types'
 import type { SpotInput, SpotsData } from './types'
 
 type SpotsState = {
@@ -17,7 +24,7 @@ type SpotsState = {
 // list is never shown (no seed flash, no hydration mismatch with the saved data).
 const NOT_LOADED_STATE: SpotsState = {
   ready: false,
-  data: { version: 1, nextId: 1, spots: [] },
+  data: { version: SPOTS_DATA_VERSION, nextId: 1, spots: [] },
   persistent: true,
   newerVersion: false,
   hasSavedData: false,
@@ -47,6 +54,7 @@ export function useSpotsData(): {
   toggleDone(id: number): void
   remove(id: number): void
   updateMemo(id: number, memo: string): void
+  updateSpot(id: number, input: SpotInput): void
   replaceAll(data: SpotsData): void
 } {
   const [state, setState] = useState<SpotsState>(NOT_LOADED_STATE)
@@ -118,6 +126,9 @@ export function useSpotsData(): {
     remove: (id) => commit((data) => removeSpot(data, id)),
     // AC27: applied to the re-read data, so a spot another tab deleted stays deleted.
     updateMemo: (id, memo) => commit((data) => updateSpotMemo(data, id, memo)),
+    // AC45: the 7 fields go onto the re-read data, so 行った and spots from another tab are kept and a
+    // spot another tab deleted stays deleted.
+    updateSpot: (id, input) => commit((data) => updateSpotFields(data, id, input)),
     // AC36: the file's data as it is (nextId included); what another tab saved is replaced, not merged.
     replaceAll: (data) => commit(() => data),
   }

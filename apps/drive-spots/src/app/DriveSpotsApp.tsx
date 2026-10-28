@@ -3,17 +3,19 @@
 import { useState } from 'react'
 import { BackupScreen } from '@/components/organisms/BackupScreen'
 import { SpotDetailScreen } from '@/components/organisms/SpotDetailScreen'
+import type { SpotDetailFocusTarget } from '@/components/organisms/SpotDetailScreen'
 import { SpotFormScreen } from '@/components/organisms/SpotFormScreen'
 import { SpotListScreen } from '@/components/organisms/SpotListScreen'
 import { AppShell } from '@/components/templates/AppShell'
 import { BACKUP_FILE_MIME_TYPE, backupFileName, backupReminder, createBackupFileContent } from '@/lib/spots/backup'
+import { spotToInput } from '@/lib/spots/spots'
 import { ALL_CATEGORIES } from '@/lib/spots/types'
 import type { CategoryFilter, SaveNotice, SpotInput, Tab } from '@/lib/spots/types'
 import { useLastBackup } from '@/lib/spots/useLastBackup'
 import { useSpotsData } from '@/lib/spots/useSpotsData'
 import { downloadTextFile } from '@/lib/utils/download'
 
-type Screen = 'list' | 'detail' | 'add' | 'backup'
+type Screen = 'list' | 'detail' | 'add' | 'edit' | 'backup'
 
 /**
  * The whole app (design Main.dc.html `class Component`). Owns which screen is shown, the list's tab
@@ -21,8 +23,19 @@ type Screen = 'list' | 'detail' | 'add' | 'backup'
  * useLastBackup. Only the current screen is rendered, and nothing until the saved data has been read.
  */
 export function DriveSpotsApp() {
-  const { ready, data, persistent, newerVersion, hasSavedData, add, toggleDone, remove, updateMemo, replaceAll } =
-    useSpotsData()
+  const {
+    ready,
+    data,
+    persistent,
+    newerVersion,
+    hasSavedData,
+    add,
+    toggleDone,
+    remove,
+    updateMemo,
+    updateSpot,
+    replaceAll,
+  } = useSpotsData()
   const { lastBackupAt, recordBackup } = useLastBackup()
   const [screen, setScreen] = useState<Screen>('list')
   const [tab, setTab] = useState<Tab>('want')
@@ -32,6 +45,8 @@ export function DriveSpotsApp() {
   const [hasNavigated, setHasNavigated] = useState(false)
   // The card that gets focus back when returning from its detail screen.
   const [returnFocusSpotId, setReturnFocusSpotId] = useState<number | null>(null)
+  // What the detail focuses when it appears: the spot name, or スポットを編集 after the edit form (AC48).
+  const [detailFocusTarget, setDetailFocusTarget] = useState<SpotDetailFocusTarget>('heading')
 
   function showScreen(nextScreen: Screen) {
     setScreen(nextScreen)
@@ -40,6 +55,7 @@ export function DriveSpotsApp() {
 
   function openSpot(id: number) {
     setSelectedSpotId(id)
+    setDetailFocusTarget('heading')
     showScreen('detail')
   }
 
@@ -76,6 +92,26 @@ export function DriveSpotsApp() {
     if (selectedSpotId !== null) updateMemo(selectedSpotId, memo)
   }
 
+  // AC41: leaving the detail throws a memo draft away (AC25). selectedSpotId stays, so 一覧にもどる
+  // afterwards still focuses this spot's card.
+  function openEditForm() {
+    showScreen('edit')
+  }
+
+  // AC44/AC48: nothing is saved; back to the detail, focused on スポットを編集.
+  function cancelEditForm() {
+    setDetailFocusTarget('editSpot')
+    showScreen('detail')
+  }
+
+  // AC43/AC48: the tab and category stay. If another tab deleted the spot right before saving,
+  // nothing comes back and the check below shows the list instead of the detail (AC45).
+  function saveEditedSpot(input: SpotInput) {
+    if (selectedSpotId !== null) updateSpot(selectedSpotId, input)
+    setDetailFocusTarget('editSpot')
+    showScreen('detail')
+  }
+
   function removeSelected() {
     if (selectedSpotId !== null) remove(selectedSpotId)
     setSelectedSpotId(null)
@@ -110,11 +146,12 @@ export function DriveSpotsApp() {
   const saveNotice: SaveNotice = newerVersion ? 'newer-version' : persistent ? 'none' : 'unavailable'
 
   // The detail always shows the current data, so a change saved in another tab shows up here too
-  // (AC22). If that tab deleted the spot, the list is shown instead.
+  // (AC22). If that tab deleted the spot, the list is shown instead, from the edit form too (AC45).
   const selectedSpot = data.spots.find((spot) => spot.id === selectedSpotId)
 
-  if (screen === 'detail' && selectedSpot === undefined) {
-    // Leave the detail for good, so the same id coming back later cannot reopen it on its own.
+  if ((screen === 'detail' || screen === 'edit') && selectedSpot === undefined) {
+    // Leave the detail or the edit form for good (its input is thrown away), so the same id coming
+    // back later cannot reopen it on its own.
     // Setting state while rendering is React's pattern for adjusting state to new data; it re-renders
     // right away without committing this pass. The list then focuses its heading.
     setScreen('list')
@@ -132,6 +169,25 @@ export function DriveSpotsApp() {
           onToggleDone={toggleSelectedDone}
           onRemove={removeSelected}
           onUpdateMemo={updateSelectedMemo}
+          onEdit={openEditForm}
+          focusOnMount={hasNavigated}
+          focusTarget={detailFocusTarget}
+        />
+      </AppShell>
+    )
+  }
+
+  if (screen === 'edit' && selectedSpot !== undefined) {
+    // initialInput is only the form's first state, so a refresh from another tab never rewrites what
+    // is typed (AC45). The key gives every spot a fresh form.
+    return (
+      <AppShell>
+        <SpotFormScreen
+          key={selectedSpot.id}
+          mode="edit"
+          initialInput={spotToInput(selectedSpot)}
+          onCancel={cancelEditForm}
+          onSave={saveEditedSpot}
           focusOnMount={hasNavigated}
         />
       </AppShell>

@@ -10,6 +10,8 @@ const MARK_WANT_LABEL = '「行きたい」に戻す'
 const DELETE_LABEL = 'このスポットを削除'
 const DELETE_CONFIRM_LABEL = 'もう一度押すと削除します'
 const EDIT_MEMO_LABEL = 'メモを編集'
+const EDIT_SPOT_LABEL = 'スポットを編集'
+const EXIT_INTERCHANGE_LABEL = '降りるIC'
 const MEMO_FIELD_NAME = 'メモ'
 const SAVE_MEMO_LABEL = '保存'
 const CANCEL_MEMO_LABEL = 'キャンセル'
@@ -21,6 +23,7 @@ const WANT_SPOT: Spot = {
   region: '神奈川',
   category: '峠',
   distanceKm: '',
+  exitInterchange: '',
   season: '',
   memo: '',
   done: false,
@@ -32,15 +35,39 @@ const FILLED_SPOT: Spot = {
   region: '神奈川',
   category: '絶景ロード',
   distanceKm: '60',
+  exitInterchange: '小田原西IC',
   season: '紅葉の季節',
   memo: '一行目\n二行目',
   done: true,
 }
 
-function renderDetail(spot: Spot = WANT_SPOT, focusOnMount?: boolean) {
-  const callbacks = { onBack: vi.fn(), onToggleDone: vi.fn(), onRemove: vi.fn(), onUpdateMemo: vi.fn() }
-  const view = render(<SpotDetailScreen spot={spot} focusOnMount={focusOnMount} {...callbacks} />)
+type FocusTarget = 'heading' | 'editSpot'
+
+function renderDetail(spot: Spot = WANT_SPOT, focusOnMount?: boolean, focusTarget?: FocusTarget) {
+  const callbacks = {
+    onBack: vi.fn(),
+    onToggleDone: vi.fn(),
+    onRemove: vi.fn(),
+    onUpdateMemo: vi.fn(),
+    onEdit: vi.fn(),
+  }
+  const view = render(
+    <SpotDetailScreen spot={spot} focusOnMount={focusOnMount} focusTarget={focusTarget} {...callbacks} />,
+  )
   return { ...callbacks, ...view }
+}
+
+function getEditSpotButton(): HTMLElement {
+  return screen.getByRole('button', { name: EDIT_SPOT_LABEL })
+}
+
+/** The labels of the info tiles, in document order. */
+function getInfoTileLabels(): string[] {
+  const list = screen.getByText('地域').closest('dl')
+  if (list === null) {
+    throw new Error('The info tiles are not in a <dl>')
+  }
+  return Array.from(list.querySelectorAll('dt')).map((term) => term.textContent ?? '')
 }
 
 type User = ReturnType<typeof userEvent.setup>
@@ -161,6 +188,155 @@ describe('SpotDetailScreen', () => {
 
       expect(getInfoTile('地域')).toHaveTextContent(/^地域\s*未入力$/)
     })
+
+    it('AC6/AC47: shows 降りるIC as entered (without で降りる)', () => {
+      renderDetail(FILLED_SPOT)
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*小田原西IC$/)
+      expect(screen.queryByText(/で降りる/)).not.toBeInTheDocument()
+    })
+
+    it("AC6/AC47: an empty 降りるIC shows '未入力'", () => {
+      renderDetail(WANT_SPOT)
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*未入力$/)
+    })
+
+    it('AC47: a long 降りるIC is shown in full', () => {
+      renderDetail({ ...FILLED_SPOT, exitInterchange: '東名高速 大井松田IC（御殿場方面）' })
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*東名高速 大井松田IC（御殿場方面）$/)
+    })
+
+    it('AC6/AC47: the tiles read 地域, 自宅からの距離（片道）, 降りるIC, おすすめ時期 in this order', () => {
+      renderDetail(FILLED_SPOT)
+
+      expect(getInfoTileLabels()).toEqual(['地域', '自宅からの距離（片道）', EXIT_INTERCHANGE_LABEL, 'おすすめ時期'])
+    })
+
+    it('AC47: the 降りるIC tile follows the parent: a changed spot shows the new value', () => {
+      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo, onEdit } = renderDetail(FILLED_SPOT)
+
+      rerender(
+        <SpotDetailScreen
+          spot={{ ...FILLED_SPOT, exitInterchange: '湯河原IC' }}
+          onBack={onBack}
+          onToggleDone={onToggleDone}
+          onRemove={onRemove}
+          onUpdateMemo={onUpdateMemo}
+          onEdit={onEdit}
+        />,
+      )
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*湯河原IC$/)
+    })
+  })
+
+  describe('スポットを編集 (AC41)', () => {
+    it('AC41/AC48: is a real <button type="button"> whose name is its visible text (no aria-label)', () => {
+      renderDetail()
+
+      const editSpotButton = getEditSpotButton()
+      expect(editSpotButton).toBeInstanceOf(HTMLButtonElement)
+      expect(editSpotButton).toHaveAttribute('type', 'button')
+      expect(editSpotButton).toHaveTextContent(/^スポットを編集$/)
+      expect(editSpotButton).not.toHaveAttribute('aria-label')
+      expect(editSpotButton).toHaveAccessibleName(EDIT_SPOT_LABEL)
+    })
+
+    it('AC41: pressing it calls onEdit once and nothing else', async () => {
+      const user = userEvent.setup()
+      const { onEdit, onBack, onToggleDone, onRemove, onUpdateMemo } = renderDetail(FILLED_SPOT)
+
+      await user.click(getEditSpotButton())
+
+      expect(onEdit).toHaveBeenCalledTimes(1)
+      expect(onBack).not.toHaveBeenCalled()
+      expect(onToggleDone).not.toHaveBeenCalled()
+      expect(onRemove).not.toHaveBeenCalled()
+      expect(onUpdateMemo).not.toHaveBeenCalled()
+    })
+
+    it('AC41/AC48: works from the keyboard', async () => {
+      const user = userEvent.setup()
+      const { onEdit } = renderDetail()
+      getEditSpotButton().focus()
+
+      await user.keyboard('{Enter}')
+
+      expect(onEdit).toHaveBeenCalledTimes(1)
+    })
+
+    it('AC41: sits in the top bar after 一覧にもどる and before the spot name', () => {
+      renderDetail()
+
+      const backButton = screen.getByRole('button', { name: BACK_LABEL })
+      const editSpotButton = getEditSpotButton()
+      const heading = screen.getByRole('heading', { level: 1, name: 'ヤビツ峠' })
+      expect(backButton.compareDocumentPosition(editSpotButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(editSpotButton.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('AC41/AC48: the Tab order is 一覧にもどる → スポットを編集 → メモを編集 → 行った！にする → このスポットを削除', async () => {
+      const user = userEvent.setup()
+      renderDetail(WANT_SPOT)
+
+      const expectedOrder = [BACK_LABEL, EDIT_SPOT_LABEL, EDIT_MEMO_LABEL, MARK_DONE_LABEL, DELETE_LABEL]
+      for (const buttonName of expectedOrder) {
+        await user.tab()
+        expect(screen.getByRole('button', { name: buttonName }), `Tab reaches ${buttonName}`).toHaveFocus()
+      }
+    })
+
+    it('AC41/AC29: the two 編集 buttons are told apart by their exact names', () => {
+      renderDetail(FILLED_SPOT)
+
+      const editButtons = screen.getAllByRole('button', { name: /編集/ })
+      expect(editButtons).toHaveLength(2)
+      expect(screen.getByRole('button', { name: EDIT_SPOT_LABEL })).not.toBe(screen.getByRole('button', { name: EDIT_MEMO_LABEL }))
+      expect(screen.getByRole('button', { name: EDIT_MEMO_LABEL })).toHaveTextContent(/^編集$/)
+    })
+
+    it('AC41/AC23: メモを編集 still edits the memo in place and does not call onEdit', async () => {
+      const user = userEvent.setup()
+      const { onEdit } = renderDetail(FILLED_SPOT)
+
+      await user.click(getEditMemoButton())
+
+      expect(getMemoField()).toHaveFocus()
+      expect(onEdit).not.toHaveBeenCalled()
+    })
+
+    it('AC41: pressing スポットを編集 does not open the memo text field', async () => {
+      const user = userEvent.setup()
+      renderDetail(FILLED_SPOT)
+
+      await user.click(getEditSpotButton())
+
+      expectNotEditingMemo()
+    })
+
+    it('AC41/AC25: is still there while the memo is being edited, and pressing it does not save the draft', async () => {
+      const user = userEvent.setup()
+      const { onEdit, onUpdateMemo } = renderDetail(FILLED_SPOT)
+      await typeMemoDraft(user, '捨てる下書き')
+
+      await user.click(getEditSpotButton())
+
+      expect(onEdit).toHaveBeenCalledTimes(1)
+      expect(onUpdateMemo).not.toHaveBeenCalled()
+    })
+
+    it('AC41/AC8: pressing it after a first delete press does not delete', async () => {
+      const user = userEvent.setup()
+      const { onEdit, onRemove } = renderDetail()
+      await user.click(screen.getByRole('button', { name: DELETE_LABEL }))
+
+      await user.click(getEditSpotButton())
+
+      expect(onEdit).toHaveBeenCalledTimes(1)
+      expect(onRemove).not.toHaveBeenCalled()
+    })
   })
 
   describe('back (AC6)', () => {
@@ -207,7 +383,7 @@ describe('SpotDetailScreen', () => {
     })
 
     it('AC7: the button follows the spot when the parent passes the toggled spot', () => {
-      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo } = renderDetail(WANT_SPOT)
+      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo, onEdit } = renderDetail(WANT_SPOT)
 
       rerender(
         <SpotDetailScreen
@@ -216,6 +392,7 @@ describe('SpotDetailScreen', () => {
           onToggleDone={onToggleDone}
           onRemove={onRemove}
           onUpdateMemo={onUpdateMemo}
+          onEdit={onEdit}
         />,
       )
 
@@ -359,7 +536,7 @@ describe('SpotDetailScreen', () => {
 
     it('AC23: the text field starts from the memo the screen shows now (after the parent passed a changed spot)', async () => {
       const user = userEvent.setup()
-      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo } = renderDetail(FILLED_SPOT)
+      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo, onEdit } = renderDetail(FILLED_SPOT)
       rerender(
         <SpotDetailScreen
           spot={{ ...FILLED_SPOT, memo: '別のタブで書いたメモ' }}
@@ -367,6 +544,7 @@ describe('SpotDetailScreen', () => {
           onToggleDone={onToggleDone}
           onRemove={onRemove}
           onUpdateMemo={onUpdateMemo}
+          onEdit={onEdit}
         />,
       )
 
@@ -434,7 +612,7 @@ describe('SpotDetailScreen', () => {
 
     it('AC24: once the parent passes the saved memo, the screen shows it with its line breaks', async () => {
       const user = userEvent.setup()
-      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo } = renderDetail(FILLED_SPOT)
+      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo, onEdit } = renderDetail(FILLED_SPOT)
       await typeMemoDraft(user, '朝7時に出発{Enter}菜の花台で休憩')
       await user.click(screen.getByRole('button', { name: SAVE_MEMO_LABEL }))
 
@@ -445,6 +623,7 @@ describe('SpotDetailScreen', () => {
           onToggleDone={onToggleDone}
           onRemove={onRemove}
           onUpdateMemo={onUpdateMemo}
+          onEdit={onEdit}
         />,
       )
 
@@ -454,7 +633,7 @@ describe('SpotDetailScreen', () => {
 
     it('AC24: once the parent passes an emptied memo, the screen shows メモはまだありません', async () => {
       const user = userEvent.setup()
-      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo } = renderDetail(FILLED_SPOT)
+      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo, onEdit } = renderDetail(FILLED_SPOT)
       await typeMemoDraft(user, '')
       await user.click(screen.getByRole('button', { name: SAVE_MEMO_LABEL }))
 
@@ -465,6 +644,7 @@ describe('SpotDetailScreen', () => {
           onToggleDone={onToggleDone}
           onRemove={onRemove}
           onUpdateMemo={onUpdateMemo}
+          onEdit={onEdit}
         />,
       )
 
@@ -522,7 +702,7 @@ describe('SpotDetailScreen', () => {
 
     it('AC25: toggling 行った while editing (staying on the detail) keeps the draft and the edit mode', async () => {
       const user = userEvent.setup()
-      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo } = renderDetail(WANT_SPOT)
+      const { rerender, onBack, onToggleDone, onRemove, onUpdateMemo, onEdit } = renderDetail(WANT_SPOT)
       await typeMemoDraft(user, '行く前に天気を確認')
 
       await user.click(screen.getByRole('button', { name: MARK_DONE_LABEL }))
@@ -534,6 +714,7 @@ describe('SpotDetailScreen', () => {
           onToggleDone={onToggleDone}
           onRemove={onRemove}
           onUpdateMemo={onUpdateMemo}
+          onEdit={onEdit}
         />,
       )
 
@@ -586,6 +767,24 @@ describe('SpotDetailScreen', () => {
 
     it('does not move focus without focusOnMount', () => {
       renderDetail(WANT_SPOT)
+
+      expect(document.body).toHaveFocus()
+    })
+
+    it("AC48: focusTarget 'heading' with focusOnMount focuses the spot name (as when opened from the list)", () => {
+      renderDetail(WANT_SPOT, true, 'heading')
+
+      expect(screen.getByRole('heading', { level: 1, name: 'ヤビツ峠' })).toHaveFocus()
+    })
+
+    it("AC48: focusTarget 'editSpot' with focusOnMount focuses スポットを編集 (back from the edit form)", () => {
+      renderDetail(FILLED_SPOT, true, 'editSpot')
+
+      expect(getEditSpotButton()).toHaveFocus()
+    })
+
+    it("AC48: focusTarget 'editSpot' without focusOnMount does not move focus", () => {
+      renderDetail(FILLED_SPOT, false, 'editSpot')
 
       expect(document.body).toHaveFocus()
     })
