@@ -36,3 +36,16 @@ export type SpotsData = { version: 1; nextId: number; spots: Spot[] }
 
 /** What the add form collects. id and done are assigned by addSpot. */
 export type SpotInput = Omit<Spot, 'id' | 'done'>
+
+/**
+ * Why saving is off, as the list and the backup screen show it: 'unavailable' = this device cannot
+ * save (AC15), 'newer-version' = data from a newer version of the app is saved (AC30).
+ */
+export type SaveNotice = 'none' | 'unavailable' | 'newer-version'
+
+/** The notice texts, shared so the list and the backup screen say exactly the same (AC15, AC30, AC32). */
+export const SAVE_NOTICE_TEXTS: Record<Exclude<SaveNotice, 'none'>, string> = {
+  unavailable: 'この端末では保存できません（再読み込みで消えます）',
+  'newer-version':
+    '新しい版のアプリで保存されたデータがあります。ページを再読み込みしてください（このままでは保存されません）',
+}

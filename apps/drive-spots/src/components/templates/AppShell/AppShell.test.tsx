@@ -6,14 +6,14 @@ describe('AppShell', () => {
   it('AC17: renders its children inside the single main landmark', () => {
     render(
       <AppShell>
-        <h1>行きたい道ノート</h1>
+        <h1>ドライブスポット帳</h1>
         <button type="button">スポットを追加</button>
       </AppShell>,
     )
 
     const main = screen.getByRole('main')
     expect(screen.getAllByRole('main')).toHaveLength(1)
-    expect(within(main).getByRole('heading', { name: '行きたい道ノート' })).toBeInTheDocument()
+    expect(within(main).getByRole('heading', { name: 'ドライブスポット帳' })).toBeInTheDocument()
     expect(within(main).getByRole('button', { name: 'スポットを追加' })).toBeInTheDocument()
   })
 

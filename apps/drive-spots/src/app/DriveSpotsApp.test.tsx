@@ -5,8 +5,8 @@ import { createSeedData } from '@/lib/spots/seed'
 import type { Spot, SpotsData } from '@/lib/spots/types'
 import { DriveSpotsApp } from './DriveSpotsApp'
 
-// Acceptance tests for docs/product/spec.md (AC1-AC16, AC18 partly, AC22, AC23-AC28), driven through the UI only:
-// roles, accessible names, labels and visible Japanese text. No CSS classes, no test ids.
+// Acceptance tests for docs/product/spec.md (AC1-AC16, AC18 partly, AC22, AC23-AC28, AC30-AC40), driven through
+// the UI only: roles, accessible names, labels and visible Japanese text. No CSS classes, no test ids.
 //
 // UI contract these tests rely on (beyond the spec text):
 // - Tabs and category chips (list + add form) are <button>s exposing the selection with aria-pressed.
@@ -19,7 +19,12 @@ type User = ReturnType<typeof userEvent.setup>
 
 const STORAGE_KEY = 'drive-spots:v1'
 const BACKUP_KEY = 'drive-spots:v1:backup'
+const LAST_BACKUP_KEY = 'drive-spots:v1:last-backup'
+const APP_NAME = 'ドライブスポット帳'
 const NOT_PERSISTENT_NOTICE = 'この端末では保存できません（再読み込みで消えます）'
+const NEWER_VERSION_NOTICE =
+  '新しい版のアプリで保存されたデータがあります。ページを再読み込みしてください（このままでは保存されません）'
+const RESTORE_HINT = '前に使っていたデータは「バックアップ」から読み込めます'
 const EMPTY_TITLE = 'まだありません'
 const EMPTY_DESCRIPTION = '行ったスポットは、詳細画面の「行った！」ボタンでここに移ります'
 const NAME_REQUIRED_MESSAGE = 'スポット名を入れてください'
@@ -304,11 +309,159 @@ function dispatchPageShow(persisted: boolean) {
   })
 }
 
+// ---------- backup (AC30-AC39) ----------
+
+const BACKUP_BUTTON_NAME = /^バックアップ/
+const BACKUP_LABEL = 'バックアップ'
+const BACKUP_NEVER_LABEL = 'バックアップ（まだしていません）'
+const BACKUP_STALE_LABEL = 'バックアップ（30日以上していません）'
+const EXPORT_LABEL = 'ファイルに書き出す'
+const IMPORT_LABEL = 'ファイルから読み込む'
+const REPLACE_LABEL = '置き換える'
+const CANCEL_IMPORT_LABEL = 'やめる'
+const LAST_BACKUP_LABEL = '最後に書き出した日'
+const INVALID_FILE_MESSAGE = 'ドライブスポット帳のバックアップファイルではないか、壊れています'
+const NEWER_FILE_MESSAGE =
+  '新しい版のアプリで作られたファイルです。ページを再読み込みしてから、もう一度読み込んでください'
+const NOT_SAVED_AFTER_IMPORT_TEXT = 'この端末では保存できませんでした（再読み込みで消えます）'
+const HTML_NAME = '<img src=x onerror=alert(1)>'
+const HTML_MEMO = '<script>alert(1)</script>'
+
+/** Local 2026-10-25 10:00: "now" in the backup tests (Date only is faked). */
+const NOW = new Date(2026, 9, 25, 10, 0)
+/** Local 2026-10-20 21:30: when the imported file was written. */
+const FILE_EXPORTED_AT = new Date(2026, 9, 20, 21, 30)
+const FILE_PREVIEW_TITLE = '2026年10月20日に書き出したファイル'
+
+/** What the imported file holds: 行きたい 3 / 行った 2 and its own nextId 50. */
+const IMPORT_FILE_DATA: SpotsData = {
+  version: 1,
+  nextId: 50,
+  spots: [
+    makeSpot({ id: 41, name: '道志みち', region: '山梨・神奈川', distanceKm: '80', memo: '朝早く出る' }),
+    makeSpot({ id: 40, name: HTML_NAME, memo: HTML_MEMO }),
+    makeSpot({ id: 33, name: '大観山', category: '絶景ロード' }),
+    makeSpot({ id: 12, name: '碓氷峠', region: '群馬・長野', done: true }),
+    makeSpot({ id: 7, name: '首都高（都心環状線）', region: '東京', category: '都市高速', done: true }),
+  ],
+}
+
+/** Saved by a newer version of the app (AC30): a shape this version cannot read. */
+const NEWER_VERSION_RAW = JSON.stringify({ version: 2, nextId: 40, places: [{ title: '大観山' }] })
+
+/** Fakes Date only, so user-event and Testing Library keep their real timers. */
+function fakeNow(now: Date = NOW) {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(now)
+}
+
+function getBackupButton(): HTMLElement {
+  return screen.getByRole('button', { name: BACKUP_BUTTON_NAME })
+}
+
+async function openBackup(user: User) {
+  await user.click(getBackupButton())
+  await screen.findByRole('button', { name: EXPORT_LABEL })
+}
+
+async function backFromBackup(user: User) {
+  await user.click(screen.getByRole('button', { name: BACK_LABEL }))
+  await screen.findByRole('button', { name: WANT_TAB_NAME })
+}
+
+/** The 最後に書き出した日 box: its label and its value share one wrapper element. */
+function getLastBackupTile(): HTMLElement {
+  const tile = screen.getByText(LAST_BACKUP_LABEL).parentElement
+  if (tile === null) {
+    throw new Error(`No box for 「${LAST_BACKUP_LABEL}」`)
+  }
+  return tile
+}
+
+function createBackupFileText(overrides: Record<string, unknown> = {}): string {
+  return JSON.stringify(
+    {
+      app: 'drive-spots',
+      backupVersion: 1,
+      exportedAt: FILE_EXPORTED_AT.toISOString(),
+      data: IMPORT_FILE_DATA,
+      ...overrides,
+    },
+    null,
+    2,
+  )
+}
+
+function createJsonFile(text: string, fileName = 'drive-spots-2026-10-20.json'): File {
+  return new File([text], fileName, { type: 'application/json' })
+}
+
+async function chooseBackupFile(user: User, file: File) {
+  await user.upload(screen.getByLabelText(IMPORT_LABEL), file)
+}
+
+/** On the backup screen: choose a valid file, check the preview appears, press 置き換える. */
+async function importBackupFile(user: User) {
+  await chooseBackupFile(user, createJsonFile(createBackupFileText()))
+  await screen.findByText(FILE_PREVIEW_TITLE)
+  await user.click(screen.getByRole('button', { name: REPLACE_LABEL }))
+  await screen.findByText('読み込みました（行きたい 3 / 行った 2）')
+}
+
+function getNewerVersionNotice(): HTMLElement | null {
+  return screen.queryByText(NEWER_VERSION_NOTICE)
+}
+
+function getListRegion(): HTMLElement {
+  return screen.getByRole('region', { name: APP_NAME })
+}
+
+/** The seed with the given spot marked 行った. */
+function createSeedWithDone(id: number): SpotsData {
+  const seedData = createSeedData()
+  return { ...seedData, spots: seedData.spots.map((spot) => (spot.id === id ? { ...spot, done: true } : spot)) }
+}
+
+/** jsdom may not define the Blob URL statics; give vi.spyOn something to replace. */
+function ensureObjectUrlStatics() {
+  const urlStatics = URL as unknown as Record<string, unknown>
+  if (typeof urlStatics.createObjectURL !== 'function') urlStatics.createObjectURL = () => ''
+  if (typeof urlStatics.revokeObjectURL !== 'function') urlStatics.revokeObjectURL = () => undefined
+}
+
+/**
+ * Records downloads instead of performing them: jsdom can neither create Blob URLs nor follow a
+ * download link. `blobs` are the files handed to URL.createObjectURL, `downloads` the pressed links.
+ */
+function mockDownloads() {
+  ensureObjectUrlStatics()
+  const blobs: Blob[] = []
+  const downloads: { fileName: string; href: string | null }[] = []
+  vi.spyOn(URL, 'createObjectURL').mockImplementation((object) => {
+    blobs.push(object as Blob)
+    return `blob:drive-spots/${blobs.length}`
+  })
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function recordDownload(this: HTMLAnchorElement) {
+    downloads.push({ fileName: this.download, href: this.getAttribute('href') })
+  })
+  return { blobs, downloads }
+}
+
+/** jsdom has no layout and no Element#scrollIntoView; the backup screen scrolls its preview into view. */
+function ensureScrollIntoView() {
+  if (typeof Element.prototype.scrollIntoView !== 'function') {
+    Element.prototype.scrollIntoView = () => undefined
+  }
+}
+
 beforeEach(() => {
+  ensureScrollIntoView()
   window.localStorage.clear()
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.restoreAllMocks()
   window.localStorage.clear()
 })
@@ -318,7 +471,7 @@ describe('DriveSpotsApp', () => {
     it('AC1: shows the 19 seed spots in design order under 行きたい when nothing is saved', async () => {
       await renderApp()
 
-      expect(screen.getByRole('heading', { name: '行きたい道ノート' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: APP_NAME })).toBeInTheDocument()
       expectSelected(getWantTab())
       const cards = getCardButtons()
       expect(cards).toHaveLength(19)
@@ -912,10 +1065,13 @@ describe('DriveSpotsApp', () => {
   })
 
   describe('AC14: corrupt saved data', () => {
+    // version 2 and up is data from a newer version (AC30), see 'AC30: data saved by a newer version'.
     it.each([
       ['broken JSON', '{"version":1,"nextId":'],
-      ['a wrong version', JSON.stringify({ version: 2, nextId: 20, spots: [] })],
+      ["a version given as the string '2'", JSON.stringify({ version: '2', nextId: 20, spots: [] })],
+      ['version 0', JSON.stringify({ version: 0, nextId: 20, spots: [] })],
       ['a wrong shape', JSON.stringify({ items: ['ヤビツ峠'] })],
+      ['a nextId above 1,000,000,000 (AC16)', JSON.stringify({ version: 1, nextId: 1_000_000_001, spots: [] })],
     ])(
       "AC14: with %s it starts from the seed and backs the original up to 'drive-spots:v1:backup'",
       async (_description, corruptRaw) => {
@@ -1447,6 +1603,9 @@ describe('DriveSpotsApp', () => {
       await backToList(user)
       await openAddForm(user)
       expectRealButtons()
+      await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+      await openBackup(user)
+      expectRealButtons()
     })
 
     it('AC18: the add form uses labelled <input> and <textarea> elements', async () => {
@@ -1459,6 +1618,916 @@ describe('DriveSpotsApp', () => {
       expect(screen.getByLabelText('片道の距離（km）')).toBeInstanceOf(HTMLInputElement)
       expect(screen.getByLabelText('おすすめ時期')).toBeInstanceOf(HTMLInputElement)
       expect(screen.getByLabelText('メモ')).toBeInstanceOf(HTMLTextAreaElement)
+    })
+  })
+
+  describe('AC40: the app name', () => {
+    it('AC40: the list heading is ドライブスポット帳 with DRIVE SPOTS above it', async () => {
+      await renderApp()
+
+      const heading = screen.getByRole('heading', { level: 1, name: APP_NAME })
+      expectFollows(screen.getByText('DRIVE SPOTS'), heading)
+      expect(getListRegion()).toBeInTheDocument()
+    })
+
+    it('AC40: the old names 行きたい道ノート and DRIVE LIST appear on no screen', async () => {
+      const { user } = await renderApp()
+      const expectNoOldNames = () => {
+        expect(document.body).not.toHaveTextContent('行きたい道ノート')
+        expect(document.body).not.toHaveTextContent('DRIVE LIST')
+      }
+
+      expectNoOldNames()
+      await openDetail(user, 'ヤビツ峠')
+      expectNoOldNames()
+      await backToList(user)
+      await openAddForm(user)
+      expectNoOldNames()
+      await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+      await openBackup(user)
+      expectNoOldNames()
+    })
+  })
+
+  describe('AC31: the backup screen', () => {
+    it('AC31: バックアップ on the list opens the backup screen with 一覧にもどる, ファイルに書き出す and ファイルから読み込む', async () => {
+      const { user } = await renderApp()
+
+      await user.click(getBackupButton())
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'バックアップ' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: BACK_LABEL })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: EXPORT_LABEL })).toBeInTheDocument()
+      expect(screen.getByLabelText(IMPORT_LABEL)).toHaveAttribute('type', 'file')
+      expect(screen.queryByRole('button', { name: WANT_TAB_NAME })).not.toBeInTheDocument()
+      expect(getCardButtons()).toHaveLength(0)
+    })
+
+    it('AC31: 一覧にもどる returns to the list', async () => {
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await user.click(screen.getByRole('button', { name: BACK_LABEL }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: APP_NAME })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: EXPORT_LABEL })).not.toBeInTheDocument()
+      expect(getCardButtons()).toHaveLength(19)
+    })
+
+    it('AC31: the backup screen focuses its heading, and coming back focuses the list heading (even after visiting a detail before)', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, '奥多摩')
+      await backToList(user)
+
+      await openBackup(user)
+
+      expect(screen.getByRole('heading', { level: 1, name: 'バックアップ' })).toHaveFocus()
+
+      await backFromBackup(user)
+
+      expect(screen.getByRole('heading', { level: 1, name: APP_NAME })).toHaveFocus()
+    })
+
+    it('AC31: opening and leaving the backup screen writes nothing', async () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { user } = await renderApp()
+
+      await openBackup(user)
+      await backFromBackup(user)
+
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('AC32/AC33: exporting', () => {
+    it('AC32/AC33: ファイルに書き出す downloads drive-spots-2026-10-25.json holding the data on screen and records the time', async () => {
+      fakeNow()
+      const { blobs, downloads } = mockDownloads()
+      const { user } = await renderApp()
+      await markDone(user, 'ヤビツ峠')
+      const savedRaw = window.localStorage.getItem(STORAGE_KEY)
+      await openBackup(user)
+      expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*まだ書き出していません$/)
+
+      await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+      expect(downloads).toEqual([{ fileName: 'drive-spots-2026-10-25.json', href: 'blob:drive-spots/1' }])
+      expect(blobs).toHaveLength(1)
+      expect(blobs[0].type).toContain('application/json')
+      const exported: unknown = JSON.parse(await blobs[0].text())
+      expect(exported).toEqual({
+        app: 'drive-spots',
+        backupVersion: 1,
+        exportedAt: NOW.toISOString(),
+        data: createSeedWithDone(1),
+      })
+      expect(window.localStorage.getItem(LAST_BACKUP_KEY)).toBe(NOW.toISOString())
+      expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*2026年10月25日（今日）$/)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(savedRaw)
+    })
+
+    it('AC32: the file content is the 2-space indented JSON', async () => {
+      fakeNow()
+      const { blobs } = mockDownloads()
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+      const content = await blobs[0].text()
+      expect(content.trimEnd()).toBe(
+        JSON.stringify(
+          { app: 'drive-spots', backupVersion: 1, exportedAt: NOW.toISOString(), data: createSeedData() },
+          null,
+          2,
+        ),
+      )
+    })
+
+    it('AC33: shows the date of the last export when the backup screen opens later', async () => {
+      fakeNow()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      window.localStorage.setItem(LAST_BACKUP_KEY, new Date(2026, 9, 20, 8, 0).toISOString())
+      const { user } = await renderApp()
+
+      await openBackup(user)
+
+      expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*2026年10月20日（5日前）$/)
+    })
+
+    it('AC33/AC38: after an export, the list button is just バックアップ again', async () => {
+      fakeNow()
+      mockDownloads()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      const { user } = await renderApp()
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_NEVER_LABEL)
+      await openBackup(user)
+
+      await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+      await backFromBackup(user)
+
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_LABEL)
+    })
+
+    it('AC33: the recorded export survives a reload', async () => {
+      fakeNow()
+      mockDownloads()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      const { user, unmount } = await renderApp()
+      await openBackup(user)
+      await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+      unmount()
+
+      await renderApp()
+
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_LABEL)
+    })
+
+    // AC33: while saving is off (AC15) an export holds only what is on screen, not the saved data, so
+    // it is not recorded. In every case below a write to LAST_BACKUP_KEY would succeed if it were
+    // attempted, so an untouched key means recordBackup was not called.
+    type SavingOffCase = {
+      /** Puts the app into the state; returns the user for further steps. */
+      reachState: () => Promise<User>
+      notice: string
+      /** What the export must contain: the data on screen. */
+      expectedData: () => SpotsData
+      /** What must still be under STORAGE_KEY afterwards. */
+      expectedSavedRaw: string | null
+    }
+
+    const AC15_SAVING_OFF_CASES: [string, SavingOffCase][] = [
+      [
+        'AC14/AC15: corrupt data whose backup could not be written',
+        {
+          reachState: async () => {
+            window.localStorage.setItem(STORAGE_KEY, '{broken')
+            failSetItemFor(BACKUP_KEY)
+            const { user } = await renderApp()
+            await markDone(user, 'ヤビツ峠')
+            return user
+          },
+          notice: NOT_PERSISTENT_NOTICE,
+          expectedData: () => createSeedWithDone(1),
+          expectedSavedRaw: '{broken',
+        },
+      ],
+      [
+        'AC15: a save that failed (quota exceeded)',
+        {
+          reachState: async () => {
+            const { user } = await renderApp()
+            failSetItemFor(STORAGE_KEY)
+            await markDone(user, 'ヤビツ峠')
+            return user
+          },
+          notice: NOT_PERSISTENT_NOTICE,
+          expectedData: () => createSeedWithDone(1),
+          expectedSavedRaw: null,
+        },
+      ],
+    ]
+
+    it.each(AC15_SAVING_OFF_CASES)(
+      'AC32/AC33: with %s, the export still downloads the data on screen but is not recorded (never exported before)',
+      async (_description, savingOffCase) => {
+        fakeNow()
+        const { blobs, downloads } = mockDownloads()
+        const user = await savingOffCase.reachState()
+        expect(await screen.findByText(savingOffCase.notice)).toBeInTheDocument()
+        await openBackup(user)
+
+        await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+        expect(downloads.map((download) => download.fileName)).toEqual(['drive-spots-2026-10-25.json'])
+        const exported = JSON.parse(await blobs[0].text()) as { exportedAt: string; data: SpotsData }
+        expect(exported.exportedAt).toBe(NOW.toISOString())
+        expect(exported.data).toEqual(savingOffCase.expectedData())
+        expect(window.localStorage.getItem(LAST_BACKUP_KEY)).toBeNull()
+        expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*まだ書き出していません$/)
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(savingOffCase.expectedSavedRaw)
+      },
+    )
+
+    it.each(AC15_SAVING_OFF_CASES)(
+      'AC33: with %s, an earlier recorded export stays as it was (date and stored value)',
+      async (_description, savingOffCase) => {
+        fakeNow()
+        const earlierExport = new Date(2026, 9, 20, 8, 0).toISOString()
+        window.localStorage.setItem(LAST_BACKUP_KEY, earlierExport)
+        const { downloads } = mockDownloads()
+        const user = await savingOffCase.reachState()
+        expect(await screen.findByText(savingOffCase.notice)).toBeInTheDocument()
+        await openBackup(user)
+
+        await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+        expect(downloads).toHaveLength(1)
+        expect(window.localStorage.getItem(LAST_BACKUP_KEY)).toBe(earlierExport)
+        expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*2026年10月20日（5日前）$/)
+      },
+    )
+
+    // AC32: with data from a newer version (AC30) the screen data is not the saved data, so neither
+    // exporting nor importing is offered: a file of seed data must not look like a real backup.
+    const AC30_CASES: [string, () => Promise<User>][] = [
+      [
+        'found while loading',
+        async () => {
+          window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+          const { user } = await renderApp()
+          return user
+        },
+      ],
+      [
+        'found right before a write',
+        async () => {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+          const { user } = await renderApp()
+          window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+          await markDone(user, 'ヤビツ峠')
+          return user
+        },
+      ],
+    ]
+
+    it.each(AC30_CASES)(
+      'AC32/AC30: with newer-version data (%s), the backup screen shows the AC30 notice and ファイルに書き出す is disabled and downloads nothing',
+      async (_description, reachState) => {
+        fakeNow()
+        const { blobs, downloads } = mockDownloads()
+        const user = await reachState()
+        expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+        await openBackup(user)
+
+        expect(screen.getByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+        const exportButton = screen.getByRole('button', { name: EXPORT_LABEL })
+        expect(exportButton).toBeDisabled()
+
+        await user.click(exportButton)
+
+        expect(downloads).toHaveLength(0)
+        expect(blobs).toHaveLength(0)
+        expect(window.localStorage.getItem(LAST_BACKUP_KEY)).toBeNull()
+        expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*まだ書き出していません$/)
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      },
+    )
+
+    it.each(AC30_CASES)(
+      'AC32/AC30: with newer-version data (%s), an earlier recorded export stays as it was and nothing is downloaded',
+      async (_description, reachState) => {
+        fakeNow()
+        const earlierExport = new Date(2026, 9, 20, 8, 0).toISOString()
+        window.localStorage.setItem(LAST_BACKUP_KEY, earlierExport)
+        const { downloads } = mockDownloads()
+        const user = await reachState()
+        expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+        await openBackup(user)
+
+        await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+        expect(downloads).toHaveLength(0)
+        expect(window.localStorage.getItem(LAST_BACKUP_KEY)).toBe(earlierExport)
+        expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*2026年10月20日（5日前）$/)
+      },
+    )
+
+    it.each(AC30_CASES)(
+      'AC32/AC30: with newer-version data (%s), ファイルから読み込む is disabled and choosing a file changes nothing',
+      async (_description, reachState) => {
+        fakeNow()
+        const user = await reachState()
+        expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+        const countsBefore = [getWantTab().textContent, getDoneTab().textContent]
+        await openBackup(user)
+
+        const fileInput = screen.getByLabelText(IMPORT_LABEL)
+        expect(fileInput).toBeDisabled()
+
+        await chooseBackupFile(user, createJsonFile(createBackupFileText()))
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        })
+
+        expect(screen.queryByText(FILE_PREVIEW_TITLE)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: REPLACE_LABEL })).not.toBeInTheDocument()
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+
+        await backFromBackup(user)
+
+        expect([getWantTab().textContent, getDoneTab().textContent]).toEqual(countsBefore)
+      },
+    )
+
+    it('AC32/AC30: 一覧にもどる still works on the backup screen with newer-version data', async () => {
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await backFromBackup(user)
+
+      expect(getNewerVersionNotice()).toBeInTheDocument()
+    })
+
+    it.each<[string, () => void]>([
+      [
+        'getItem and setItem throw',
+        () => {
+          vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+          vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwSecurityError)
+        },
+      ],
+      [
+        'reading window.localStorage throws',
+        () => {
+          vi.spyOn(window, 'localStorage', 'get').mockImplementation(throwSecurityError)
+        },
+      ],
+    ])(
+      'AC32/AC33/AC15: when %s, the export still downloads the data on screen and is not recorded',
+      async (_description, breakStorage) => {
+        fakeNow()
+        const { blobs, downloads } = mockDownloads()
+        // Created first so it records every attempt; breakStorage may add a throwing implementation.
+        const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+        breakStorage()
+        const { user } = await renderApp()
+        expect(await screen.findByText(NOT_PERSISTENT_NOTICE)).toBeInTheDocument()
+        await markDone(user, 'ヤビツ峠')
+        await openBackup(user)
+
+        await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+        expect(downloads.map((download) => download.fileName)).toEqual(['drive-spots-2026-10-25.json'])
+        const exported = JSON.parse(await blobs[0].text()) as { data: SpotsData }
+        expect(exported.data).toEqual(createSeedWithDone(1))
+        expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*まだ書き出していません$/)
+        expect(setItemSpy.mock.calls.map(([key]) => key)).not.toContain(LAST_BACKUP_KEY)
+      },
+    )
+
+    it('AC33: an export made while saving works is recorded even after earlier exports were not (normal path again)', async () => {
+      fakeNow()
+      mockDownloads()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+      expect(window.localStorage.getItem(LAST_BACKUP_KEY)).toBe(NOW.toISOString())
+      expect(getLastBackupTile()).toHaveTextContent(/^最後に書き出した日\s*2026年10月25日（今日）$/)
+    })
+
+    it('AC32/AC21: exporting does not use the network', async () => {
+      fakeNow()
+      mockDownloads()
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+      expect(fetchSpy).not.toHaveBeenCalled()
+      vi.unstubAllGlobals()
+    })
+  })
+
+  describe('AC34-AC37: importing', () => {
+    it('AC35/AC36: a valid file is previewed first; 置き換える then replaces the list and the saved data', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await markDone(user, 'ヤビツ峠')
+      const savedRaw = window.localStorage.getItem(STORAGE_KEY)
+      await openBackup(user)
+
+      await chooseBackupFile(user, createJsonFile(createBackupFileText()))
+
+      expect(await screen.findByText(FILE_PREVIEW_TITLE)).toBeInTheDocument()
+      expect(screen.getByText('行きたい 3 / 行った 2')).toBeInTheDocument()
+      expect(
+        screen.getByText('いまのデータ（行きたい 18 / 行った 1）は、このファイルの中身に置き換わります。'),
+      ).toBeInTheDocument()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(savedRaw)
+
+      await user.click(screen.getByRole('button', { name: REPLACE_LABEL }))
+
+      expect(await screen.findByText('読み込みました（行きたい 3 / 行った 2）')).toBeInTheDocument()
+      expect(readSavedData()).toEqual(IMPORT_FILE_DATA)
+
+      await backFromBackup(user)
+
+      expectTabCounts(3, 2)
+      expect(getCardButtons().map((card) => card.textContent)).toEqual([
+        expect.stringContaining('道志みち'),
+        expect.stringContaining(HTML_NAME),
+        expect.stringContaining('大観山'),
+      ])
+      expect(queryCard('ヤビツ峠')).not.toBeInTheDocument()
+      await user.click(getDoneTab())
+      expect(getCard('碓氷峠')).toBeInTheDocument()
+      expect(getCard('首都高（都心環状線）')).toBeInTheDocument()
+    })
+
+    it('AC36/AC16: after the import, a new spot gets the nextId of the file', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await openBackup(user)
+      await importBackupFile(user)
+      await backFromBackup(user)
+
+      await addSpotThroughForm(user, { name: '一つ目' })
+
+      const savedData = readSavedData()
+      expect(savedData?.spots[0]).toMatchObject({ id: 50, name: '一つ目' })
+      expect(savedData?.nextId).toBe(51)
+    })
+
+    it('AC36: the imported data is still there after a reload', async () => {
+      fakeNow()
+      const { user, unmount } = await renderApp()
+      await openBackup(user)
+      await importBackupFile(user)
+      unmount()
+
+      await renderApp()
+
+      expectTabCounts(3, 2)
+      expect(getCard('道志みち')).toBeInTheDocument()
+    })
+
+    it('AC36/AC22: the file replaces what another tab saved meanwhile', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await openBackup(user)
+      saveFromAnotherTab(createOtherTabData())
+
+      await importBackupFile(user)
+
+      expect(readSavedData()).toEqual(IMPORT_FILE_DATA)
+    })
+
+    it('AC37: names and memos that look like HTML are shown as text (no element is created)', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await openBackup(user)
+      await importBackupFile(user)
+      await backFromBackup(user)
+
+      expect(getCard(HTML_NAME)).toBeInTheDocument()
+      expect(document.querySelector('img, script')).toBeNull()
+
+      await openDetail(user, HTML_NAME)
+
+      expect(screen.getByRole('heading', { level: 1, name: HTML_NAME })).toBeInTheDocument()
+      expect(screen.getByText(HTML_MEMO)).toBeInTheDocument()
+      expect(document.querySelector('img, script')).toBeNull()
+    })
+
+    it('AC35: やめる changes nothing', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await markDone(user, 'ヤビツ峠')
+      const savedRaw = window.localStorage.getItem(STORAGE_KEY)
+      await openBackup(user)
+      await chooseBackupFile(user, createJsonFile(createBackupFileText()))
+      await screen.findByText(FILE_PREVIEW_TITLE)
+
+      await user.click(screen.getByRole('button', { name: CANCEL_IMPORT_LABEL }))
+
+      expect(screen.queryByText(FILE_PREVIEW_TITLE)).not.toBeInTheDocument()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(savedRaw)
+
+      await backFromBackup(user)
+
+      expectTabCounts(18, 1)
+    })
+
+    it('AC35: leaving the backup screen during the preview changes nothing, and the preview is gone when coming back', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await markDone(user, 'ヤビツ峠')
+      const savedRaw = window.localStorage.getItem(STORAGE_KEY)
+      await openBackup(user)
+      await chooseBackupFile(user, createJsonFile(createBackupFileText()))
+      await screen.findByText(FILE_PREVIEW_TITLE)
+
+      await backFromBackup(user)
+
+      expectTabCounts(18, 1)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(savedRaw)
+
+      await openBackup(user)
+
+      expect(screen.queryByText(FILE_PREVIEW_TITLE)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: REPLACE_LABEL })).not.toBeInTheDocument()
+    })
+
+    it.each<[string, string, string]>([
+      ['a broken file', 'not json', INVALID_FILE_MESSAGE],
+      ['the file of another app', createBackupFileText({ app: 'road-review' }), INVALID_FILE_MESSAGE],
+      ['a file made by a newer version', createBackupFileText({ backupVersion: 2 }), NEWER_FILE_MESSAGE],
+      [
+        'a file whose nextId is Number.MAX_SAFE_INTEGER (AC16)',
+        createBackupFileText({ data: { ...IMPORT_FILE_DATA, nextId: Number.MAX_SAFE_INTEGER } }),
+        INVALID_FILE_MESSAGE,
+      ],
+    ])('AC34: %s shows its message and changes nothing', async (_description, text, message) => {
+      fakeNow()
+      const { user } = await renderApp()
+      await markDone(user, 'ヤビツ峠')
+      const savedRaw = window.localStorage.getItem(STORAGE_KEY)
+      await openBackup(user)
+
+      await chooseBackupFile(user, createJsonFile(text))
+
+      expect(await screen.findByText(message)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: REPLACE_LABEL })).not.toBeInTheDocument()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(savedRaw)
+
+      await backFromBackup(user)
+
+      expectTabCounts(18, 1)
+    })
+
+    it('AC34: a file larger than 1 MB shows its message and changes nothing', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await openBackup(user)
+      const text = createBackupFileText()
+      const paddedText = text + ' '.repeat(1_000_001 - new TextEncoder().encode(text).length)
+
+      await chooseBackupFile(user, createJsonFile(paddedText))
+
+      expect(await screen.findByText('ファイルが大きすぎます（1MB まで）')).toBeInTheDocument()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    })
+
+    it('AC36: after an import that was saved, the not-saved text is not shown', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await importBackupFile(user)
+
+      expect(screen.queryByText(NOT_SAVED_AFTER_IMPORT_TEXT)).not.toBeInTheDocument()
+      expect(readSavedData()).toEqual(IMPORT_FILE_DATA)
+    })
+
+    it.each<[string, () => void]>([
+      [
+        'getItem and setItem throw (storage unavailable from the start)',
+        () => {
+          vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+          vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwSecurityError)
+        },
+      ],
+      ['reading window.localStorage throws', () => vi.spyOn(window, 'localStorage', 'get').mockImplementation(throwSecurityError)],
+    ])('AC36/AC15: when %s, 読み込みました is followed by the not-saved text', async (_description, breakStorage) => {
+      fakeNow()
+      breakStorage()
+      const { user } = await renderApp()
+      await openBackup(user)
+      expect(screen.queryByText(NOT_SAVED_AFTER_IMPORT_TEXT)).not.toBeInTheDocument()
+
+      await importBackupFile(user)
+
+      const doneText = screen.getByText('読み込みました（行きたい 3 / 行った 2）')
+      const notSavedText = await screen.findByText(NOT_SAVED_AFTER_IMPORT_TEXT)
+      expectFollows(doneText, notSavedText)
+    })
+
+    it('AC36/AC15: when the save of the import fails (setItem throws), the not-saved text appears and the list shows the import with the AC15 notice', async () => {
+      fakeNow()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      const { user } = await renderApp()
+      expect(getNotice()).not.toBeInTheDocument()
+      await openBackup(user)
+      await chooseBackupFile(user, createJsonFile(createBackupFileText()))
+      await screen.findByText(FILE_PREVIEW_TITLE)
+      expect(screen.queryByText(NOT_SAVED_AFTER_IMPORT_TEXT)).not.toBeInTheDocument()
+      failSetItemFor(STORAGE_KEY)
+
+      await user.click(screen.getByRole('button', { name: REPLACE_LABEL }))
+
+      const doneText = await screen.findByText('読み込みました（行きたい 3 / 行った 2）')
+      const notSavedText = await screen.findByText(NOT_SAVED_AFTER_IMPORT_TEXT)
+      expectFollows(doneText, notSavedText)
+      expect(readSavedData()).toEqual(createSeedData())
+
+      await backFromBackup(user)
+
+      expect(getNotice()).toBeInTheDocument()
+      expectTabCounts(3, 2)
+    })
+
+    it('AC36/AC30: when a newer version saved meanwhile, 置き換える writes nothing and the backup screen switches to the AC30 notice', async () => {
+      fakeNow()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      const { user } = await renderApp()
+      await openBackup(user)
+      await chooseBackupFile(user, createJsonFile(createBackupFileText()))
+      await screen.findByText(FILE_PREVIEW_TITLE)
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      await user.click(screen.getByRole('button', { name: REPLACE_LABEL }))
+
+      expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: EXPORT_LABEL })).toBeDisabled()
+      expect(screen.getByLabelText(IMPORT_LABEL)).toBeDisabled()
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC36/AC15: when localStorage cannot be used, the import changes the screen only', async () => {
+      fakeNow()
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await importBackupFile(user)
+      await backFromBackup(user)
+
+      expectTabCounts(3, 2)
+      expect(getNotice()).toBeInTheDocument()
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('AC38: backup reminder on the list', () => {
+    it('AC38: on the first run (nothing saved yet) the button is just バックアップ', async () => {
+      fakeNow()
+      await renderApp()
+
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_LABEL)
+    })
+
+    it('AC38: once something is saved and it was never exported, it becomes バックアップ（まだしていません）', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+
+      await markDone(user, 'ヤビツ峠')
+
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_NEVER_LABEL)
+    })
+
+    it('AC38: with saved data that was never exported, it is バックアップ（まだしていません） from the start', async () => {
+      fakeNow()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+
+      await renderApp()
+
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_NEVER_LABEL)
+    })
+
+    it.each<[string, string, Date]>([
+      ['30 calendar days ago (Sep 25 23:00)', BACKUP_STALE_LABEL, new Date(2026, 8, 25, 23, 0)],
+      ['45 days ago', BACKUP_STALE_LABEL, new Date(2026, 8, 10, 12, 0)],
+      ['29 calendar days ago (Sep 26 00:00)', BACKUP_LABEL, new Date(2026, 8, 26, 0, 0)],
+      ['earlier today', BACKUP_LABEL, new Date(2026, 9, 25, 7, 0)],
+    ])('AC38: with the last export %s, the name is %s', async (_description, expectedName, lastBackupAt) => {
+      fakeNow()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      window.localStorage.setItem(LAST_BACKUP_KEY, lastBackupAt.toISOString())
+
+      await renderApp()
+
+      expect(getBackupButton()).toHaveAccessibleName(expectedName)
+    })
+
+    it('AC38: a last-backup value that is not a time counts as never exported', async () => {
+      fakeNow()
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      window.localStorage.setItem(LAST_BACKUP_KEY, 'not a date')
+
+      await renderApp()
+
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_NEVER_LABEL)
+    })
+
+    it('AC38/AC15: when localStorage cannot be used, the button is just バックアップ', async () => {
+      fakeNow()
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const { user } = await renderApp()
+
+      await markDone(user, 'ヤビツ峠')
+
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_LABEL)
+    })
+  })
+
+  describe('AC39: restore hint', () => {
+    it('AC39: shows the hint on the first run and hides it once something is saved', async () => {
+      const { user } = await renderApp()
+
+      expect(getListRegion()).toHaveTextContent(RESTORE_HINT)
+
+      await markDone(user, 'ヤビツ峠')
+
+      expect(getListRegion()).not.toHaveTextContent(RESTORE_HINT)
+    })
+
+    it('AC39: no hint when valid data is saved', async () => {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+
+      await renderApp()
+
+      expect(getListRegion()).not.toHaveTextContent(RESTORE_HINT)
+    })
+
+    it('AC39: shows the hint when the saved data was corrupt (there is no valid data yet)', async () => {
+      window.localStorage.setItem(STORAGE_KEY, '{broken')
+
+      await renderApp()
+
+      expect(getListRegion()).toHaveTextContent(RESTORE_HINT)
+    })
+
+    it('AC39/AC15: no hint when localStorage cannot be used', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+
+      await renderApp()
+
+      expect(await screen.findByText(NOT_PERSISTENT_NOTICE)).toBeInTheDocument()
+      expect(getListRegion()).not.toHaveTextContent(RESTORE_HINT)
+    })
+
+    it('AC39/AC15: the hint goes away when a save fails (the cannot-save notice shows instead)', async () => {
+      const { user } = await renderApp()
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      await markDone(user, 'ヤビツ峠')
+
+      expect(await screen.findByText(NOT_PERSISTENT_NOTICE)).toBeInTheDocument()
+      expect(getListRegion()).not.toHaveTextContent(RESTORE_HINT)
+    })
+
+    it('AC39/AC36: the hint goes away after importing a file', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await importBackupFile(user)
+      await backFromBackup(user)
+
+      expect(getListRegion()).not.toHaveTextContent(RESTORE_HINT)
+    })
+  })
+
+  describe('AC30: data saved by a newer version', () => {
+    it('AC30: shows the newer-version notice instead of the cannot-save notice, with the seed on screen, and writes nothing', async () => {
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      await renderApp()
+
+      expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(NEWER_VERSION_NOTICE)
+      expect(getNotice()).not.toBeInTheDocument()
+      expect(getCardButtons()).toHaveLength(19)
+      expectTabCounts(19, 0)
+      expect(getListRegion()).not.toHaveTextContent(RESTORE_HINT)
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_LABEL)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC30: add, toggle, delete and memo editing change the screen only, import is not offered, and nothing is ever written', async () => {
+      fakeNow()
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem')
+      const { user } = await renderApp()
+
+      await markDone(user, 'ヤビツ峠')
+      expectTabCounts(18, 1)
+
+      await addSpotThroughForm(user, { name: '大観山' })
+      expectTabCounts(19, 1)
+      expect(getCardButtons()[0]).toHaveTextContent('大観山')
+
+      await openDetail(user, '奥多摩')
+      await user.click(screen.getByRole('button', { name: DELETE_LABEL }))
+      await user.click(screen.getByRole('button', { name: DELETE_CONFIRM_LABEL }))
+      await screen.findByRole('button', { name: WANT_TAB_NAME })
+      expect(queryCard('奥多摩')).not.toBeInTheDocument()
+
+      await openDetail(user, '赤城山')
+      await saveMemo(user, '新しいメモ')
+      expect(screen.getByText('新しいメモ')).toBeInTheDocument()
+      await backToList(user)
+
+      await openBackup(user)
+      expect(screen.getByLabelText(IMPORT_LABEL)).toBeDisabled()
+      expect(screen.getByRole('button', { name: EXPORT_LABEL })).toBeDisabled()
+      await backFromBackup(user)
+      expectTabCounts(18, 1)
+
+      expect(getNewerVersionNotice()).toBeInTheDocument()
+      expect(getNotice()).not.toBeInTheDocument()
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(removeItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC30: when a newer version saves while this page is open, the next action writes nothing and the notice appears', async () => {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(createSeedData()))
+      const { user } = await renderApp()
+      expect(getNewerVersionNotice()).not.toBeInTheDocument()
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      await markDone(user, 'ヤビツ峠')
+
+      expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+      expect(getNotice()).not.toBeInTheDocument()
+      expectTabCounts(18, 1)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+
+      await markDone(user, '奥多摩')
+
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(getNewerVersionNotice()).toBeInTheDocument()
+    })
+
+    it('AC30: a storage event with newer data shows the notice without any action, keeps the list and writes nothing', async () => {
+      const { user } = await renderApp()
+      await markDone(user, 'ヤビツ峠')
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+      expectTabCounts(18, 1)
+      expect(setItemSpy).not.toHaveBeenCalled()
+
+      await markDone(user, '奥多摩')
+
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+    })
+
+    it('AC30: a page restored by back/forward with newer data shows the notice and writes nothing', async () => {
+      await renderApp()
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      dispatchPageShow(true)
+
+      expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+      expectTabCounts(19, 0)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
     })
   })
 })
