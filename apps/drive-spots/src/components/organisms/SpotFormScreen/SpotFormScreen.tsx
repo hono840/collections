@@ -14,27 +14,49 @@ const BLANK_INPUT: SpotInput = {
   region: '',
   category: '峠',
   distanceKm: '',
+  exitInterchange: '',
   season: '',
   memo: '',
 }
 
+type SpotFormMode = 'add' | 'edit'
+
+// The title says what the button that opened the screen said (AC9, AC42).
+const FORM_TITLES: Record<SpotFormMode, string> = {
+  add: 'スポットを追加',
+  edit: 'スポットを編集',
+}
+
 type SpotFormScreenProps = {
-  /** Back to the list; the input is thrown away (the screen unmounts). */
+  /** Back to where the screen was opened from; the input is thrown away (the screen unmounts). */
   onCancel: () => void
-  /** Called with the raw input once it passes validateSpotInput (addSpot trims it). */
+  /** Called with the raw input once it passes validateSpotInput (addSpot / updateSpot trim it). */
   onSave: (input: SpotInput) => void
+  /** 'add' (default) or 'edit'; only the title differs (AC42). */
+  mode?: SpotFormMode
+  /**
+   * The starting values, e.g. spotToInput(spot) when editing. Read once, as the initial state, so a
+   * change saved in another tab never rewrites what is being typed (AC45). Defaults to empty fields.
+   */
+  initialInput?: SpotInput
   /** Move focus to the title when the screen appears. */
   focusOnMount?: boolean
 }
 
 /**
- * 追加. Holds the input and the error messages. Both 保存 (header) and 保存する validate; on an
- * error, focus moves to the first wrong field, which reads its message through aria-describedby.
+ * 追加 and 編集. Holds the input and the error messages. Both 保存 (header) and 保存する validate; on
+ * an error, focus moves to the first wrong field, which reads its message through aria-describedby.
  * No <form>: the CSP sets form-action 'none', and Enter in a text field must not save half-typed input.
  */
-export function SpotFormScreen({ onCancel, onSave, focusOnMount = false }: SpotFormScreenProps) {
+export function SpotFormScreen({
+  onCancel,
+  onSave,
+  mode = 'add',
+  initialInput = BLANK_INPUT,
+  focusOnMount = false,
+}: SpotFormScreenProps) {
   const fieldIdPrefix = useId()
-  const [input, setInput] = useState<SpotInput>(BLANK_INPUT)
+  const [input, setInput] = useState<SpotInput>(initialInput)
   const [errors, setErrors] = useState<SpotInputErrors>({})
   const headingRef = useRef<HTMLHeadingElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -81,7 +103,7 @@ export function SpotFormScreen({ onCancel, onSave, focusOnMount = false }: SpotF
           tabIndex={-1}
           className="text-center text-17 font-bold focus:outline-none"
         >
-          スポットを追加
+          {FORM_TITLES[mode]}
         </h1>
         <button
           type="button"
@@ -141,6 +163,16 @@ export function SpotFormScreen({ onCancel, onSave, focusOnMount = false }: SpotF
             error={errors.distanceKm}
           />
         </div>
+
+        {/* Full width, right under 地域｜距離: where, how far, where to leave the expressway (AC47).
+            Free text with no error and the ordinary keyboard. */}
+        <FormField
+          id={`${fieldIdPrefix}-exit-interchange`}
+          label="降りるIC"
+          placeholder="例：小田原西IC"
+          value={input.exitInterchange}
+          onValueChange={(value) => updateField('exitInterchange', value)}
+        />
 
         <FormField
           id={`${fieldIdPrefix}-season`}

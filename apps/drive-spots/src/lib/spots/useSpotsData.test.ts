@@ -15,9 +15,32 @@ const NEW_SPOT_INPUT: SpotInput = {
   region: '神奈川',
   category: '絶景ロード',
   distanceKm: '',
+  exitInterchange: '',
   season: '',
   memo: '',
 }
+
+/** What the edit form hands over for spot 1 (ヤビツ峠): every field changed, untrimmed (AC43). */
+const EDITED_INPUT: SpotInput = {
+  name: '  ヤビツ峠（表ヤビツ）  ',
+  region: '',
+  category: '絶景ロード',
+  distanceKm: ' 45 ',
+  exitInterchange: '　秦野中井IC　',
+  season: '新緑のころ ',
+  memo: '\n 菜の花台で休憩\n帰りは宮ヶ瀬 \n',
+}
+
+/** EDITED_INPUT as updateSpot saves it: trimmed, the empty region as '未入力'. */
+const EDITED_FIELDS = {
+  name: 'ヤビツ峠（表ヤビツ）',
+  region: '未入力',
+  category: '絶景ロード',
+  distanceKm: '45',
+  exitInterchange: '秦野中井IC',
+  season: '新緑のころ',
+  memo: '菜の花台で休憩\n帰りは宮ヶ瀬',
+} as const satisfies SpotInput
 
 const OTHER_TAB_SPOT: Spot = {
   id: 20,
@@ -25,6 +48,7 @@ const OTHER_TAB_SPOT: Spot = {
   region: '千葉',
   category: '海沿い',
   distanceKm: '',
+  exitInterchange: '',
   season: '',
   memo: '',
   done: false,
@@ -33,7 +57,24 @@ const OTHER_TAB_SPOT: Spot = {
 /** What another tab saved after this tab loaded: the seed plus one new spot (id 20, nextId 21). */
 function createOtherTabData(): SpotsData {
   const seedData = createSeedData()
-  return { version: 1, nextId: 21, spots: [OTHER_TAB_SPOT, ...seedData.spots] }
+  return { version: 2, nextId: 21, spots: [OTHER_TAB_SPOT, ...seedData.spots] }
+}
+
+/** Data as version 1 of the app saved it (AC46): spots without exitInterchange. */
+function toVersion1Raw(data: SpotsData): string {
+  return JSON.stringify({
+    version: 1,
+    nextId: data.nextId,
+    spots: data.spots.map((spot) =>
+      Object.fromEntries(Object.entries(spot).filter(([key]) => key !== 'exitInterchange')),
+    ),
+  })
+}
+
+/** The seed with spot `id` changed as `change` says; everything else as loaded. */
+function createSeedWithSpot(id: number, change: Partial<Spot>): SpotsData {
+  const seedData = createSeedData()
+  return { ...seedData, spots: seedData.spots.map((spot) => (spot.id === id ? { ...spot, ...change } : spot)) }
 }
 
 function writeSavedData(data: SpotsData) {
@@ -69,12 +110,12 @@ function findSpot(data: SpotsData | null, id: number): Spot | undefined {
   return data?.spots.find((spot) => spot.id === id)
 }
 
-/** Saved by a newer version of the app (AC30): a shape this version cannot read. */
-const NEWER_VERSION_RAW = JSON.stringify({ version: 2, nextId: 40, places: [{ title: '大観山' }] })
+/** Saved by a newer version of the app (AC30, above version 2): a shape this version cannot read. */
+const NEWER_VERSION_RAW = JSON.stringify({ version: 3, nextId: 40, places: [{ title: '大観山' }] })
 
 /** What a valid backup file holds (AC36): its own spots and nextId. */
 const IMPORTED_DATA: SpotsData = {
-  version: 1,
+  version: 2,
   nextId: 50,
   spots: [
     {
@@ -83,11 +124,22 @@ const IMPORTED_DATA: SpotsData = {
       region: '山梨・神奈川',
       category: '峠',
       distanceKm: '80',
+      exitInterchange: '相模湖IC',
       season: '新緑のころ',
       memo: '朝早く出る',
       done: false,
     },
-    { id: 12, name: '碓氷峠', region: '群馬・長野', category: '峠', distanceKm: '', season: '', memo: '', done: true },
+    {
+      id: 12,
+      name: '碓氷峠',
+      region: '群馬・長野',
+      category: '峠',
+      distanceKm: '',
+      exitInterchange: '',
+      season: '',
+      memo: '',
+      done: true,
+    },
   ],
 }
 
@@ -99,6 +151,7 @@ const SPOT_ACTIONS: [string, (spotsData: SpotsHook) => void][] = [
   ['toggleDone', (spotsData) => spotsData.toggleDone(1)],
   ['remove', (spotsData) => spotsData.remove(2)],
   ['updateMemo', (spotsData) => spotsData.updateMemo(1, '新しいメモ')],
+  ['updateSpot', (spotsData) => spotsData.updateSpot(1, EDITED_INPUT)],
   ['replaceAll', (spotsData) => spotsData.replaceAll(structuredClone(IMPORTED_DATA))],
 ]
 
@@ -132,6 +185,51 @@ describe('useSpotsData', () => {
       renderHook(() => useSpotsData())
 
       expect(window.localStorage.length).toBe(0)
+    })
+
+    it('AC46: the empty data shown before loading is version 2 as well', () => {
+      const versionsBeforeReady: number[] = []
+
+      renderHook(() => {
+        const spotsData = useSpotsData()
+        if (!spotsData.ready) versionsBeforeReady.push(spotsData.data.version)
+        return spotsData
+      })
+
+      expect(versionsBeforeReady.length).toBeGreaterThan(0)
+      expect(versionsBeforeReady.every((version) => version === 2)).toBe(true)
+    })
+
+    it('AC46: loads saved version 1 data as version 2 (exitInterchange empty) and writes nothing', () => {
+      const otherTabData = createOtherTabData()
+      const version1Raw = toVersion1Raw(otherTabData)
+      window.localStorage.setItem(STORAGE_KEY, version1Raw)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      const { result } = renderHook(() => useSpotsData())
+
+      expect(result.current.data).toEqual(otherTabData)
+      expect(result.current.data.version).toBe(2)
+      expect(result.current.persistent).toBe(true)
+      expect(result.current.hasSavedData).toBe(true)
+      expect(result.current.newerVersion).toBe(false)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(version1Raw)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC46: the first change after loading version 1 data saves version 2', () => {
+      window.localStorage.setItem(STORAGE_KEY, toVersion1Raw(createOtherTabData()))
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.toggleDone(1))
+
+      const savedData = readSavedData()
+      expect(savedData?.version).toBe(2)
+      expect(savedData?.spots.every((spot) => spot.exitInterchange === '')).toBe(true)
+      expect(findSpot(savedData, 1)?.done).toBe(true)
+      expect(findSpot(savedData, OTHER_TAB_SPOT.id)).toEqual(OTHER_TAB_SPOT)
+      expect(result.current.data).toEqual(savedData)
     })
 
     it('AC13: loads the saved data after mounting', () => {
@@ -473,6 +571,139 @@ describe('useSpotsData', () => {
     })
   })
 
+  describe('updateSpot (AC43, AC45)', () => {
+    it('AC43: changes the 7 fields of that spot (trimmed, an empty region as 未入力) and saves version 2', () => {
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      const expectedData = createSeedWithSpot(1, EDITED_FIELDS)
+      expect(result.current.data).toEqual(expectedData)
+      expect(readSavedData()).toEqual(expectedData)
+      expect(readSavedData()?.version).toBe(2)
+      expect(result.current.persistent).toBe(true)
+      expect(result.current.hasSavedData).toBe(true)
+    })
+
+    it('AC43: keeps done, the id, the order and nextId', () => {
+      const { result } = renderHook(() => useSpotsData())
+      act(() => result.current.toggleDone(2))
+
+      act(() => result.current.updateSpot(2, EDITED_INPUT))
+
+      const savedData = readSavedData()
+      expect(savedData?.spots.map((spot) => spot.id)).toEqual(createSeedData().spots.map((spot) => spot.id))
+      expect(savedData?.nextId).toBe(20)
+      expect(findSpot(savedData, 2)).toEqual({ id: 2, ...EDITED_FIELDS, done: true })
+    })
+
+    it('AC45/AC22: keeps a spot that another tab saved after this tab loaded', () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createOtherTabData())
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      const savedData = readSavedData()
+      expect(findSpot(savedData, OTHER_TAB_SPOT.id)).toEqual(OTHER_TAB_SPOT)
+      expect(findSpot(savedData, 1)).toEqual({ id: 1, ...EDITED_FIELDS, done: false })
+      expect(savedData?.spots).toHaveLength(20)
+      expect(savedData?.nextId).toBe(21)
+      expect(result.current.data).toEqual(savedData)
+    })
+
+    it("AC45/AC22: keeps another tab's 行った change of the same spot", () => {
+      const { result } = renderHook(() => useSpotsData())
+      writeSavedData(createSeedWithSpot(1, { done: true }))
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      expect(findSpot(readSavedData(), 1)).toEqual({ id: 1, ...EDITED_FIELDS, done: true })
+      expect(findSpot(result.current.data, 1)?.done).toBe(true)
+    })
+
+    it('AC45/AC27: does not bring back a spot that another tab deleted after this tab loaded', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const seedData = createSeedData()
+      const otherTabData: SpotsData = { ...seedData, spots: seedData.spots.filter((spot) => spot.id !== 1) }
+      writeSavedData(otherTabData)
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      expect(readSavedData()).toEqual(otherTabData)
+      expect(findSpot(result.current.data, 1)).toBeUndefined()
+      expect(result.current.data).toEqual(otherTabData)
+    })
+
+    it('AC46: over saved version 1 data, saves version 2 (the other spots get an empty exitInterchange)', () => {
+      window.localStorage.setItem(STORAGE_KEY, toVersion1Raw(createSeedData()))
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      expect(readSavedData()).toEqual(createSeedWithSpot(1, EDITED_FIELDS))
+    })
+
+    it('AC13: updateSpot called before the saved data has been read does nothing', () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const readyWhenActionRan: boolean[] = []
+
+      // A layout effect runs before the hook's own (passive) load effect, i.e. while ready is false.
+      const { result } = renderHook(() => {
+        const spotsData = useSpotsData()
+        const actionRanRef = useRef(false)
+        useLayoutEffect(() => {
+          if (actionRanRef.current) return
+          actionRanRef.current = true
+          readyWhenActionRan.push(spotsData.ready)
+          spotsData.updateSpot(1, EDITED_INPUT)
+        })
+        return spotsData
+      })
+
+      expect(readyWhenActionRan).toEqual([false])
+      expect(result.current.data).toEqual(createSeedData())
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    })
+
+    it('AC45/AC28/AC15: when getItem throws, the spot changes in memory but setItem is never called', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { result } = renderHook(() => useSpotsData())
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      expect(result.current.data).toEqual(createSeedWithSpot(1, EDITED_FIELDS))
+      expect(result.current.persistent).toBe(false)
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC45/AC28/AC15: a failed save turns persistent off and keeps the change in memory', () => {
+      const { result } = renderHook(() => useSpotsData())
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuotaExceededError)
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      expect(result.current.persistent).toBe(false)
+      expect(findSpot(result.current.data, 1)).toEqual({ id: 1, ...EDITED_FIELDS, done: false })
+    })
+
+    it('AC45/AC28/AC15: after a failed save, updateSpot changes memory without trying to write', () => {
+      const { result } = renderHook(() => useSpotsData())
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(throwQuotaExceededError)
+      act(() => result.current.toggleDone(2))
+      const setItemCallsAfterFailure = setItemSpy.mock.calls.length
+
+      act(() => result.current.updateSpot(1, EDITED_INPUT))
+
+      expect(setItemSpy).toHaveBeenCalledTimes(setItemCallsAfterFailure)
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+      expect(findSpot(result.current.data, 1)).toEqual({ id: 1, ...EDITED_FIELDS, done: false })
+    })
+  })
+
   describe('AC22: refreshing the view', () => {
     it("AC22: a storage event for 'drive-spots:v1' refreshes data with what another tab saved", () => {
       const { result } = renderHook(() => useSpotsData())
@@ -523,6 +754,24 @@ describe('useSpotsData', () => {
       dispatchPageShow(false)
 
       expect(result.current.data).toEqual(createSeedData())
+    })
+
+    it.each<[string, () => void]>([
+      ["a storage event for 'drive-spots:v1'", () => dispatchStorageEvent(STORAGE_KEY)],
+      ['pageshow with persisted true', () => dispatchPageShow(true)],
+    ])('AC46/AC22: %s with version 1 data shows it as version 2 and writes nothing', (_description, refresh) => {
+      const { result } = renderHook(() => useSpotsData())
+      const otherTabData = createOtherTabData()
+      const version1Raw = toVersion1Raw(otherTabData)
+      window.localStorage.setItem(STORAGE_KEY, version1Raw)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      refresh()
+
+      expect(result.current.data).toEqual(otherTabData)
+      expect(result.current.hasSavedData).toBe(true)
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(version1Raw)
     })
 
     it('AC22: refreshing does not write anything', () => {
@@ -609,7 +858,7 @@ describe('useSpotsData', () => {
     })
 
     it('AC38: a saved empty list is saved data too', () => {
-      writeSavedData({ version: 1, nextId: 20, spots: [] })
+      writeSavedData({ version: 2, nextId: 20, spots: [] })
 
       const { result } = renderHook(() => useSpotsData())
 
@@ -710,7 +959,7 @@ describe('useSpotsData', () => {
       expect(result.current.data).toEqual({ ...createSeedData(), spots: expectedSpots })
     })
 
-    it('AC30: newerVersion and persistent false stay, and nothing is written later, even once storage holds version 1 data again', () => {
+    it('AC30: newerVersion and persistent false stay, and nothing is written later, even once storage holds valid data again', () => {
       const { result } = renderHook(() => useSpotsData())
       window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
       act(() => result.current.toggleDone(1))

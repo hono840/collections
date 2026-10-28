@@ -1,7 +1,8 @@
+import { SPOTS_DATA_VERSION } from './types'
 import type { Category, Spot, SpotsData } from './types'
 
 // The `seed` array of docs/design/Main.dc.html, in design order (AC1).
-// Distance and season are empty for every row.
+// Distance, 降りるIC and season are empty for every row (AC46).
 const SEED_ROWS: ReadonlyArray<readonly [name: string, region: string, category: Category, memo: string]> = [
   ['ヤビツ峠', '神奈川', '峠', '峠のホームコースにしたい'],
   ['箱根ターンパイク', '神奈川', '絶景ロード', ''],
@@ -24,7 +25,7 @@ const SEED_ROWS: ReadonlyArray<readonly [name: string, region: string, category:
   ['伊吹山ドライブウェイ', '岐阜・滋賀', '絶景ロード', ''],
 ]
 
-/** The 19 design spots with ids 1-19 and nextId 20. Builds new objects on every call. */
+/** The 19 design spots with ids 1-19 and nextId 20, as version 2. Builds new objects on every call. */
 export function createSeedData(): SpotsData {
   const spots: Spot[] = SEED_ROWS.map(([name, region, category, memo], index) => ({
     id: index + 1,
@@ -32,9 +33,10 @@ export function createSeedData(): SpotsData {
     region,
     category,
     distanceKm: '',
+    exitInterchange: '',
     season: '',
     memo,
     done: false,
   }))
-  return { version: 1, nextId: spots.length + 1, spots }
+  return { version: SPOTS_DATA_VERSION, nextId: spots.length + 1, spots }
 }

@@ -42,6 +42,7 @@ function makeSpot(overrides: Partial<Spot> & Pick<Spot, 'id' | 'name'>): Spot {
     region: '神奈川',
     category: '峠',
     distanceKm: '',
+    exitInterchange: '',
     season: '',
     memo: '',
     done: false,
@@ -60,15 +61,33 @@ const CURRENT_SPOTS: Spot[] = [
 
 /** What the backup file holds: 行きたい 3 / 行った 2, its own nextId. */
 const FILE_DATA: SpotsData = {
-  version: 1,
+  version: 2,
   nextId: 50,
   spots: [
-    makeSpot({ id: 41, name: '道志みち', region: '山梨・神奈川', distanceKm: '80', memo: '朝早く出る' }),
+    makeSpot({
+      id: 41,
+      name: '道志みち',
+      region: '山梨・神奈川',
+      distanceKm: '80',
+      exitInterchange: '相模湖IC',
+      memo: '朝早く出る',
+    }),
     makeSpot({ id: 40, name: HTML_NAME, memo: '<script>alert(1)</script>' }),
     makeSpot({ id: 33, name: '大観山', category: '絶景ロード' }),
     makeSpot({ id: 12, name: '碓氷峠', region: '群馬・長野', done: true }),
     makeSpot({ id: 7, name: '首都高（都心環状線）', region: '東京', category: '都市高速', done: true }),
   ],
+}
+
+/** FILE_DATA as a file made by version 1 of the app holds it: spots without exitInterchange (AC46). */
+function createVersion1FileData(): Record<string, unknown> {
+  return {
+    version: 1,
+    nextId: FILE_DATA.nextId,
+    spots: FILE_DATA.spots.map((spot) =>
+      Object.fromEntries(Object.entries(spot).filter(([key]) => key !== 'exitInterchange')),
+    ),
+  }
 }
 
 function createBackupText(overrides: Record<string, unknown> = {}): string {
@@ -342,6 +361,11 @@ describe('BackupScreen', () => {
       ['the saved data alone (not a backup file)', JSON.stringify(FILE_DATA)],
       ['data with nextId Number.MAX_SAFE_INTEGER (AC16)', createBackupText({ data: { ...FILE_DATA, nextId: Number.MAX_SAFE_INTEGER } })],
       ['data with nextId 1,000,000,001 (AC16)', createBackupText({ data: { ...FILE_DATA, nextId: 1_000_000_001 } })],
+      ['data that is only { version: 2 } (version 2 is this version, so broken, not newer)', createBackupText({ data: { version: 2 } })],
+      [
+        'data.version 2 with a spot without exitInterchange (AC46)',
+        createBackupText({ data: { ...createVersion1FileData(), version: 2 } }),
+      ],
     ])('AC34: %s is refused as not a backup file or broken', async (_description, text) => {
       const { user, onReplace } = renderBackup()
 
@@ -355,7 +379,8 @@ describe('BackupScreen', () => {
     it.each<[string, string]>([
       ['backupVersion 2', createBackupText({ backupVersion: 2 })],
       ['backupVersion 3 with data in an unknown shape', createBackupText({ backupVersion: 3, data: { places: [] } })],
-      ['data.version 2', createBackupText({ data: { ...FILE_DATA, version: 2 } })],
+      ['data.version 3', createBackupText({ data: { ...FILE_DATA, version: 3 } })],
+      ['data.version 3 in an unknown shape', createBackupText({ data: { version: 3, places: [] } })],
     ])('AC34: a file with %s is refused as made by a newer version', async (_description, text) => {
       const { user, onReplace } = renderBackup()
 
@@ -487,6 +512,30 @@ describe('BackupScreen', () => {
 
       expect(onReplace).toHaveBeenCalledTimes(1)
       expect(onReplace).toHaveBeenCalledWith(FILE_DATA)
+    })
+
+    it('AC46: a file whose data is version 1 is previewed, and 置き換える passes it as version 2 (exitInterchange empty)', async () => {
+      const { user, onReplace } = renderBackup()
+      await chooseFile(user, createJsonFile(createBackupText({ data: createVersion1FileData() })))
+      expect(await screen.findByText(FILE_PREVIEW_TITLE)).toBeInTheDocument()
+      expect(screen.getByText('行きたい 3 / 行った 2')).toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: REPLACE_LABEL }))
+
+      expect(onReplace).toHaveBeenCalledTimes(1)
+      expect(onReplace).toHaveBeenCalledWith({
+        ...FILE_DATA,
+        spots: FILE_DATA.spots.map((spot) => ({ ...spot, exitInterchange: '' })),
+      })
+    })
+
+    it('AC34/AC46: a file whose data is version 2 is not refused as newer', async () => {
+      const { user } = renderBackup()
+
+      await chooseValidFile(user)
+
+      expect(screen.queryByText(NEWER_MESSAGE)).not.toBeInTheDocument()
+      expect(screen.queryByText(INVALID_MESSAGE)).not.toBeInTheDocument()
     })
 
     it('AC36: then shows 読み込みました with the counts of the file, and 置き換える is gone', async () => {
@@ -671,7 +720,7 @@ describe('BackupScreen', () => {
 
   describe('a file chosen while another is still being read (stale read)', () => {
     /** File B: written on Oct 22 with 行きたい 1 / 行った 0. */
-    const FILE_B_DATA: SpotsData = { version: 1, nextId: 60, spots: [makeSpot({ id: 59, name: '道志みち' })] }
+    const FILE_B_DATA: SpotsData = { version: 2, nextId: 60, spots: [makeSpot({ id: 59, name: '道志みち' })] }
     const FILE_B_TITLE = '2026年10月22日に書き出したファイル'
     const fileBText = () => createBackupText({ exportedAt: new Date(2026, 9, 22, 12, 0).toISOString(), data: FILE_B_DATA })
 

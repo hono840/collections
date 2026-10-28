@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSeedData } from './seed'
-import { CATEGORIES } from './types'
+import { CATEGORIES, SPOTS_DATA_VERSION } from './types'
 
 // The 19 rows of the `seed` array in docs/design/Main.dc.html, in design order.
 // Design tuple order is [name, region, category, season, memo]; season is '' for every row.
@@ -32,10 +32,12 @@ const DESIGN_SEED_ROWS = [
 ] as const
 
 describe('createSeedData', () => {
-  it('AC1: returns version 1 data with 19 spots and nextId 20', () => {
+  // 初期データ: `version` は 2 (changed from 1 on 2026-10-28, AC46).
+  it('AC1/AC46: returns version 2 data with 19 spots and nextId 20', () => {
     const seedData = createSeedData()
 
-    expect(seedData.version).toBe(1)
+    expect(seedData.version).toBe(2)
+    expect(seedData.version).toBe(SPOTS_DATA_VERSION)
     expect(seedData.spots).toHaveLength(19)
     expect(seedData.nextId).toBe(20)
   })
@@ -81,6 +83,14 @@ describe('createSeedData', () => {
     }
   })
 
+  it('AC1/AC46: leaves 降りるIC (exitInterchange) empty for every spot', () => {
+    const seedData = createSeedData()
+
+    for (const spot of seedData.spots) {
+      expect(spot.exitInterchange).toBe('')
+    }
+  })
+
   it('AC1: marks every spot as not done (all start in 行きたい)', () => {
     const seedData = createSeedData()
 
@@ -100,7 +110,7 @@ describe('createSeedData', () => {
 
     for (const spot of seedData.spots) {
       expect(Object.keys(spot).sort()).toEqual(
-        ['category', 'distanceKm', 'done', 'id', 'memo', 'name', 'region', 'season'].sort(),
+        ['category', 'distanceKm', 'done', 'exitInterchange', 'id', 'memo', 'name', 'region', 'season'].sort(),
       )
     }
   })

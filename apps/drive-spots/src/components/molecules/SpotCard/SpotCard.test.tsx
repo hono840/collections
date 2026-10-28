@@ -15,6 +15,7 @@ function renderCard(props: SpotCardTestProps = {}) {
       name="ヤビツ峠"
       region="神奈川"
       category="峠"
+      exitInterchange=""
       done={false}
       onOpen={onOpen}
       {...props}
@@ -87,6 +88,63 @@ describe('SpotCard', () => {
       expect(svg).toHaveAttribute('aria-hidden', 'true')
     }
     expect(card).toHaveAccessibleName(/^ヤビツ峠\s*神奈川・峠$/)
+  })
+
+  describe('降りるIC line (AC4, AC47)', () => {
+    it('AC47: with an empty exitInterchange there is no third line (the card reads as before)', () => {
+      const { card } = renderCard({ exitInterchange: '' })
+
+      expect(card).toHaveTextContent(/^峠\s*ヤビツ峠\s*神奈川・峠$/)
+      expect(screen.queryByText(/で降りる/)).not.toBeInTheDocument()
+    })
+
+    it('AC4/AC47: with an exitInterchange, a third line reads 「{降りるIC}で降りる」 after 「地域・種類」', () => {
+      const { card } = renderCard({
+        mark: '景',
+        name: '箱根ターンパイク',
+        category: '絶景ロード',
+        exitInterchange: '小田原西IC',
+      })
+
+      expect(card).toHaveTextContent(/^景\s*箱根ターンパイク\s*神奈川・絶景ロード\s*小田原西ICで降りる$/)
+    })
+
+    it('AC47: the line is one text node, so 「小田原西ICで降りる」 can be found as a whole', () => {
+      renderCard({ exitInterchange: '小田原西IC' })
+
+      const exitLine = screen.getByText('小田原西ICで降りる')
+      expect(exitLine.childNodes).toHaveLength(1)
+      expect(exitLine.firstChild?.nodeType).toBe(Node.TEXT_NODE)
+    })
+
+    it('AC47: the line has its own element, after the 「地域・種類」 line', () => {
+      renderCard({ exitInterchange: '小田原西IC' })
+
+      const regionLine = screen.getByText('神奈川・峠')
+      const exitLine = screen.getByText('小田原西ICで降りる')
+      expect(exitLine).not.toBe(regionLine)
+      expect(regionLine.contains(exitLine)).toBe(false)
+      expect(regionLine.compareDocumentPosition(exitLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('AC47: the button name includes the line, in order: name, 「地域・種類」, 「…で降りる」', () => {
+      const { card } = renderCard({ exitInterchange: '小田原西IC' })
+
+      expect(card).toHaveAccessibleName(/^ヤビツ峠\s*神奈川・峠\s*小田原西ICで降りる$/)
+    })
+
+    it('AC47: a long 降りるIC is shown in full (wrapped by CSS, never cut in the text)', () => {
+      renderCard({ exitInterchange: '東名高速 大井松田IC（御殿場方面）' })
+
+      expect(screen.getByText('東名高速 大井松田IC（御殿場方面）で降りる')).toBeInTheDocument()
+    })
+
+    it('AC4/AC47: with the check icon (done), the name still ends with the 降りるIC line', () => {
+      const { card } = renderCard({ done: true, exitInterchange: '小田原西IC' })
+
+      expect(card).toHaveAccessibleName(/^ヤビツ峠\s*神奈川・峠\s*小田原西ICで降りる$/)
+      expect(screen.getAllByRole('button')).toHaveLength(1)
+    })
   })
 
   it('AC4: pressing the card calls onOpen once', async () => {

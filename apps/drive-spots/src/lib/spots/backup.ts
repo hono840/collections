@@ -1,8 +1,8 @@
 import { isNewerVersionNumber, isNewerVersionValue, parseIsoDateTime, parseSpotsValue } from './storage'
 import type { SpotsData } from './types'
 
-// Backup files: export, import checks and the reminder (spec AC32-AC38). Pure functions; dates are
-// read in the device's local calendar, never in UTC.
+// Backup files: export, import checks and the reminder (spec AC32-AC38, AC46). Pure functions; dates
+// are read in the device's local calendar, never in UTC.
 
 /** Files above this size are refused before they are read (AC34). */
 export const BACKUP_FILE_MAX_BYTES = 1_000_000
@@ -11,6 +11,7 @@ export const BACKUP_REMINDER_DAYS = 30
 export const BACKUP_FILE_MIME_TYPE = 'application/json'
 
 const BACKUP_APP_NAME = 'drive-spots'
+// The file's outer format. It stays 1 while the data inside moved to version 2 (AC46).
 const BACKUP_FORMAT_VERSION = 1
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000
 
@@ -55,9 +56,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * Checks a chosen file's text before anything changes (AC34).
  * - not JSON / not an object / app is not 'drive-spots' -> invalid
- * - backupVersion or data.version is a safe integer above 1 -> newer (checked before the strict
- *   checks, so a newer file is never called broken)
+ * - backupVersion is a safe integer above 1, or data.version one above 2 -> newer (checked before
+ *   the strict checks, so a newer file is never called broken)
  * - backupVersion is not 1 / exportedAt is not a time / data fails parseSpotsValue (AC14) -> invalid
+ * data of version 1 is read too and comes back as version 2 (AC46).
  */
 export function parseBackupFile(text: string): ParsedBackupFile {
   let parsed: unknown
@@ -67,7 +69,9 @@ export function parseBackupFile(text: string): ParsedBackupFile {
     return { kind: 'invalid' }
   }
   if (!isRecord(parsed) || parsed.app !== BACKUP_APP_NAME) return { kind: 'invalid' }
-  if (isNewerVersionNumber(parsed.backupVersion) || isNewerVersionValue(parsed.data)) return { kind: 'newer' }
+  if (isNewerVersionNumber(parsed.backupVersion, BACKUP_FORMAT_VERSION) || isNewerVersionValue(parsed.data)) {
+    return { kind: 'newer' }
+  }
   if (parsed.backupVersion !== BACKUP_FORMAT_VERSION) return { kind: 'invalid' }
   const exportedAt = parseIsoDateTime(parsed.exportedAt)
   const data = parseSpotsValue(parsed.data)

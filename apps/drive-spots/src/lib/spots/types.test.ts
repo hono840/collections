@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ALL_CATEGORIES, CATEGORIES, CATEGORY_MARKS } from './types'
+import { ALL_CATEGORIES, CATEGORIES, CATEGORY_MARKS, SPOTS_DATA_VERSION } from './types'
 
 describe('spot constants', () => {
   it('AC3: lists the five categories in design chip order', () => {
@@ -18,5 +18,9 @@ describe('spot constants', () => {
       サーキット: '走',
       都市高速: '高',
     })
+  })
+
+  it('AC13/AC46: the saved data format this version writes (and the newest it reads) is version 2', () => {
+    expect(SPOTS_DATA_VERSION).toBe(2)
   })
 })

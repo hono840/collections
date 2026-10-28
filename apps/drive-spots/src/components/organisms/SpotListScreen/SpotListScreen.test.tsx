@@ -23,6 +23,7 @@ function makeSpot(overrides: Partial<Spot> & Pick<Spot, 'id' | 'name'>): Spot {
     region: '神奈川',
     category: '峠',
     distanceKm: '',
+    exitInterchange: '',
     season: '',
     memo: '',
     done: false,
@@ -211,6 +212,30 @@ describe('SpotListScreen', () => {
 
       const list = screen.getByRole('list')
       expect(within(list).getAllByRole('listitem')).toHaveLength(3)
+    })
+
+    it("AC4/AC47: passes each spot's 降りるIC to its card: 「…で降りる」 only on the cards that have one", () => {
+      renderList({
+        spots: [
+          makeSpot({ id: 1, name: 'ヤビツ峠', exitInterchange: '秦野中井IC' }),
+          makeSpot({ id: 2, name: '箱根ターンパイク', category: '絶景ロード', exitInterchange: '小田原西IC' }),
+          makeSpot({ id: 3, name: '奥多摩', region: '東京' }),
+        ],
+      })
+
+      expect(getCard('ヤビツ峠')).toHaveTextContent(/^峠\s*ヤビツ峠\s*神奈川・峠\s*秦野中井ICで降りる$/)
+      expect(getCard('箱根ターンパイク')).toHaveTextContent(/^景\s*箱根ターンパイク\s*神奈川・絶景ロード\s*小田原西ICで降りる$/)
+      expect(getCard('奥多摩')).toHaveTextContent(/^峠\s*奥多摩\s*東京・峠$/)
+      expect(screen.getAllByText(/で降りる$/)).toHaveLength(2)
+    })
+
+    it('AC47: a done card with 降りるIC shows it on the 行った tab too', () => {
+      renderList({
+        tab: 'done',
+        spots: [makeSpot({ id: 7, name: '奥多摩', region: '東京', exitInterchange: 'あきる野IC', done: true })],
+      })
+
+      expect(getCard('奥多摩')).toHaveAccessibleName(/^奥多摩\s*東京・峠\s*あきる野ICで降りる$/)
     })
 
     it('AC4: a done card carries the check icon (one more icon than a 行きたい card)', () => {

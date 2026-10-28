@@ -7,6 +7,7 @@ import {
   MAX_NEXT_ID,
   STORAGE_KEY,
   getBrowserStorage,
+  isNewerVersionNumber,
   isNewerVersionValue,
   loadSpotsData,
   parseSpotsData,
@@ -60,6 +61,7 @@ const VALID_SPOT: Spot = {
   region: '未入力',
   category: '絶景ロード',
   distanceKm: '60',
+  exitInterchange: '小田原西IC',
   season: '紅葉の季節',
   memo: '一行目\n二行目',
   done: false,
@@ -71,92 +73,163 @@ const VALID_DONE_SPOT: Spot = {
   region: '静岡・神奈川',
   category: '絶景ロード',
   distanceKm: '',
+  exitInterchange: '',
   season: '',
   memo: '',
   done: true,
 }
 
-const VALID_DATA: SpotsData = { version: 1, nextId: 23, spots: [VALID_SPOT, VALID_DONE_SPOT] }
+const VALID_DATA: SpotsData = { version: 2, nextId: 23, spots: [VALID_SPOT, VALID_DONE_SPOT] }
 
 function withoutKey<Source extends object>(source: Source, key: keyof Source): Record<string, unknown> {
   return Object.fromEntries(Object.entries(source).filter(([entryKey]) => entryKey !== key))
 }
 
+/** VALID_DATA with only the given spot. */
 function withSpot(spot: unknown): Record<string, unknown> {
   return { ...VALID_DATA, spots: [spot] }
 }
 
+// ---------- version 1 (AC46) ----------
+// Version 1 is what this app saved before the version 2 release: the same shape, but spots have no
+// exitInterchange. Every reader accepts it and hands it on as version 2 with exitInterchange ''.
+
+/** A spot as version 1 saved it: the 8 fields, no exitInterchange. */
+type SpotV1 = Omit<Spot, 'exitInterchange'>
+type SpotsDataV1 = { version: 1; nextId: number; spots: SpotV1[] }
+
+function toVersion1Spot(spot: Spot): SpotV1 {
+  return withoutKey(spot, 'exitInterchange') as SpotV1
+}
+
+/** A version 2 data set as version 1 would have saved it. */
+function toVersion1Data(data: SpotsData): SpotsDataV1 {
+  return { version: 1, nextId: data.nextId, spots: data.spots.map(toVersion1Spot) }
+}
+
+/** What reading version 1 data must give: version 2 with every exitInterchange empty (AC46). */
+function readAsVersion2(data: SpotsData): SpotsData {
+  return { version: 2, nextId: data.nextId, spots: data.spots.map((spot) => ({ ...spot, exitInterchange: '' })) }
+}
+
+const VALID_V1_SPOT: SpotV1 = toVersion1Spot(VALID_SPOT)
+const VALID_V1_DONE_SPOT: SpotV1 = toVersion1Spot(VALID_DONE_SPOT)
+const VALID_V1_DATA: SpotsDataV1 = toVersion1Data(VALID_DATA)
+/** VALID_V1_DATA as every reader returns it. */
+const VALID_V1_DATA_READ: SpotsData = readAsVersion2(VALID_DATA)
+
+/**
+ * The spot-level and nextId checks of AC14/AC16, built for one version's valid data so that both
+ * version 1 and version 2 are checked with the same strictness (AC46).
+ */
+function buildShapeCorruptPayloads(
+  versionLabel: string,
+  validData: SpotsData | SpotsDataV1,
+  validSpot: Spot | SpotV1,
+  validDoneSpot: Spot | SpotV1,
+): [string, unknown][] {
+  const withSpot = (spot: unknown): Record<string, unknown> => ({ ...validData, spots: [spot] })
+  const payloads: [string, unknown][] = [
+    ['a missing nextId', withoutKey(validData, 'nextId')],
+    ['nextId as a string', { ...validData, nextId: '23' }],
+    ['nextId null', { ...validData, nextId: null }],
+    ['missing spots', withoutKey(validData, 'spots')],
+    ['spots as an object', { ...validData, spots: { 0: validSpot } }],
+    ['spots as a string', { ...validData, spots: '[]' }],
+    ['spots null', { ...validData, spots: null }],
+    ['a null spot', withSpot(null)],
+    ['a spot that is a string', withSpot('大観山')],
+    ['a spot that is a number', withSpot(22)],
+    ['a spot without id', withSpot(withoutKey(validSpot, 'id'))],
+    ['a spot with id as a string', withSpot({ ...validSpot, id: '22' })],
+    ['a spot without name', withSpot(withoutKey(validSpot, 'name'))],
+    ['a spot with name as a number', withSpot({ ...validSpot, name: 123 })],
+    ['a spot without region', withSpot(withoutKey(validSpot, 'region'))],
+    ['a spot with region null', withSpot({ ...validSpot, region: null })],
+    ['a spot without category', withSpot(withoutKey(validSpot, 'category'))],
+    ['a spot with an unknown category', withSpot({ ...validSpot, category: '林道' })],
+    ["a spot with the filter value 'すべて' as category", withSpot({ ...validSpot, category: 'すべて' })],
+    ['a spot without distanceKm', withSpot(withoutKey(validSpot, 'distanceKm'))],
+    ['a spot with distanceKm as a number', withSpot({ ...validSpot, distanceKm: 60 })],
+    ['a spot without season', withSpot(withoutKey(validSpot, 'season'))],
+    ['a spot with season null', withSpot({ ...validSpot, season: null })],
+    ['a spot without memo', withSpot(withoutKey(validSpot, 'memo'))],
+    ['a spot with memo as a number', withSpot({ ...validSpot, memo: 0 })],
+    ['a spot without done', withSpot(withoutKey(validSpot, 'done'))],
+    ["a spot with done as the string 'false'", withSpot({ ...validSpot, done: 'false' })],
+    ['a spot with done as 0', withSpot({ ...validSpot, done: 0 })],
+    ['one bad spot among valid ones', { ...validData, spots: [validSpot, { ...validDoneSpot, category: '林道' }] }],
+    ['nextId 0', { ...validData, nextId: 0 }],
+    ['nextId 1.5', { ...validData, nextId: 1.5 }],
+    ['a spot with id 0', withSpot({ ...validSpot, id: 0 })],
+    ['duplicate spot ids', { ...validData, spots: [validSpot, { ...validDoneSpot, id: validSpot.id }] }],
+    ['a spot id equal to nextId', withSpot({ ...validSpot, id: validData.nextId })],
+    ['nextId 1,000,000,001 (above MAX_NEXT_ID, AC16)', { ...validData, nextId: 1_000_000_001 }],
+    ['nextId Number.MAX_SAFE_INTEGER (above MAX_NEXT_ID, AC16)', { ...validData, nextId: Number.MAX_SAFE_INTEGER }],
+  ]
+  return payloads.map(([description, payload]) => [`${versionLabel}: ${description}`, payload])
+}
+
+/**
+ * Version 2 is this version's own format (AC46), so a broken version 2 is corrupt (AC14). Before
+ * the version 2 release any version above 1 was "newer" (AC30); these are no longer.
+ */
+const BROKEN_VERSION_2_PAYLOADS: [string, unknown][] = [
+  ['version 2 alone', { version: 2 }],
+  ['version 2 in a shape this version does not know', { version: 2, places: [{ title: '大観山' }] }],
+  ['version 2 with spots saved without exitInterchange (the version 1 shape)', { ...VALID_V1_DATA, version: 2 }],
+]
+
 /**
  * Payloads that are corrupt for AC14 (and for backup files, AC34). Every entry is rejected by
  * parseSpotsData (as JSON text) and parseSpotsValue (as the parsed value). None of them is a newer
- * version (AC30): version 2 and up is listed in NEWER_VERSION_PAYLOADS instead.
+ * version (AC30): version 3 and up is listed in NEWER_VERSION_PAYLOADS instead.
  */
 const CORRUPT_PAYLOADS: [string, unknown][] = [
-  ['version as a string', { ...VALID_DATA, version: '1' }],
+  ["version as the string '1'", { ...VALID_DATA, version: '1' }],
+  ["version as the string '2'", { ...VALID_DATA, version: '2' }],
   ['a missing version', withoutKey(VALID_DATA, 'version')],
-  ['a missing nextId', withoutKey(VALID_DATA, 'nextId')],
-  ['nextId as a string', { ...VALID_DATA, nextId: '23' }],
-  ['nextId null', { ...VALID_DATA, nextId: null }],
-  ['missing spots', withoutKey(VALID_DATA, 'spots')],
-  ['spots as an object', { ...VALID_DATA, spots: { 0: VALID_SPOT } }],
-  ['spots as a string', { ...VALID_DATA, spots: '[]' }],
-  ['spots null', { ...VALID_DATA, spots: null }],
-  ['a null spot', withSpot(null)],
-  ['a spot that is a string', withSpot('大観山')],
-  ['a spot that is a number', withSpot(22)],
-  ['a spot without id', withSpot(withoutKey(VALID_SPOT, 'id'))],
-  ['a spot with id as a string', withSpot({ ...VALID_SPOT, id: '22' })],
-  ['a spot without name', withSpot(withoutKey(VALID_SPOT, 'name'))],
-  ['a spot with name as a number', withSpot({ ...VALID_SPOT, name: 123 })],
-  ['a spot without region', withSpot(withoutKey(VALID_SPOT, 'region'))],
-  ['a spot with region null', withSpot({ ...VALID_SPOT, region: null })],
-  ['a spot without category', withSpot(withoutKey(VALID_SPOT, 'category'))],
-  ['a spot with an unknown category', withSpot({ ...VALID_SPOT, category: '林道' })],
-  ["a spot with the filter value 'すべて' as category", withSpot({ ...VALID_SPOT, category: 'すべて' })],
-  ['a spot without distanceKm', withSpot(withoutKey(VALID_SPOT, 'distanceKm'))],
-  ['a spot with distanceKm as a number', withSpot({ ...VALID_SPOT, distanceKm: 60 })],
-  ['a spot without season', withSpot(withoutKey(VALID_SPOT, 'season'))],
-  ['a spot with season null', withSpot({ ...VALID_SPOT, season: null })],
-  ['a spot without memo', withSpot(withoutKey(VALID_SPOT, 'memo'))],
-  ['a spot with memo as a number', withSpot({ ...VALID_SPOT, memo: 0 })],
-  ['a spot without done', withSpot(withoutKey(VALID_SPOT, 'done'))],
-  ["a spot with done as the string 'false'", withSpot({ ...VALID_SPOT, done: 'false' })],
-  ['a spot with done as 0', withSpot({ ...VALID_SPOT, done: 0 })],
-  [
-    'one bad spot among valid ones',
-    { ...VALID_DATA, spots: [VALID_SPOT, { ...VALID_DONE_SPOT, category: '林道' }] },
-  ],
   ['version 0', { ...VALID_DATA, version: 0 }],
+  ['version -1', { ...VALID_DATA, version: -1 }],
   ['version 1.5', { ...VALID_DATA, version: 1.5 }],
-  ['nextId 0', { ...VALID_DATA, nextId: 0 }],
-  ['nextId 1.5', { ...VALID_DATA, nextId: 1.5 }],
-  ['a spot with id 0', withSpot({ ...VALID_SPOT, id: 0 })],
-  ['duplicate spot ids', { ...VALID_DATA, spots: [VALID_SPOT, { ...VALID_DONE_SPOT, id: VALID_SPOT.id }] }],
-  ['a spot id equal to nextId', withSpot({ ...VALID_SPOT, id: VALID_DATA.nextId })],
-  ["version as the string '2' (corrupt, not a newer version)", { ...VALID_DATA, version: '2' }],
+  ["version as the string '3' (corrupt, not a newer version)", { ...VALID_DATA, version: '3' }],
   ['version 2.5 (not an integer)', { ...VALID_DATA, version: 2.5 }],
+  ['version 3.5 (not an integer)', { ...VALID_DATA, version: 3.5 }],
   ['version 2^53 (not a safe integer)', { ...VALID_DATA, version: 2 ** 53 }],
-  ['nextId 1,000,000,001 (above MAX_NEXT_ID, AC16)', { ...VALID_DATA, nextId: 1_000_000_001 }],
-  ['nextId Number.MAX_SAFE_INTEGER (above MAX_NEXT_ID, AC16)', { ...VALID_DATA, nextId: Number.MAX_SAFE_INTEGER }],
+  ...BROKEN_VERSION_2_PAYLOADS,
+  ...buildShapeCorruptPayloads('version 2', VALID_DATA, VALID_SPOT, VALID_DONE_SPOT),
+  // AC46: version 2 spots must carry exitInterchange as a string.
+  ['version 2: a spot without exitInterchange', withSpot(withoutKey(VALID_SPOT, 'exitInterchange'))],
+  ['version 2: a spot with exitInterchange as a number', withSpot({ ...VALID_SPOT, exitInterchange: 0 })],
+  ['version 2: a spot with exitInterchange null', withSpot({ ...VALID_SPOT, exitInterchange: null })],
+  ['version 2: a spot with exitInterchange false', withSpot({ ...VALID_SPOT, exitInterchange: false })],
+  ['version 2: a spot with exitInterchange as an array', withSpot({ ...VALID_SPOT, exitInterchange: ['小田原西IC'] })],
+  [
+    'version 2: one spot without exitInterchange among valid ones',
+    { ...VALID_DATA, spots: [VALID_SPOT, withoutKey(VALID_DONE_SPOT, 'exitInterchange')] },
+  ],
+  ...buildShapeCorruptPayloads('version 1', VALID_V1_DATA, VALID_V1_SPOT, VALID_V1_DONE_SPOT),
 ]
 
 /** The largest data AC16 allows: nextId exactly MAX_NEXT_ID, a spot right below it. */
 const LARGEST_NEXT_ID_DATA: SpotsData = {
-  version: 1,
+  version: 2,
   nextId: 1_000_000_000,
   spots: [{ ...VALID_SPOT, id: 999_999_999 }],
 }
 const ABOVE_MAX_NEXT_ID_RAW = JSON.stringify({ ...VALID_DATA, nextId: 1_000_000_001 })
 
-/** Saved by a newer version of the app (AC30): never corrupt, whatever the rest looks like. */
+/** Saved by a newer version of the app (AC30): above version 2, never corrupt, whatever the rest looks like. */
 const NEWER_VERSION_PAYLOADS: [string, Record<string, unknown>][] = [
-  ['version 2 with the v1 shape', { ...VALID_DATA, version: 2 }],
-  ['version 2 in a shape this version does not know', { version: 2, places: [{ title: '大観山' }] }],
-  ['version 2 alone', { version: 2 }],
-  ['version 3 with fields this version would reject', { version: 3, nextId: 'x', spots: null }],
+  ['version 3 with the version 2 shape', { ...VALID_DATA, version: 3 }],
+  ['version 3 in a shape this version does not know', { version: 3, places: [{ title: '大観山' }] }],
+  ['version 3 alone', { version: 3 }],
+  ['version 4 with fields this version would reject', { version: 4, nextId: 'x', spots: null }],
   ['version 100', { version: 100 }],
   ['the largest safe integer as version', { version: Number.MAX_SAFE_INTEGER }],
 ]
+/** The smallest newer-version data, as saved text. */
+const NEWER_VERSION_RAW = JSON.stringify({ version: 3 })
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -190,7 +263,7 @@ describe('parseSpotsData', () => {
   })
 
   it('AC13: accepts an empty spot list (every spot deleted)', () => {
-    const emptyData: SpotsData = { version: 1, nextId: 20, spots: [] }
+    const emptyData: SpotsData = { version: 2, nextId: 20, spots: [] }
 
     expect(parseSpotsData(JSON.stringify(emptyData))).toEqual(emptyData)
   })
@@ -220,8 +293,12 @@ describe('parseSpotsData', () => {
     expect(parseSpotsData(raw)).toBeNull()
   })
 
-  it('AC14/AC30: rejects version 2 (parseSpotsData itself only reads version 1)', () => {
-    expect(parseSpotsData(JSON.stringify({ ...VALID_DATA, version: 2 }))).toBeNull()
+  it('AC14/AC30: rejects version 3 (parseSpotsData itself only reads versions 1 and 2)', () => {
+    expect(parseSpotsData(JSON.stringify({ ...VALID_DATA, version: 3 }))).toBeNull()
+  })
+
+  it('AC46: accepts version 1 data and returns it as version 2 with every exitInterchange empty', () => {
+    expect(parseSpotsData(JSON.stringify(VALID_V1_DATA))).toEqual(VALID_V1_DATA_READ)
   })
 
   it.each(CORRUPT_PAYLOADS)('AC14: rejects a payload with %s', (_description, payload) => {
@@ -266,7 +343,7 @@ describe('loadSpotsData', () => {
   })
 
   it('AC13: keeps a saved empty list empty (does not fall back to the seed data)', () => {
-    const emptyData: SpotsData = { version: 1, nextId: 20, spots: [] }
+    const emptyData: SpotsData = { version: 2, nextId: 20, spots: [] }
     const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(emptyData) })
 
     const result = loadSpotsData(storage)
@@ -274,13 +351,15 @@ describe('loadSpotsData', () => {
     expect(result).toEqual({ data: emptyData, persistent: true, newerVersion: false, hasSavedData: true })
   })
 
-  // version 2 and up is AC30 (a newer app), not corrupt: see 'loadSpotsData: data saved by a newer version'.
+  // version 3 and up is AC30 (a newer app), not corrupt: see 'loadSpotsData: data saved by a newer version'.
   it.each([
     ['broken JSON', '{broken'],
     ["a version given as the string '2'", JSON.stringify({ ...VALID_DATA, version: '2' })],
     ['version 0', JSON.stringify({ ...VALID_DATA, version: 0 })],
     ['version 1.5', JSON.stringify({ ...VALID_DATA, version: 1.5 })],
     ['a wrong shape', JSON.stringify({ spots: 'none' })],
+    ["version 2 alone (this version's own format, so broken, not newer)", JSON.stringify({ version: 2 })],
+    ['version 2 spots without exitInterchange', JSON.stringify({ ...VALID_V1_DATA, version: 2 })],
   ])(
     'AC14: starts from the seed data and copies %s to the backup key',
     (_description, corruptRaw) => {
@@ -326,7 +405,7 @@ describe('loadSpotsData', () => {
 })
 
 describe('saveSpotsData', () => {
-  it("AC13: writes { version: 1, nextId, spots } as JSON under 'drive-spots:v1' and returns true", () => {
+  it("AC13: writes { version: 2, nextId, spots } as JSON under 'drive-spots:v1' and returns true", () => {
     const storage = createMemoryStorage()
 
     const saved = saveSpotsData(storage, VALID_DATA)
@@ -340,7 +419,7 @@ describe('saveSpotsData', () => {
 
   it('AC13: overwrites the previous save', () => {
     const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(VALID_DATA) })
-    const nextData: SpotsData = { version: 1, nextId: 23, spots: [VALID_DONE_SPOT] }
+    const nextData: SpotsData = { version: 2, nextId: 23, spots: [VALID_DONE_SPOT] }
 
     saveSpotsData(storage, nextData)
 
@@ -382,12 +461,13 @@ describe('updateSpotsData', () => {
     region: '千葉',
     category: '海沿い',
     distanceKm: '',
+    exitInterchange: '銚子IC',
     season: '',
     memo: '',
     done: false,
   }
   const OTHER_TAB_DATA: SpotsData = {
-    version: 1,
+    version: 2,
     nextId: 24,
     spots: [OTHER_TAB_SPOT, VALID_SPOT, VALID_DONE_SPOT],
   }
@@ -396,6 +476,7 @@ describe('updateSpotsData', () => {
     region: '神奈川',
     category: '絶景ロード',
     distanceKm: '',
+    exitInterchange: '',
     season: '',
     memo: '',
   }
@@ -496,7 +577,7 @@ describe('updateSpotsData', () => {
     })
 
     it('AC22: a spot deleted in another tab stays deleted', () => {
-      const dataWithoutValidSpot: SpotsData = { version: 1, nextId: 23, spots: [VALID_DONE_SPOT] }
+      const dataWithoutValidSpot: SpotsData = { version: 2, nextId: 23, spots: [VALID_DONE_SPOT] }
       const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(dataWithoutValidSpot) })
 
       const result: UpdateResult = updateSpotsData(storage, VALID_DATA, createToggleChange())
@@ -632,7 +713,7 @@ describe('updateSpotsData', () => {
     )
 
     it('AC30: never removes or clears anything either', () => {
-      const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify({ version: 2 }) })
+      const storage = createMemoryStorage({ [STORAGE_KEY]: NEWER_VERSION_RAW })
       const removeItemSpy = vi.spyOn(storage, 'removeItem')
       const clearSpy = vi.spyOn(storage, 'clear')
 
@@ -644,7 +725,7 @@ describe('updateSpotsData', () => {
 
     it('AC30: leaves an existing backup as it was', () => {
       const storage = createMemoryStorage({
-        [STORAGE_KEY]: JSON.stringify({ version: 2 }),
+        [STORAGE_KEY]: NEWER_VERSION_RAW,
         [BACKUP_KEY]: 'an older backup',
       })
 
@@ -654,7 +735,7 @@ describe('updateSpotsData', () => {
     })
 
     it('AC30: does not write even when the backup key already holds the same string (unlike corrupt data, AC14)', () => {
-      const newerRaw = JSON.stringify({ ...VALID_DATA, version: 2 })
+      const newerRaw = JSON.stringify({ ...VALID_DATA, version: 3 })
       const storage = createMemoryStorage({ [STORAGE_KEY]: newerRaw, [BACKUP_KEY]: newerRaw })
       const setItemSpy = vi.spyOn(storage, 'setItem')
 
@@ -677,6 +758,84 @@ describe('updateSpotsData', () => {
       expect(storage.getItem(BACKUP_KEY)).toBe(corruptRaw)
       expect(readMainKey(storage)).toEqual(expectedData)
     })
+
+    it.each(BROKEN_VERSION_2_PAYLOADS)(
+      'AC30/AC14: %s is corrupt now (version 2 is this version): it is backed up, the change is written and newerVersion is false',
+      (_description, payload) => {
+        const corruptRaw = JSON.stringify(payload)
+        const storage = createMemoryStorage({ [STORAGE_KEY]: corruptRaw })
+
+        const result: UpdateResult = updateSpotsData(storage, VALID_DATA, createToggleChange())
+
+        const expectedData = toggleDone(VALID_DATA, VALID_DONE_SPOT.id)
+        expect(result).toEqual({ data: expectedData, saved: true, newerVersion: false })
+        expect(storage.getItem(BACKUP_KEY)).toBe(corruptRaw)
+        expect(readMainKey(storage)).toEqual(expectedData)
+      },
+    )
+  })
+
+  describe('saved version 1 data (AC46)', () => {
+    it('AC46/AC22: applies the change on top of the re-read version 1 data and writes it as version 2', () => {
+      const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(toVersion1Data(OTHER_TAB_DATA)) })
+      const change = createToggleChange()
+
+      const result: UpdateResult = updateSpotsData(storage, VALID_DATA, change)
+
+      const expectedData = toggleDone(readAsVersion2(OTHER_TAB_DATA), VALID_DONE_SPOT.id)
+      expect(change).toHaveBeenCalledTimes(1)
+      expect(change).toHaveBeenCalledWith(readAsVersion2(OTHER_TAB_DATA))
+      expect(result).toEqual({ data: expectedData, saved: true, newerVersion: false })
+      expect(readMainKey(storage)).toEqual(expectedData)
+      expect(readMainKey(storage)).toMatchObject({ version: 2 })
+    })
+
+    it('AC46/AC22: a spot another tab saved in version 1 survives, now with an empty exitInterchange', () => {
+      const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(toVersion1Data(OTHER_TAB_DATA)) })
+
+      const result: UpdateResult = updateSpotsData(storage, VALID_DATA, createToggleChange())
+
+      expect(result.data.spots).toContainEqual({ ...OTHER_TAB_SPOT, exitInterchange: '' })
+      expect(result.data.spots).toHaveLength(3)
+      expect(result.data.nextId).toBe(24)
+    })
+
+    it('AC46/AC16: a spot added over version 1 data takes its id from the saved nextId', () => {
+      const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(toVersion1Data(OTHER_TAB_DATA)) })
+
+      const result: UpdateResult = updateSpotsData(storage, VALID_DATA, (data: SpotsData) =>
+        addSpot(data, { ...NEW_SPOT_INPUT, exitInterchange: '小田原西IC' }),
+      )
+
+      expect(result.data.spots.map((spot) => spot.id)).toEqual([24, 23, 22, 3])
+      expect(result.data.spots[0]).toMatchObject({ id: 24, exitInterchange: '小田原西IC' })
+      expect(parseSpotsData(storage.getItem(STORAGE_KEY) ?? '')).toEqual(result.data)
+    })
+
+    it('AC46/AC14: version 1 data is valid, so nothing is backed up', () => {
+      const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(VALID_V1_DATA) })
+      const setItemSpy = vi.spyOn(storage, 'setItem')
+
+      updateSpotsData(storage, VALID_DATA, createToggleChange())
+
+      expect(setItemSpy.mock.calls.map(([key]) => key)).toEqual([STORAGE_KEY])
+      expect(storage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC46/AC15: when setItem throws over version 1 data, the original version 1 string stays', () => {
+      const version1Raw = JSON.stringify(VALID_V1_DATA)
+      const storage = createMemoryStorage({ [STORAGE_KEY]: version1Raw })
+      failSetItemFor(storage, STORAGE_KEY)
+
+      const result: UpdateResult = updateSpotsData(storage, VALID_DATA, createToggleChange())
+
+      expect(result).toEqual({
+        data: toggleDone(VALID_V1_DATA_READ, VALID_DONE_SPOT.id),
+        saved: false,
+        newerVersion: false,
+      })
+      expect(storage.getItem(STORAGE_KEY)).toBe(version1Raw)
+    })
   })
 
   it('does not mutate the fallback', () => {
@@ -695,7 +854,7 @@ describe('parseSpotsValue', () => {
   })
 
   it('AC13: accepts an empty spot list', () => {
-    const emptyData: SpotsData = { version: 1, nextId: 20, spots: [] }
+    const emptyData: SpotsData = { version: 2, nextId: 20, spots: [] }
 
     expect(parseSpotsValue(structuredClone(emptyData))).toEqual(emptyData)
   })
@@ -745,6 +904,122 @@ describe('parseSpotsValue', () => {
 
     expect(value).toEqual(VALID_DATA)
   })
+
+  describe('version 2 (AC46)', () => {
+    it.each(['', '小田原西IC', '東名高速 大井松田IC', '<b>IC</b>'])('AC46: accepts the exitInterchange %j and keeps it', (exitInterchange) => {
+      const payload: SpotsData = { ...VALID_DATA, spots: [{ ...VALID_SPOT, exitInterchange }] }
+
+      expect(parseSpotsValue(structuredClone(payload))).toEqual(payload)
+    })
+
+    it('AC46: a version 2 spot without exitInterchange is rejected', () => {
+      expect(parseSpotsValue(withSpot(withoutKey(VALID_SPOT, 'exitInterchange')))).toBeNull()
+    })
+
+    it.each<[string, unknown]>([
+      ['a number', 0],
+      ['null', null],
+      ['undefined', undefined],
+      ['a boolean', true],
+      ['an object', { name: '小田原西IC' }],
+    ])('AC46: a version 2 spot with exitInterchange as %s is rejected', (_description, exitInterchange) => {
+      expect(parseSpotsValue(withSpot({ ...VALID_SPOT, exitInterchange }))).toBeNull()
+    })
+  })
+
+  describe('version 1 (AC46)', () => {
+    it('AC46: accepts version 1 data and returns it as version 2 with exitInterchange empty on every spot', () => {
+      const result = parseSpotsValue(structuredClone(VALID_V1_DATA))
+
+      expect(result).toEqual(VALID_V1_DATA_READ)
+      expect(result?.version).toBe(2)
+      expect(result?.spots.map((spot) => spot.exitInterchange)).toEqual(['', ''])
+    })
+
+    it('AC46: keeps every other field, the order and nextId of version 1 data', () => {
+      const result = parseSpotsValue(structuredClone(VALID_V1_DATA))
+
+      expect(result?.nextId).toBe(23)
+      expect(result?.spots.map((spot) => withoutKey(spot, 'exitInterchange'))).toEqual([VALID_V1_SPOT, VALID_V1_DONE_SPOT])
+    })
+
+    it('AC46: accepts a version 1 empty list as a version 2 empty list', () => {
+      expect(parseSpotsValue({ version: 1, nextId: 20, spots: [] })).toEqual({ version: 2, nextId: 20, spots: [] })
+    })
+
+    it('AC46/AC1: the seed as version 1 saved it reads as the version 2 seed', () => {
+      expect(parseSpotsValue(toVersion1Data(createSeedData()))).toEqual(createSeedData())
+    })
+
+    it.each<[string, unknown]>([
+      ['a name', '小田原西IC'],
+      ['an empty string', ''],
+      ['a number', 0],
+      ['null', null],
+      ['an object', { name: '小田原西IC' }],
+    ])('AC46: an exitInterchange key inside version 1 data (%s) is ignored: the spot reads with an empty one', (_description, exitInterchange) => {
+      const payload = { ...VALID_V1_DATA, spots: [{ ...VALID_V1_SPOT, exitInterchange }, VALID_V1_DONE_SPOT] }
+
+      expect(parseSpotsValue(payload)).toEqual(VALID_V1_DATA_READ)
+    })
+
+    it('AC46: keeps only the known fields of version 1 data too', () => {
+      const valueWithExtras = {
+        ...VALID_V1_DATA,
+        extra: 'top level',
+        spots: VALID_V1_DATA.spots.map((spot) => ({ ...spot, photo: 'x.jpg' })),
+      }
+
+      expect(parseSpotsValue(valueWithExtras)).toEqual(VALID_V1_DATA_READ)
+    })
+
+    it('AC46: parseSpotsValue and parseSpotsData agree on version 1 data', () => {
+      expect(parseSpotsData(JSON.stringify(VALID_V1_DATA))).toEqual(parseSpotsValue(structuredClone(VALID_V1_DATA)))
+    })
+
+    it('does not mutate the version 1 value (no exitInterchange is added to it)', () => {
+      const value = structuredClone(VALID_V1_DATA)
+
+      parseSpotsValue(value)
+
+      expect(value).toEqual(VALID_V1_DATA)
+      for (const spot of value.spots) {
+        expect(Object.keys(spot)).not.toContain('exitInterchange')
+      }
+    })
+  })
+})
+
+describe('isNewerVersionNumber (AC30, AC34)', () => {
+  it.each<[unknown, number]>([
+    [3, 2],
+    [4, 2],
+    [100, 2],
+    [Number.MAX_SAFE_INTEGER, 2],
+    [2, 1],
+    [3, 1],
+  ])('AC30/AC34: %j is newer than %i', (value, newestReadable) => {
+    expect(isNewerVersionNumber(value, newestReadable)).toBe(true)
+  })
+
+  it.each<[string, unknown, number]>([
+    ['the same version (2 for saved data)', 2, 2],
+    ['an older version (1 for saved data)', 1, 2],
+    ['the same version (1 for backup files)', 1, 1],
+    ['0', 0, 2],
+    ['a negative number', -3, 2],
+    ['2.5 (not an integer)', 2.5, 2],
+    ['3.5 (not an integer)', 3.5, 2],
+    ["the string '3'", '3', 2],
+    ['2^53 (not a safe integer)', 2 ** 53, 2],
+    ['Infinity', Number.POSITIVE_INFINITY, 2],
+    ['NaN', Number.NaN, 2],
+    ['null', null, 2],
+    ['undefined', undefined, 2],
+    ['an object', { version: 3 }, 2],
+  ])('AC30/AC34: %s is not newer than %i', (_description, value, newestReadable) => {
+    expect(isNewerVersionNumber(value, newestReadable)).toBe(false)
+  })
 })
 
 describe('isNewerVersionValue', () => {
@@ -753,12 +1028,15 @@ describe('isNewerVersionValue', () => {
   })
 
   it.each<[string, unknown]>([
-    ['version 1 (this version)', VALID_DATA],
+    ['version 2 (this version)', VALID_DATA],
+    ['version 1 (an older version this version still reads, AC46)', VALID_V1_DATA],
+    ['version 2 alone (broken, not newer)', { version: 2 }],
+    ['version 2 in an unknown shape (broken, not newer)', { version: 2, places: [] }],
     ['version 0', { version: 0 }],
     ['version -2', { version: -2 }],
     ['version 1.5', { version: 1.5 }],
     ['version 2.5 (not an integer)', { version: 2.5 }],
-    ["version as the string '2'", { version: '2' }],
+    ["version as the string '3'", { version: '3' }],
     ['version 2^53 (not a safe integer)', { version: 2 ** 53 }],
     ['version Infinity', { version: Number.POSITIVE_INFINITY }],
     ['version NaN', { version: Number.NaN }],
@@ -766,9 +1044,9 @@ describe('isNewerVersionValue', () => {
     ['no version', { nextId: 2, spots: [] }],
     ['null', null],
     ['undefined', undefined],
-    ['the number 2', 2],
-    ['the JSON text {"version":2} (not parsed yet)', '{"version":2}'],
-    ['an array', [2]],
+    ['the number 3', 3],
+    ['the JSON text {"version":3} (not parsed yet)', '{"version":3}'],
+    ['an array', [3]],
   ])('AC30/AC14: is false for %s', (_description, value) => {
     expect(isNewerVersionValue(value)).toBe(false)
   })
@@ -804,6 +1082,7 @@ describe('readSavedSpots', () => {
     ['version 0', JSON.stringify({ ...VALID_DATA, version: 0 })],
     ['a wrong shape', JSON.stringify({ spots: 'none' })],
     ['duplicate spot ids', JSON.stringify({ ...VALID_DATA, spots: [VALID_SPOT, VALID_SPOT] })],
+    ...BROKEN_VERSION_2_PAYLOADS.map(([description, payload]): [string, string] => [description, JSON.stringify(payload)]),
   ])('AC14: is corrupt for %s', (_description, raw) => {
     const storage = createMemoryStorage({ [STORAGE_KEY]: raw })
 
@@ -816,11 +1095,28 @@ describe('readSavedSpots', () => {
     expect(readSavedSpots(storage).kind).toBe('newer')
   })
 
+  it('AC46: is valid for version 1 data, returned as version 2', () => {
+    const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(VALID_V1_DATA) })
+
+    expect(readSavedSpots(storage)).toEqual({ kind: 'valid', data: VALID_V1_DATA_READ })
+  })
+
+  it('AC46: version 1 data stays exactly as it was saved after reading', () => {
+    const version1Raw = JSON.stringify(VALID_V1_DATA)
+    const storage = createMemoryStorage({ [STORAGE_KEY]: version1Raw })
+
+    readSavedSpots(storage)
+
+    expect(storage.getItem(STORAGE_KEY)).toBe(version1Raw)
+    expect(storage.length).toBe(1)
+  })
+
   it.each<[string, string | null]>([
     ['nothing saved', null],
     ['valid data', JSON.stringify(VALID_DATA)],
+    ['version 1 data (AC46: reading it writes nothing)', JSON.stringify(VALID_V1_DATA)],
     ['corrupt data', '{broken'],
-    ['newer data', JSON.stringify({ version: 2 })],
+    ['newer data', NEWER_VERSION_RAW],
   ])('AC22: only reads (no setItem / removeItem / clear) with %s', (_description, raw) => {
     const storage = createMemoryStorage(raw === null ? {} : { [STORAGE_KEY]: raw })
     const setItemSpy = vi.spyOn(storage, 'setItem')
@@ -866,7 +1162,7 @@ describe('loadSpotsData: data saved by a newer version (AC30)', () => {
 
   it('AC30: leaves an existing backup as it was', () => {
     const storage = createMemoryStorage({
-      [STORAGE_KEY]: JSON.stringify({ ...VALID_DATA, version: 2 }),
+      [STORAGE_KEY]: JSON.stringify({ ...VALID_DATA, version: 3 }),
       [BACKUP_KEY]: 'an older backup',
     })
 
@@ -884,15 +1180,73 @@ describe('loadSpotsData: data saved by a newer version (AC30)', () => {
     expect(result).toEqual({ data: createSeedData(), persistent: true, newerVersion: false, hasSavedData: false })
     expect(storage.getItem(BACKUP_KEY)).toBe(corruptRaw)
   })
+
+  it.each(BROKEN_VERSION_2_PAYLOADS)(
+    'AC30/AC14: %s is corrupt now (version 2 is this version): backed up, persistent true, newerVersion false',
+    (_description, payload) => {
+      const corruptRaw = JSON.stringify(payload)
+      const storage = createMemoryStorage({ [STORAGE_KEY]: corruptRaw })
+
+      const result = loadSpotsData(storage)
+
+      expect(result).toEqual({ data: createSeedData(), persistent: true, newerVersion: false, hasSavedData: false })
+      expect(storage.getItem(BACKUP_KEY)).toBe(corruptRaw)
+    },
+  )
+})
+
+describe('loadSpotsData: saved version 1 data (AC46)', () => {
+  it('AC46: returns the version 1 data as version 2 (exitInterchange empty), persistent true, hasSavedData true', () => {
+    const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(VALID_V1_DATA) })
+
+    const result = loadSpotsData(storage)
+
+    expect(result).toEqual({ data: VALID_V1_DATA_READ, persistent: true, newerVersion: false, hasSavedData: true })
+  })
+
+  it('AC46: reading version 1 data writes nothing (the next change saves version 2)', () => {
+    const version1Raw = JSON.stringify(VALID_V1_DATA)
+    const storage = createMemoryStorage({ [STORAGE_KEY]: version1Raw })
+    const setItemSpy = vi.spyOn(storage, 'setItem')
+    const removeItemSpy = vi.spyOn(storage, 'removeItem')
+    const clearSpy = vi.spyOn(storage, 'clear')
+
+    loadSpotsData(storage)
+
+    expect(setItemSpy).not.toHaveBeenCalled()
+    expect(removeItemSpy).not.toHaveBeenCalled()
+    expect(clearSpy).not.toHaveBeenCalled()
+    expect(storage.getItem(STORAGE_KEY)).toBe(version1Raw)
+    expect(storage.getItem(BACKUP_KEY)).toBeNull()
+  })
+
+  it('AC46/AC1: the seed as version 1 saved it loads as the version 2 seed', () => {
+    const storage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(toVersion1Data(createSeedData())) })
+
+    expect(loadSpotsData(storage).data).toEqual(createSeedData())
+  })
+
+  it('AC46/AC14: corrupt version 1 data is still backed up (same strictness as before)', () => {
+    const corruptRaw = JSON.stringify({ ...VALID_V1_DATA, spots: [VALID_V1_SPOT, VALID_V1_SPOT] })
+    const storage = createMemoryStorage({ [STORAGE_KEY]: corruptRaw })
+
+    const result = loadSpotsData(storage)
+
+    expect(result).toEqual({ data: createSeedData(), persistent: true, newerVersion: false, hasSavedData: false })
+    expect(storage.getItem(BACKUP_KEY)).toBe(corruptRaw)
+  })
 })
 
 describe('loadSpotsData: hasSavedData (AC38, AC39)', () => {
   it.each<[string, boolean, Record<string, string>]>([
     ['valid data', true, { [STORAGE_KEY]: JSON.stringify(VALID_DATA) }],
-    ['a valid empty list', true, { [STORAGE_KEY]: JSON.stringify({ version: 1, nextId: 20, spots: [] }) }],
+    ['a valid empty list', true, { [STORAGE_KEY]: JSON.stringify({ version: 2, nextId: 20, spots: [] }) }],
+    ['valid version 1 data (AC46)', true, { [STORAGE_KEY]: JSON.stringify(VALID_V1_DATA) }],
+    ['a valid version 1 empty list (AC46)', true, { [STORAGE_KEY]: JSON.stringify({ version: 1, nextId: 20, spots: [] }) }],
     ['nothing saved', false, {}],
     ['corrupt data (backed up)', false, { [STORAGE_KEY]: '{broken' }],
-    ['data saved by a newer version', false, { [STORAGE_KEY]: JSON.stringify({ version: 2 }) }],
+    ['a broken version 2 (backed up)', false, { [STORAGE_KEY]: JSON.stringify({ version: 2 }) }],
+    ['data saved by a newer version', false, { [STORAGE_KEY]: NEWER_VERSION_RAW }],
     [
       'only a backup and a last-backup time',
       false,
@@ -1039,6 +1393,19 @@ describe('MAX_NEXT_ID (AC16)', () => {
     expect(parseSpotsData(JSON.stringify(payload))).toBeNull()
   })
 
+  it('AC16/AC46: version 1 data with nextId exactly MAX_NEXT_ID is valid (read as version 2)', () => {
+    const version1Payload = toVersion1Data(LARGEST_NEXT_ID_DATA)
+
+    expect(parseSpotsValue(version1Payload)).toEqual(readAsVersion2(LARGEST_NEXT_ID_DATA))
+  })
+
+  it.each([1_000_000_001, Number.MAX_SAFE_INTEGER])('AC16/AC46: version 1 data with nextId %i is rejected too', (nextId) => {
+    const version1Payload = { ...VALID_V1_DATA, nextId }
+
+    expect(parseSpotsValue(version1Payload)).toBeNull()
+    expect(parseSpotsData(JSON.stringify(version1Payload))).toBeNull()
+  })
+
   it('AC16: readSavedSpots reads nextId exactly MAX_NEXT_ID as valid and above it as corrupt', () => {
     const largestStorage = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(LARGEST_NEXT_ID_DATA) })
     const aboveStorage = createMemoryStorage({ [STORAGE_KEY]: ABOVE_MAX_NEXT_ID_RAW })
@@ -1074,5 +1441,130 @@ describe('MAX_NEXT_ID (AC16)', () => {
     expect(result).toEqual({ data: expectedData, saved: true, newerVersion: false })
     expect(storage.getItem(BACKUP_KEY)).toBe(ABOVE_MAX_NEXT_ID_RAW)
     expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? '')).toEqual(expectedData)
+  })
+})
+
+// ---------- crafted "__proto__" keys and extra keys (security; AC13, AC14, AC46) ----------
+// JSON.parse makes "__proto__" an ordinary own key (it does not change the prototype), so crafted
+// saved text can carry one. The reader must look only at an object's own fields, so such a key can
+// never stand in for a missing field, and it must build fresh plain objects with only the known
+// fields, so nothing extra from the text reaches the result or Object.prototype.
+
+/** The 9 fields every spot that comes back has, no more and no fewer (AC13, AC46). */
+const SPOT_KEYS: (keyof Spot)[] = ['id', 'name', 'region', 'category', 'distanceKm', 'exitInterchange', 'season', 'memo', 'done']
+/** The fields a version 1 spot has (every one but exitInterchange). */
+const SPOT_KEYS_WITHOUT_EXIT_INTERCHANGE = SPOT_KEYS.filter((key): key is keyof SpotV1 => key !== 'exitInterchange')
+
+/** What a crafted "__proto__" or constructor.prototype key tries to slip into every object. */
+const POLLUTING_PROTO_JSON = '{"isAdmin":true,"exitInterchange":"汚染"}'
+
+/** The JSON text of `ownFields` with `"__proto__": <protoJson>` as its first key, as crafted text can hold it. */
+function jsonWithOwnProtoKey(ownFields: Record<string, unknown>, protoJson: string): string {
+  const ownFieldsJson = JSON.stringify(ownFields).slice(1, -1)
+  return ownFieldsJson === '' ? `{"__proto__":${protoJson}}` : `{"__proto__":${protoJson},${ownFieldsJson}}`
+}
+
+/** The JSON text of { version, nextId, spots } with every spot already given as JSON text. */
+function dataJsonWithSpotTexts(version: number, nextId: number, spotJsonTexts: string[]): string {
+  return `{"version":${version},"nextId":${nextId},"spots":[${spotJsonTexts.join(',')}]}`
+}
+
+/** Data with one spot as JSON text, where `key` is not an own field of the spot but sits under its own "__proto__" key. */
+function dataJsonWithSpotFieldOnlyUnderProto(
+  validData: SpotsData | SpotsDataV1,
+  validSpot: Spot | SpotV1,
+  key: keyof SpotV1,
+): string {
+  const spotJson = jsonWithOwnProtoKey(withoutKey(validSpot, key), JSON.stringify({ [key]: validSpot[key] }))
+  return dataJsonWithSpotTexts(validData.version, validData.nextId, [spotJson])
+}
+
+/**
+ * Valid data as JSON text with hostile extras: every spot carries isAdmin: true and its own
+ * "__proto__" key, and the top level carries extra, constructor.prototype and its own "__proto__" key.
+ */
+function validDataJsonWithHostileExtras(validData: SpotsData | SpotsDataV1): string {
+  const spotJsonTexts = validData.spots.map((spot) => jsonWithOwnProtoKey({ ...spot, isAdmin: true }, POLLUTING_PROTO_JSON))
+  const topLevelFields = [
+    `"__proto__":${POLLUTING_PROTO_JSON}`,
+    `"version":${validData.version}`,
+    `"nextId":${validData.nextId}`,
+    `"spots":[${spotJsonTexts.join(',')}]`,
+    '"extra":"top level"',
+    `"constructor":{"prototype":${POLLUTING_PROTO_JSON}}`,
+  ]
+  return `{${topLevelFields.join(',')}}`
+}
+
+describe('parseSpotsData: crafted "__proto__" keys and extra keys (security; AC13, AC14, AC46)', () => {
+  const VERSION_2_EXIT_INTERCHANGE_ONLY_UNDER_PROTO_RAW = dataJsonWithSpotTexts(2, VALID_DATA.nextId, [
+    jsonWithOwnProtoKey(withoutKey(VALID_SPOT, 'exitInterchange'), '{"exitInterchange":"x"}'),
+  ])
+
+  it('the crafted text really holds "__proto__" as an own key (JSON.parse does not set the prototype)', () => {
+    const parsedSpot = JSON.parse(VERSION_2_EXIT_INTERCHANGE_ONLY_UNDER_PROTO_RAW).spots[0]
+
+    expect(Object.hasOwn(parsedSpot, '__proto__')).toBe(true)
+    expect(Object.getPrototypeOf(parsedSpot)).toBe(Object.prototype)
+    expect(parsedSpot.exitInterchange).toBeUndefined()
+  })
+
+  it('AC14/AC46: rejects a version 2 spot whose exitInterchange is only under its own "__proto__" key', () => {
+    expect(parseSpotsData(VERSION_2_EXIT_INTERCHANGE_ONLY_UNDER_PROTO_RAW)).toBeNull()
+  })
+
+  it.each(SPOT_KEYS_WITHOUT_EXIT_INTERCHANGE)(
+    'AC14: rejects a version 2 spot whose %s is only under its own "__proto__" key',
+    (key) => {
+      expect(parseSpotsData(dataJsonWithSpotFieldOnlyUnderProto(VALID_DATA, VALID_SPOT, key))).toBeNull()
+    },
+  )
+
+  it.each(SPOT_KEYS_WITHOUT_EXIT_INTERCHANGE)(
+    'AC14/AC46: rejects a version 1 spot whose %s is only under its own "__proto__" key',
+    (key) => {
+      expect(parseSpotsData(dataJsonWithSpotFieldOnlyUnderProto(VALID_V1_DATA, VALID_V1_SPOT, key))).toBeNull()
+    },
+  )
+
+  it.each<[string, string]>([
+    ['version 2', jsonWithOwnProtoKey(withoutKey(VALID_DATA, 'version'), '{"version":2}')],
+    ['version 1 (on version 1 data)', jsonWithOwnProtoKey(withoutKey(VALID_V1_DATA, 'version'), '{"version":1}')],
+    ['nextId', jsonWithOwnProtoKey(withoutKey(VALID_DATA, 'nextId'), JSON.stringify({ nextId: VALID_DATA.nextId }))],
+    ['spots', jsonWithOwnProtoKey(withoutKey(VALID_DATA, 'spots'), JSON.stringify({ spots: VALID_DATA.spots }))],
+    ['every field (the whole valid data)', jsonWithOwnProtoKey({}, JSON.stringify(VALID_DATA))],
+  ])('AC14: rejects data whose %s is only under its own top-level "__proto__" key', (_description, raw) => {
+    expect(parseSpotsData(raw)).toBeNull()
+  })
+
+  it.each<[string, SpotsData | SpotsDataV1, SpotsData]>([
+    ['version 2', VALID_DATA, VALID_DATA],
+    ['version 1', VALID_V1_DATA, VALID_V1_DATA_READ],
+  ])(
+    'AC13/AC46: reads valid %s data with isAdmin, extra, constructor and "__proto__" keys as fresh objects with only the known fields',
+    (_description, validData, expectedData) => {
+      const result = parseSpotsData(validDataJsonWithHostileExtras(validData))
+
+      expect(result).toEqual(expectedData)
+      expect(Object.keys(result ?? {}).sort()).toEqual(['nextId', 'spots', 'version'])
+      expect(Object.getPrototypeOf(result)).toBe(Object.prototype)
+      expect(result?.spots).toHaveLength(expectedData.spots.length)
+      for (const spot of result?.spots ?? []) {
+        expect(Object.keys(spot).sort()).toEqual([...SPOT_KEYS].sort())
+        expect(Object.getPrototypeOf(spot)).toBe(Object.prototype)
+      }
+    },
+  )
+
+  it('AC14: parsing crafted text leaves Object.prototype untouched (no prototype pollution)', () => {
+    parseSpotsData(validDataJsonWithHostileExtras(VALID_DATA))
+    parseSpotsData(validDataJsonWithHostileExtras(VALID_V1_DATA))
+    parseSpotsData(VERSION_2_EXIT_INTERCHANGE_ONLY_UNDER_PROTO_RAW)
+
+    const freshObject: Record<string, unknown> = {}
+    expect(freshObject.exitInterchange).toBeUndefined()
+    expect(freshObject.isAdmin).toBeUndefined()
+    expect(Object.hasOwn(Object.prototype, 'exitInterchange')).toBe(false)
+    expect(Object.hasOwn(Object.prototype, 'isAdmin')).toBe(false)
   })
 })

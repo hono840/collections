@@ -5,13 +5,14 @@ import { createSeedData } from '@/lib/spots/seed'
 import type { Spot, SpotsData } from '@/lib/spots/types'
 import { DriveSpotsApp } from './DriveSpotsApp'
 
-// Acceptance tests for docs/product/spec.md (AC1-AC16, AC18 partly, AC22, AC23-AC28, AC30-AC40), driven through
+// Acceptance tests for docs/product/spec.md (AC1-AC16, AC18 partly, AC22, AC23-AC28, AC30-AC48), driven through
 // the UI only: roles, accessible names, labels and visible Japanese text. No CSS classes, no test ids.
 //
 // UI contract these tests rely on (beyond the spec text):
 // - Tabs and category chips (list + add form) are <button>s exposing the selection with aria-pressed.
 // - Screens are rendered conditionally (only the current screen is in the DOM).
-// - A spot card is a <button> whose text is "<mark><name><region>・<category>".
+// - A spot card is a <button> whose text is "<mark><name><region>・<category>", plus "<降りるIC>で降りる"
+//   when one is entered (AC47).
 // - The detail shows the spot name as a heading, and each info tile keeps its label and value
 //   inside one parent element.
 
@@ -38,6 +39,9 @@ const EDIT_MEMO_LABEL = 'メモを編集'
 const MEMO_FIELD_NAME = 'メモ'
 const EMPTY_MEMO_TEXT = 'メモはまだありません'
 const YABITSU_SEED_MEMO = '峠のホームコースにしたい'
+const EDIT_SPOT_LABEL = 'スポットを編集'
+const EDIT_TITLE = 'スポットを編集'
+const EXIT_INTERCHANGE_LABEL = '降りるIC'
 
 const SEED_NAMES = [
   'ヤビツ峠',
@@ -215,6 +219,7 @@ type FormValues = {
   category?: string
   region?: string
   distanceKm?: string
+  exitInterchange?: string
   season?: string
   memo?: string
 }
@@ -233,6 +238,7 @@ async function fillAddForm(user: User, values: FormValues) {
   if (values.category) await user.click(screen.getByRole('button', { name: values.category }))
   if (values.region) await user.type(screen.getByLabelText('地域'), values.region)
   if (values.distanceKm) await user.type(screen.getByLabelText('片道の距離（km）'), values.distanceKm)
+  if (values.exitInterchange) await user.type(screen.getByLabelText(EXIT_INTERCHANGE_LABEL), values.exitInterchange)
   if (values.season) await user.type(screen.getByLabelText('おすすめ時期'), values.season)
   if (values.memo) await user.type(screen.getByLabelText('メモ'), values.memo)
 }
@@ -242,6 +248,50 @@ async function addSpotThroughForm(user: User, values: FormValues, saveButtonName
   await fillAddForm(user, values)
   await user.click(screen.getByRole('button', { name: saveButtonName }))
   await screen.findByRole('button', { name: WANT_TAB_NAME })
+}
+
+// ---------- edit screen (AC41-AC48) ----------
+
+function getEditSpotButton(): HTMLElement {
+  return screen.getByRole('button', { name: EDIT_SPOT_LABEL })
+}
+
+function getEditFormHeading(): HTMLElement {
+  return screen.getByRole('heading', { level: 1, name: EDIT_TITLE })
+}
+
+function queryEditFormHeading(): HTMLElement | null {
+  return screen.queryByRole('heading', { level: 1, name: EDIT_TITLE })
+}
+
+/** On the detail: presses スポットを編集 and waits for the edit form. */
+async function openEditForm(user: User) {
+  await user.click(getEditSpotButton())
+  await screen.findByRole('heading', { level: 1, name: EDIT_TITLE })
+}
+
+/** Replaces a field's text (user-event syntax: {Enter} is a line break). */
+async function replaceFieldText(user: User, label: string, text: string) {
+  const field = screen.getByLabelText(label)
+  await user.clear(field)
+  if (text !== '') await user.type(field, text)
+}
+
+/** On the edit form: replaces the given fields (an empty string empties the field). */
+async function editFields(user: User, values: FormValues) {
+  if (values.name !== undefined) await replaceFieldText(user, 'スポット名（必須）', values.name)
+  if (values.category !== undefined) await user.click(screen.getByRole('button', { name: values.category }))
+  if (values.region !== undefined) await replaceFieldText(user, '地域', values.region)
+  if (values.distanceKm !== undefined) await replaceFieldText(user, '片道の距離（km）', values.distanceKm)
+  if (values.exitInterchange !== undefined) await replaceFieldText(user, EXIT_INTERCHANGE_LABEL, values.exitInterchange)
+  if (values.season !== undefined) await replaceFieldText(user, 'おすすめ時期', values.season)
+  if (values.memo !== undefined) await replaceFieldText(user, 'メモ', values.memo)
+}
+
+/** On the edit form: saves and waits for the detail of the spot (named `spotName` after the save). */
+async function saveEditForm(user: User, spotName: string, saveButtonName = '保存') {
+  await user.click(screen.getByRole('button', { name: saveButtonName }))
+  await screen.findByRole('heading', { level: 1, name: spotName })
 }
 
 // ---------- storage ----------
@@ -256,11 +306,27 @@ function makeSpot(overrides: Partial<Spot> & Pick<Spot, 'id' | 'name'>): Spot {
     region: '神奈川',
     category: '峠',
     distanceKm: '',
+    exitInterchange: '',
     season: '',
     memo: '',
     done: false,
     ...overrides,
   }
+}
+
+/** The data as version 1 of the app saved it (AC46): spots without exitInterchange. */
+function toVersion1Value(data: SpotsData): Record<string, unknown> {
+  return {
+    version: 1,
+    nextId: data.nextId,
+    spots: data.spots.map((spot) =>
+      Object.fromEntries(Object.entries(spot).filter(([key]) => key !== 'exitInterchange')),
+    ),
+  }
+}
+
+function toVersion1Raw(data: SpotsData): string {
+  return JSON.stringify(toVersion1Value(data))
 }
 
 function throwSecurityError(): never {
@@ -289,7 +355,7 @@ const OTHER_TAB_SPOT_NAME = '房総フラワーライン'
 /** What another tab saves after this one loaded: the seed plus one new spot (id 20, nextId 21). */
 function createOtherTabData(): SpotsData {
   const otherTabSpot = makeSpot({ id: 20, name: OTHER_TAB_SPOT_NAME, region: '千葉', category: '海沿い' })
-  return { version: 1, nextId: 21, spots: [otherTabSpot, ...createSeedData().spots] }
+  return { version: 2, nextId: 21, spots: [otherTabSpot, ...createSeedData().spots] }
 }
 
 /** Writes like another tab would. jsdom never fires `storage` in the writing window itself. */
@@ -335,7 +401,7 @@ const FILE_PREVIEW_TITLE = '2026年10月20日に書き出したファイル'
 
 /** What the imported file holds: 行きたい 3 / 行った 2 and its own nextId 50. */
 const IMPORT_FILE_DATA: SpotsData = {
-  version: 1,
+  version: 2,
   nextId: 50,
   spots: [
     makeSpot({ id: 41, name: '道志みち', region: '山梨・神奈川', distanceKm: '80', memo: '朝早く出る' }),
@@ -346,8 +412,8 @@ const IMPORT_FILE_DATA: SpotsData = {
   ],
 }
 
-/** Saved by a newer version of the app (AC30): a shape this version cannot read. */
-const NEWER_VERSION_RAW = JSON.stringify({ version: 2, nextId: 40, places: [{ title: '大観山' }] })
+/** Saved by a newer version of the app (AC30, above version 2): a shape this version cannot read. */
+const NEWER_VERSION_RAW = JSON.stringify({ version: 3, nextId: 40, places: [{ title: '大観山' }] })
 
 /** Fakes Date only, so user-event and Testing Library keep their real timers. */
 function fakeNow(now: Date = NOW) {
@@ -971,6 +1037,7 @@ describe('DriveSpotsApp', () => {
         region: '未入力',
         category: '絶景ロード',
         distanceKm: '60',
+        exitInterchange: '',
         season: '紅葉の季節',
         memo: '早朝に行く',
         done: false,
@@ -989,7 +1056,7 @@ describe('DriveSpotsApp', () => {
       await addSpotThroughForm(user, { name: '大観山', category: '絶景ロード' })
 
       let savedData = readSavedData()
-      expect(savedData).toMatchObject({ version: 1, nextId: 21 })
+      expect(savedData).toMatchObject({ version: 2, nextId: 21 })
       expect(savedData?.spots).toHaveLength(20)
       expect(savedData?.spots[0]).toMatchObject({ id: 20, name: '大観山', done: false })
 
@@ -1007,7 +1074,7 @@ describe('DriveSpotsApp', () => {
       await screen.findByRole('button', { name: WANT_TAB_NAME })
 
       savedData = readSavedData()
-      expect(savedData).toMatchObject({ version: 1, nextId: 21 })
+      expect(savedData).toMatchObject({ version: 2, nextId: 21 })
       expect(savedData?.spots).toHaveLength(19)
       expect(savedData?.spots.map((spot) => spot.name)).not.toContain('奥多摩')
     })
@@ -1033,7 +1100,7 @@ describe('DriveSpotsApp', () => {
 
     it('AC13: starts from valid saved data instead of the seed', async () => {
       const savedData: SpotsData = {
-        version: 1,
+        version: 2,
         nextId: 31,
         spots: [
           makeSpot({ id: 30, name: '大観山', category: '絶景ロード' }),
@@ -1053,7 +1120,7 @@ describe('DriveSpotsApp', () => {
     it('AC13/AC5: a saved empty list stays empty (the seed is not restored)', async () => {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ version: 1, nextId: 20, spots: [] } satisfies SpotsData),
+        JSON.stringify({ version: 2, nextId: 20, spots: [] } satisfies SpotsData),
       )
 
       await renderApp()
@@ -1065,13 +1132,18 @@ describe('DriveSpotsApp', () => {
   })
 
   describe('AC14: corrupt saved data', () => {
-    // version 2 and up is data from a newer version (AC30), see 'AC30: data saved by a newer version'.
+    // version 3 and up is data from a newer version (AC30), see 'AC30: data saved by a newer version'.
     it.each([
       ['broken JSON', '{"version":1,"nextId":'],
       ["a version given as the string '2'", JSON.stringify({ version: '2', nextId: 20, spots: [] })],
       ['version 0', JSON.stringify({ version: 0, nextId: 20, spots: [] })],
       ['a wrong shape', JSON.stringify({ items: ['ヤビツ峠'] })],
       ['a nextId above 1,000,000,000 (AC16)', JSON.stringify({ version: 1, nextId: 1_000_000_001, spots: [] })],
+      ["version 2 without spots (version 2 is this version's format, so broken, not newer; AC46)", JSON.stringify({ version: 2, nextId: 20 })],
+      [
+        'version 2 with spots that have no exitInterchange (AC46)',
+        JSON.stringify({ ...toVersion1Value(createOtherTabData()), version: 2 }),
+      ],
     ])(
       "AC14: with %s it starts from the seed and backs the original up to 'drive-spots:v1:backup'",
       async (_description, corruptRaw) => {
@@ -1148,7 +1220,7 @@ describe('DriveSpotsApp', () => {
 
     it('AC15: when getItem throws but setItem works, actions do not overwrite what is saved', async () => {
       const savedRaw = JSON.stringify({
-        version: 1,
+        version: 2,
         nextId: 31,
         spots: [makeSpot({ id: 30, name: '大観山', category: '絶景ロード' })],
       } satisfies SpotsData)
@@ -1335,9 +1407,9 @@ describe('DriveSpotsApp', () => {
       expect(readSavedData()).toEqual(createSeedWithMemo(2, '大観山で休憩'))
     })
 
-    it('AC26: only the memo changes: name, category, region, distance, season, 行った, ids, order and nextId stay', async () => {
+    it('AC26: only the memo changes: name, category, region, distance, 降りるIC, season, 行った, ids, order and nextId stay', async () => {
       const savedData: SpotsData = {
-        version: 1,
+        version: 2,
         nextId: 42,
         spots: [
           makeSpot({
@@ -1346,6 +1418,7 @@ describe('DriveSpotsApp', () => {
             region: '神奈川',
             category: '絶景ロード',
             distanceKm: '60',
+            exitInterchange: '小田原西IC',
             season: '紅葉の季節',
             memo: '古いメモ',
             done: true,
@@ -1372,6 +1445,7 @@ describe('DriveSpotsApp', () => {
         /^自宅からの距離（片道）\s*約 60 km$/,
       )
       expect(getInfoTile('おすすめ時期')).toHaveTextContent(/^おすすめ時期\s*紅葉の季節$/)
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*小田原西IC$/)
 
       await backToList(user)
 
@@ -1530,7 +1604,7 @@ describe('DriveSpotsApp', () => {
 
     it('AC28/AC15: when getItem throws but setItem works, saving a memo does not overwrite what is saved', async () => {
       const savedRaw = JSON.stringify({
-        version: 1,
+        version: 2,
         nextId: 31,
         spots: [makeSpot({ id: 30, name: '大観山', category: '絶景ロード' })],
       } satisfies SpotsData)
@@ -2170,6 +2244,16 @@ describe('DriveSpotsApp', () => {
       ['the file of another app', createBackupFileText({ app: 'road-review' }), INVALID_FILE_MESSAGE],
       ['a file made by a newer version', createBackupFileText({ backupVersion: 2 }), NEWER_FILE_MESSAGE],
       [
+        'a file whose data is from a newer version (data.version 3)',
+        createBackupFileText({ data: { ...IMPORT_FILE_DATA, version: 3 } }),
+        NEWER_FILE_MESSAGE,
+      ],
+      [
+        "a file whose data is only { version: 2 } (version 2 is this version's format, so broken)",
+        createBackupFileText({ data: { version: 2 } }),
+        INVALID_FILE_MESSAGE,
+      ],
+      [
         'a file whose nextId is Number.MAX_SAFE_INTEGER (AC16)',
         createBackupFileText({ data: { ...IMPORT_FILE_DATA, nextId: Number.MAX_SAFE_INTEGER } }),
         INVALID_FILE_MESSAGE,
@@ -2528,6 +2612,624 @@ describe('DriveSpotsApp', () => {
       expectTabCounts(19, 0)
       expect(setItemSpy).not.toHaveBeenCalled()
       expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+  })
+
+  // ---------- AC41-AC48: editing a spot and 降りるIC ----------
+
+  describe('AC41-AC45, AC48: editing a spot', () => {
+    /** 行きたい 1 / 行った 2; 大観山 has every field filled, 奥多摩's region is exactly 未入力. */
+    const EDIT_SAVED_DATA: SpotsData = {
+      version: 2,
+      nextId: 42,
+      spots: [
+        makeSpot({ id: 12, name: '銚子ドーバーライン', region: '千葉', category: '海沿い' }),
+        makeSpot({
+          id: 30,
+          name: '大観山',
+          region: '神奈川',
+          category: '絶景ロード',
+          distanceKm: '60',
+          exitInterchange: '小田原西IC',
+          season: '紅葉の季節',
+          memo: '一行目\n二行目',
+          done: true,
+        }),
+        makeSpot({ id: 7, name: '奥多摩', region: '未入力', memo: 'そのまま', done: true }),
+      ],
+    }
+
+    /** Starts from EDIT_SAVED_DATA with the 行った tab open. */
+    async function renderAppOnDoneTab() {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(EDIT_SAVED_DATA))
+      const rendered = await renderApp()
+      await rendered.user.click(getDoneTab())
+      return rendered
+    }
+
+    /** What another tab saves: the seed without ヤビツ峠 (id 1). */
+    function createSeedWithoutYabitsu(): SpotsData {
+      const seedData = createSeedData()
+      return { ...seedData, spots: seedData.spots.filter((spot) => spot.id !== 1) }
+    }
+
+    it('AC41/AC42/AC48: スポットを編集 opens the edit form with the saved values, focused on its heading スポットを編集', async () => {
+      const { user } = await renderAppOnDoneTab()
+      await openDetail(user, '大観山')
+
+      await user.click(getEditSpotButton())
+
+      const heading = await screen.findByRole('heading', { level: 1, name: EDIT_TITLE })
+      expect(heading).toHaveFocus()
+      expect(screen.getByRole('region', { name: EDIT_TITLE })).toBeInTheDocument()
+      expect(getNameInput()).toHaveValue('大観山')
+      expect(screen.getByLabelText('地域')).toHaveValue('神奈川')
+      expect(screen.getByLabelText('片道の距離（km）')).toHaveValue('60')
+      expect(screen.getByLabelText(EXIT_INTERCHANGE_LABEL)).toHaveValue('小田原西IC')
+      expect(screen.getByLabelText('おすすめ時期')).toHaveValue('紅葉の季節')
+      expect(screen.getByLabelText('メモ')).toHaveValue('一行目\n二行目')
+      expectSelected(screen.getByRole('button', { name: '絶景ロード' }))
+      for (const label of CATEGORY_LABELS.filter((category) => category !== '絶景ロード')) {
+        expectNotSelected(screen.getByRole('button', { name: label }))
+      }
+      for (const buttonName of ['キャンセル', '保存', '保存する']) {
+        expect(screen.getByRole('button', { name: buttonName })).toBeInstanceOf(HTMLButtonElement)
+      }
+      expect(screen.queryByRole('heading', { name: 'スポットを追加' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: '大観山' })).not.toBeInTheDocument()
+      expect(getCardButtons()).toHaveLength(0)
+    })
+
+    it('AC42: a region of exactly 未入力 opens as an empty field, and saving unchanged keeps the saved data as it was', async () => {
+      const { user } = await renderAppOnDoneTab()
+      await openDetail(user, '奥多摩')
+      await openEditForm(user)
+
+      expect(screen.getByLabelText('地域')).toHaveValue('')
+      expect(screen.getByLabelText('地域')).toHaveAttribute('placeholder', '例：神奈川')
+      expect(screen.getByLabelText(EXIT_INTERCHANGE_LABEL)).toHaveValue('')
+
+      await saveEditForm(user, '奥多摩', '保存する')
+
+      expect(readSavedData()).toEqual(EDIT_SAVED_DATA)
+      expect(getInfoTile('地域')).toHaveTextContent(/^地域\s*未入力$/)
+    })
+
+    it.each(['保存', '保存する'])(
+      'AC43/AC48: %s saves the changes, shows the detail with the new values and focuses スポットを編集',
+      async (saveButtonName) => {
+        const { user } = await renderAppOnDoneTab()
+        await openDetail(user, '大観山')
+        await openEditForm(user)
+        await editFields(user, {
+          name: '大観山（椿ライン）',
+          category: '峠',
+          region: '神奈川・静岡',
+          distanceKm: '75.5',
+          exitInterchange: '湯河原IC',
+          season: '新緑のころ',
+          memo: '一行目{Enter}{Enter}三行目',
+        })
+
+        await saveEditForm(user, '大観山（椿ライン）', saveButtonName)
+
+        expect(getEditSpotButton()).toHaveFocus()
+        expect(queryEditFormHeading()).not.toBeInTheDocument()
+        expect(screen.getByText('峠')).toBeInTheDocument()
+        expect(screen.getByText('行った')).toBeInTheDocument()
+        expect(getInfoTile('地域')).toHaveTextContent(/^地域\s*神奈川・静岡$/)
+        expect(getInfoTile('自宅からの距離（片道）')).toHaveTextContent(/^自宅からの距離（片道）\s*約 75\.5 km$/)
+        expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*湯河原IC$/)
+        expect(getInfoTile('おすすめ時期')).toHaveTextContent(/^おすすめ時期\s*新緑のころ$/)
+        expect(getTextKeepingLineBreaks('一行目\n\n三行目')).toBeInTheDocument()
+      },
+    )
+
+    it("AC43/AC13/AC46: saves version 2 with the 7 fields trimmed (an empty region as '未入力'); 行った, ids, order and nextId stay", async () => {
+      const { user } = await renderAppOnDoneTab()
+      await openDetail(user, '大観山')
+      await openEditForm(user)
+      await editFields(user, {
+        name: '  大観山（椿ライン）  ',
+        category: '峠',
+        region: '   ',
+        distanceKm: ' 75 ',
+        exitInterchange: '　湯河原IC　',
+        season: ' 新緑のころ ',
+        memo: '  一行目{Enter}二行目  ',
+      })
+
+      await saveEditForm(user, '大観山（椿ライン）')
+
+      expect(readSavedData()).toEqual({
+        version: 2,
+        nextId: 42,
+        spots: [
+          EDIT_SAVED_DATA.spots[0],
+          {
+            id: 30,
+            name: '大観山（椿ライン）',
+            region: '未入力',
+            category: '峠',
+            distanceKm: '75',
+            exitInterchange: '湯河原IC',
+            season: '新緑のころ',
+            memo: '一行目\n二行目',
+            done: true,
+          },
+          EDIT_SAVED_DATA.spots[2],
+        ],
+      } satisfies SpotsData)
+    })
+
+    it('AC43/AC47: the list keeps its tab and category; 一覧にもどる focuses the edited card, which reads 「…で降りる」', async () => {
+      const { user } = await renderAppOnDoneTab()
+      await user.click(getChip('絶景ロード'))
+      await openDetail(user, '大観山')
+      await openEditForm(user)
+      await editFields(user, { exitInterchange: '湯河原IC' })
+      await saveEditForm(user, '大観山', '保存する')
+
+      await backToList(user)
+
+      expectSelected(getDoneTab())
+      expectNotSelected(getWantTab())
+      expectSelected(getChip('絶景ロード'))
+      expectNotSelected(getChip('すべて'))
+      expectTabCounts(1, 2)
+      expect(getCard('大観山')).toHaveFocus()
+      expect(getCard('大観山')).toHaveTextContent(/^景\s*大観山\s*神奈川・絶景ロード\s*湯河原ICで降りる$/)
+      expect(screen.getByText('湯河原ICで降りる')).toBeInTheDocument()
+    })
+
+    it('AC43: after changing the category out of the current filter, the list keeps the filter and focuses its heading', async () => {
+      const { user } = await renderAppOnDoneTab()
+      await user.click(getChip('絶景ロード'))
+      await openDetail(user, '大観山')
+      await openEditForm(user)
+      await user.click(screen.getByRole('button', { name: '峠' }))
+      await saveEditForm(user, '大観山')
+
+      await backToList(user)
+
+      expectSelected(getDoneTab())
+      expectSelected(getChip('絶景ロード'))
+      expect(queryCard('大観山')).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: APP_NAME })).toHaveFocus()
+    })
+
+    it('AC42: opening the edit form again after saving starts from the saved values', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await editFields(user, { exitInterchange: '秦野中井IC', distanceKm: '45' })
+      await saveEditForm(user, 'ヤビツ峠')
+
+      await openEditForm(user)
+
+      expect(screen.getByLabelText(EXIT_INTERCHANGE_LABEL)).toHaveValue('秦野中井IC')
+      expect(screen.getByLabelText('片道の距離（km）')).toHaveValue('45')
+    })
+
+    it.each(['保存', '保存する'])(
+      `AC43/AC10/AC48: %s with an emptied name shows '${NAME_REQUIRED_MESSAGE}', stays on the form, focuses the name and saves nothing`,
+      async (saveButtonName) => {
+        const { user } = await renderApp()
+        await openDetail(user, 'ヤビツ峠')
+        await openEditForm(user)
+        await user.clear(getNameInput())
+
+        await user.click(screen.getByRole('button', { name: saveButtonName }))
+
+        expect(screen.getByText(NAME_REQUIRED_MESSAGE)).toBeInTheDocument()
+        expect(getNameInput()).toHaveFocus()
+        expect(getEditFormHeading()).toBeInTheDocument()
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+      },
+    )
+
+    it('AC43/AC11/AC48: an invalid distance focuses the distance, both wrong focus the name, and once fixed 保存 goes back to the detail', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await replaceFieldText(user, '片道の距離（km）', '１２')
+
+      await user.click(screen.getByRole('button', { name: '保存' }))
+
+      expect(screen.getByText(DISTANCE_INVALID_MESSAGE)).toBeInTheDocument()
+      expect(screen.getByLabelText('片道の距離（km）')).toHaveFocus()
+
+      await user.clear(getNameInput())
+      await user.click(screen.getByRole('button', { name: '保存する' }))
+
+      expect(getNameInput()).toHaveFocus()
+      expect(getEditFormHeading()).toBeInTheDocument()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+      await user.type(getNameInput(), 'ヤビツ峠')
+      await replaceFieldText(user, '片道の距離（km）', '12')
+      await saveEditForm(user, 'ヤビツ峠')
+
+      expect(getInfoTile('自宅からの距離（片道）')).toHaveTextContent(/^自宅からの距離（片道）\s*約 12 km$/)
+      expect(getEditSpotButton()).toHaveFocus()
+    })
+
+    it('AC44/AC48: キャンセル throws the edit away without asking, returns to the detail focused on スポットを編集, and saves nothing', async () => {
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await editFields(user, { name: '捨てる名前', exitInterchange: '捨てるIC', memo: '捨てるメモ' })
+
+      await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'ヤビツ峠' })).toBeInTheDocument()
+      expect(getEditSpotButton()).toHaveFocus()
+      expect(screen.getByText(YABITSU_SEED_MEMO)).toBeInTheDocument()
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*未入力$/)
+      expect(screen.queryByText('捨てる名前')).not.toBeInTheDocument()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+      expect(confirmSpy).not.toHaveBeenCalled()
+
+      await openEditForm(user)
+
+      expect(getNameInput()).toHaveValue('ヤビツ峠')
+      expect(screen.getByLabelText(EXIT_INTERCHANGE_LABEL)).toHaveValue('')
+      expect(screen.getByLabelText('メモ')).toHaveValue(YABITSU_SEED_MEMO)
+    })
+
+    it("AC42/AC44: another spot's edit form starts from that spot's values (nothing is carried over)", async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await editFields(user, { name: '打ちかけの名前' })
+      await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+      await screen.findByRole('heading', { level: 1, name: 'ヤビツ峠' })
+      await backToList(user)
+
+      await openDetail(user, '志賀草津高原ルート')
+      await openEditForm(user)
+
+      expect(getNameInput()).toHaveValue('志賀草津高原ルート')
+      expect(screen.getByLabelText('地域')).toHaveValue('群馬・長野')
+      expect(screen.getByLabelText('メモ')).toHaveValue('冬は通行止めの期間あり。行く前に通れるか確認')
+      expectSelected(screen.getByRole('button', { name: '絶景ロード' }))
+    })
+
+    it('AC41/AC25: pressing スポットを編集 while editing the memo throws the draft away; the form starts from the saved memo', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await typeMemoDraft(user, '打ちかけのメモ')
+
+      await user.click(getEditSpotButton())
+
+      expect(await screen.findByRole('heading', { level: 1, name: EDIT_TITLE })).toHaveFocus()
+      expect(screen.getByLabelText('メモ')).toHaveValue(YABITSU_SEED_MEMO)
+
+      await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'ヤビツ峠' })).toBeInTheDocument()
+      expect(screen.getByText(YABITSU_SEED_MEMO)).toBeInTheDocument()
+      expect(queryMemoField()).not.toBeInTheDocument()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+    })
+
+    it('AC41/AC8: going to the edit form cancels a first delete press', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, '奥多摩')
+      await user.click(screen.getByRole('button', { name: DELETE_LABEL }))
+
+      await openEditForm(user)
+      await user.click(screen.getByRole('button', { name: 'キャンセル' }))
+      await screen.findByRole('heading', { level: 1, name: '奥多摩' })
+
+      expect(screen.getByRole('button', { name: DELETE_LABEL })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: DELETE_CONFIRM_LABEL })).not.toBeInTheDocument()
+      expect(getCardButtons()).toHaveLength(0)
+    })
+
+    it.each<[string, () => void]>([
+      ["a storage event for 'drive-spots:v1'", () => dispatchStorageEvent(STORAGE_KEY)],
+      ['a page restored by back/forward (pageshow persisted)', () => dispatchPageShow(true)],
+    ])(
+      'AC45/AC48: when another tab deletes the spot while editing (%s), the list shows at once, its heading focused, and the input is thrown away',
+      async (_description, refresh) => {
+        const { user } = await renderApp()
+        await openDetail(user, 'ヤビツ峠')
+        await openEditForm(user)
+        await replaceFieldText(user, 'スポット名（必須）', '打ちかけの名前')
+        const otherTabData = createSeedWithoutYabitsu()
+        saveFromAnotherTab(otherTabData)
+
+        refresh()
+
+        expect(await screen.findByRole('heading', { level: 1, name: APP_NAME })).toHaveFocus()
+        expect(queryEditFormHeading()).not.toBeInTheDocument()
+        expect(queryCard('ヤビツ峠')).not.toBeInTheDocument()
+        expect(queryCard('打ちかけの名前')).not.toBeInTheDocument()
+        expectTabCounts(18, 0)
+        expect(readSavedData()).toEqual(otherTabData)
+      },
+    )
+
+    it('AC45/AC27/AC48: a spot deleted in another tab right before 保存 is not brought back; the list shows with its heading focused', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await editFields(user, { name: 'ヤビツ峠（表）', exitInterchange: '秦野中井IC' })
+      const otherTabData = createSeedWithoutYabitsu()
+      saveFromAnotherTab(otherTabData)
+
+      await user.click(screen.getByRole('button', { name: '保存' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: APP_NAME })).toHaveFocus()
+      expect(queryEditFormHeading()).not.toBeInTheDocument()
+      expect(queryCard('ヤビツ峠（表）')).not.toBeInTheDocument()
+      expect(queryCard('ヤビツ峠')).not.toBeInTheDocument()
+      expectTabCounts(18, 0)
+      expect(readSavedData()).toEqual(otherTabData)
+    })
+
+    it("AC45/AC22: another tab's 行った change made while editing survives the save", async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      saveFromAnotherTab(createSeedWithDone(1))
+      await editFields(user, { name: 'ヤビツ峠（表）' })
+
+      await saveEditForm(user, 'ヤビツ峠（表）')
+
+      expect(readSavedData()?.spots.find((spot) => spot.id === 1)).toEqual({
+        ...createSeedData().spots[0],
+        name: 'ヤビツ峠（表）',
+        done: true,
+      })
+      expect(screen.getByText('行った')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: MARK_WANT_LABEL })).toBeInTheDocument()
+    })
+
+    it("AC45/AC22: a storage event while editing does not rewrite the fields; saving keeps the other tab's spot and 行った", async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await replaceFieldText(user, 'スポット名（必須）', '打ちかけの名前')
+      const otherTabData = createOtherTabData()
+      otherTabData.spots = otherTabData.spots.map((spot) =>
+        spot.id === 1 ? { ...spot, memo: '別のタブのメモ', exitInterchange: '別のタブのIC', done: true } : spot,
+      )
+      saveFromAnotherTab(otherTabData)
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expect(getEditFormHeading()).toBeInTheDocument()
+      expect(getNameInput()).toHaveValue('打ちかけの名前')
+      expect(screen.getByLabelText('メモ')).toHaveValue(YABITSU_SEED_MEMO)
+      expect(screen.getByLabelText(EXIT_INTERCHANGE_LABEL)).toHaveValue('')
+
+      await saveEditForm(user, '打ちかけの名前', '保存する')
+
+      const savedData = readSavedData()
+      expect(savedData?.spots.find((spot) => spot.id === 1)).toEqual({
+        ...createSeedData().spots[0],
+        name: '打ちかけの名前',
+        done: true,
+      })
+      expect(savedData?.spots.find((spot) => spot.id === 20)).toMatchObject({ name: OTHER_TAB_SPOT_NAME })
+      expect(savedData?.spots).toHaveLength(20)
+      expect(savedData?.nextId).toBe(21)
+    })
+
+    it('AC45/AC28/AC15: when localStorage cannot be used, the edit changes the screen only and nothing is written', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(throwSecurityError)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwSecurityError)
+      const { user } = await renderApp()
+      expect(await screen.findByText(NOT_PERSISTENT_NOTICE)).toBeInTheDocument()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await editFields(user, { name: 'ヤビツ峠（表）', exitInterchange: '秦野中井IC' })
+
+      await saveEditForm(user, 'ヤビツ峠（表）')
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*秦野中井IC$/)
+
+      await backToList(user)
+
+      expect(getNotice()).toBeInTheDocument()
+      expect(getCard('ヤビツ峠（表）')).toHaveTextContent(/秦野中井ICで降りる$/)
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC45/AC30: with data from a newer version, the edit changes the screen only and nothing is written', async () => {
+      window.localStorage.setItem(STORAGE_KEY, NEWER_VERSION_RAW)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { user } = await renderApp()
+      expect(await screen.findByText(NEWER_VERSION_NOTICE)).toBeInTheDocument()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+      await editFields(user, { name: 'ヤビツ峠（表）' })
+
+      await saveEditForm(user, 'ヤビツ峠（表）')
+      await backToList(user)
+
+      expect(getNewerVersionNotice()).toBeInTheDocument()
+      expect(getCard('ヤビツ峠（表）')).toBeInTheDocument()
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(NEWER_VERSION_RAW)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC18/AC48: the edit form uses real <button>s and labelled <input> / <textarea> elements', async () => {
+      const { user } = await renderApp()
+      await openDetail(user, 'ヤビツ峠')
+      await openEditForm(user)
+
+      for (const button of screen.getAllByRole('button')) {
+        expect(button).toBeInstanceOf(HTMLButtonElement)
+      }
+      for (const label of ['スポット名（必須）', '地域', '片道の距離（km）', EXIT_INTERCHANGE_LABEL, 'おすすめ時期']) {
+        expect(screen.getByLabelText(label)).toBeInstanceOf(HTMLInputElement)
+      }
+      expect(screen.getByLabelText('メモ')).toBeInstanceOf(HTMLTextAreaElement)
+    })
+  })
+
+  describe('AC47: 降りるIC', () => {
+    it('AC9/AC47: the add form has an empty one-line 降りるIC field with the placeholder 例：小田原西IC', async () => {
+      const { user } = await renderApp()
+
+      await openAddForm(user)
+
+      const exitInterchangeField = screen.getByLabelText(EXIT_INTERCHANGE_LABEL)
+      expect(exitInterchangeField).toBeInstanceOf(HTMLInputElement)
+      expect(exitInterchangeField).toHaveValue('')
+      expect(exitInterchangeField).toHaveAttribute('placeholder', '例：小田原西IC')
+    })
+
+    it('AC47/AC12: adding a spot with 降りるIC trims it and shows it on the card, on the detail and in the saved data', async () => {
+      const { user } = await renderApp()
+
+      await addSpotThroughForm(user, { name: '大観山', category: '絶景ロード', exitInterchange: '  小田原西IC  ' })
+
+      expect(readSavedData()?.spots[0]).toEqual({
+        id: 20,
+        name: '大観山',
+        region: '未入力',
+        category: '絶景ロード',
+        distanceKm: '',
+        exitInterchange: '小田原西IC',
+        season: '',
+        memo: '',
+        done: false,
+      } satisfies Spot)
+      expect(getCardButtons()[0]).toHaveTextContent(/^景\s*大観山\s*未入力・絶景ロード\s*小田原西ICで降りる$/)
+
+      await openDetail(user, '大観山')
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*小田原西IC$/)
+    })
+
+    it('AC6/AC47: the seed cards have no 「…で降りる」 line, and the detail shows 降りるIC 未入力 between the distance and the season', async () => {
+      const { user } = await renderApp()
+
+      expect(screen.queryByText(/で降りる/)).not.toBeInTheDocument()
+
+      await openDetail(user, 'ヤビツ峠')
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*未入力$/)
+      expectFollows(getInfoTile('自宅からの距離（片道）'), getInfoTile(EXIT_INTERCHANGE_LABEL))
+      expectFollows(getInfoTile(EXIT_INTERCHANGE_LABEL), getInfoTile('おすすめ時期'))
+    })
+
+    it('AC32/AC46/AC47: the exported file keeps backupVersion 1 around data of version 2 with the 降りるIC', async () => {
+      fakeNow()
+      const { blobs } = mockDownloads()
+      const { user } = await renderApp()
+      await addSpotThroughForm(user, { name: '大観山', exitInterchange: '小田原西IC' })
+      await openBackup(user)
+
+      await user.click(screen.getByRole('button', { name: EXPORT_LABEL }))
+
+      const exported = JSON.parse(await blobs[0].text()) as { backupVersion: unknown; data: SpotsData }
+      expect(exported.backupVersion).toBe(1)
+      expect(exported.data.version).toBe(2)
+      expect(exported.data.spots[0]).toMatchObject({ name: '大観山', exitInterchange: '小田原西IC' })
+      expect(exported.data.spots.slice(1).every((spot) => spot.exitInterchange === '')).toBe(true)
+    })
+  })
+
+  describe('AC46: saved data of version 1', () => {
+    /** What version 1 saved: 行きたい 1 / 行った 1. */
+    const VERSION_2_EQUIVALENT: SpotsData = {
+      version: 2,
+      nextId: 31,
+      spots: [
+        makeSpot({ id: 30, name: '大観山', category: '絶景ロード', memo: '古いメモ' }),
+        makeSpot({ id: 7, name: '奥多摩', region: '東京', done: true }),
+      ],
+    }
+
+    it('AC46: version 1 data shows on start-up (降りるIC 未入力) and is not rewritten while it is only read', async () => {
+      fakeNow()
+      const version1Raw = toVersion1Raw(VERSION_2_EQUIVALENT)
+      window.localStorage.setItem(STORAGE_KEY, version1Raw)
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const { user } = await renderApp()
+
+      expectTabCounts(1, 1)
+      expect(getCard('大観山')).toBeInTheDocument()
+      expect(queryCard('ヤビツ峠')).not.toBeInTheDocument()
+      expect(getNotice()).not.toBeInTheDocument()
+      expect(getNewerVersionNotice()).not.toBeInTheDocument()
+      expect(getListRegion()).not.toHaveTextContent(RESTORE_HINT)
+      expect(getBackupButton()).toHaveAccessibleName(BACKUP_NEVER_LABEL)
+
+      await openDetail(user, '大観山')
+
+      expect(getInfoTile(EXIT_INTERCHANGE_LABEL)).toHaveTextContent(/^降りるIC\s*未入力$/)
+      expect(screen.getByText('古いメモ')).toBeInTheDocument()
+
+      await backToList(user)
+      await user.click(getDoneTab())
+
+      expect(getCard('奥多摩')).toBeInTheDocument()
+      expect(setItemSpy).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe(version1Raw)
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC46: the first change saves version 2, with an empty exitInterchange on every spot', async () => {
+      window.localStorage.setItem(STORAGE_KEY, toVersion1Raw(VERSION_2_EQUIVALENT))
+      const { user } = await renderApp()
+
+      await markDone(user, '大観山')
+
+      expect(readSavedData()).toEqual({
+        ...VERSION_2_EQUIVALENT,
+        spots: [{ ...VERSION_2_EQUIVALENT.spots[0], done: true }, VERSION_2_EQUIVALENT.spots[1]],
+      })
+      expect(window.localStorage.getItem(BACKUP_KEY)).toBeNull()
+    })
+
+    it('AC46/AC43: editing a spot loaded from version 1 data saves version 2 with its new 降りるIC', async () => {
+      window.localStorage.setItem(STORAGE_KEY, toVersion1Raw(VERSION_2_EQUIVALENT))
+      const { user } = await renderApp()
+      await openDetail(user, '大観山')
+      await openEditForm(user)
+
+      expect(screen.getByLabelText(EXIT_INTERCHANGE_LABEL)).toHaveValue('')
+
+      await editFields(user, { exitInterchange: '小田原西IC' })
+      await saveEditForm(user, '大観山')
+
+      expect(readSavedData()).toEqual({
+        ...VERSION_2_EQUIVALENT,
+        spots: [{ ...VERSION_2_EQUIVALENT.spots[0], exitInterchange: '小田原西IC' }, VERSION_2_EQUIVALENT.spots[1]],
+      })
+    })
+
+    it('AC46/AC22: a storage event with version 1 data (saved by an old version in another tab) refreshes the list and writes nothing', async () => {
+      await renderApp()
+      window.localStorage.setItem(STORAGE_KEY, toVersion1Raw(createOtherTabData()))
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+
+      dispatchStorageEvent(STORAGE_KEY)
+
+      expectTabCounts(20, 0)
+      expect(getCard(OTHER_TAB_SPOT_NAME)).toBeInTheDocument()
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('AC46/AC36: importing a file whose data is version 1 replaces the list and saves version 2', async () => {
+      fakeNow()
+      const { user } = await renderApp()
+      await openBackup(user)
+
+      await chooseBackupFile(user, createJsonFile(createBackupFileText({ data: toVersion1Value(IMPORT_FILE_DATA) })))
+      expect(await screen.findByText(FILE_PREVIEW_TITLE)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: REPLACE_LABEL }))
+
+      expect(await screen.findByText('読み込みました（行きたい 3 / 行った 2）')).toBeInTheDocument()
+      expect(readSavedData()).toEqual(IMPORT_FILE_DATA)
     })
   })
 })

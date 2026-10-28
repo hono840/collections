@@ -13,6 +13,9 @@ const NOT_ENTERED = '未入力'
 // Same placeholder as the add form's memo field.
 const MEMO_PLACEHOLDER = '例：冬は通行止め。帰りに寄りたいお店など'
 
+/** What focusOnMount focuses: the spot name (opened from the list) or スポットを編集 (back from editing, AC48). */
+export type SpotDetailFocusTarget = 'heading' | 'editSpot'
+
 type SpotDetailScreenProps = {
   spot: Spot
   onBack: () => void
@@ -21,8 +24,12 @@ type SpotDetailScreenProps = {
   onRemove: () => void
   /** Called on 保存 with the memo exactly as typed; updateMemo trims it (AC24). */
   onUpdateMemo: (memo: string) => void
-  /** Move focus to the spot name when the screen appears. */
+  /** スポットを編集: go to the edit form. A memo draft is thrown away with the screen (AC41, AC25). */
+  onEdit: () => void
+  /** Move focus to focusTarget when the screen appears. */
   focusOnMount?: boolean
+  /** Only with focusOnMount. Defaults to the spot name. */
+  focusTarget?: SpotDetailFocusTarget
 }
 
 /**
@@ -37,7 +44,9 @@ export function SpotDetailScreen({
   onToggleDone,
   onRemove,
   onUpdateMemo,
+  onEdit,
   focusOnMount = false,
+  focusTarget = 'heading',
 }: SpotDetailScreenProps) {
   const headingId = useId()
   const memoHeadingId = `${headingId}-memo-heading`
@@ -46,12 +55,18 @@ export function SpotDetailScreen({
   const [editingMemo, setEditingMemo] = useState(false)
   const [memoDraft, setMemoDraft] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const editSpotButtonRef = useRef<HTMLButtonElement>(null)
   const memoFieldRef = useRef<HTMLTextAreaElement>(null)
   const editMemoButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    if (focusOnMount) headingRef.current?.focus()
-  }, [focusOnMount])
+    if (!focusOnMount) return
+    if (focusTarget === 'editSpot') {
+      editSpotButtonRef.current?.focus()
+    } else {
+      headingRef.current?.focus()
+    }
+  }, [focusOnMount, focusTarget])
 
   function handleToggleDone() {
     // Doing something else cancels a half-done delete.
@@ -108,6 +123,16 @@ export function SpotDetailScreen({
         >
           <Icon name="chevronLeft" size={24} strokeWidth={2.2} className="text-ink" />
         </button>
+        {/* Gray like the list's バックアップ: this bar moves to another screen. The visible text is the
+            name, so no aria-label (WCAG 2.5.3, AC41). */}
+        <button
+          type="button"
+          ref={editSpotButtonRef}
+          onClick={() => onEdit()}
+          className="ml-auto h-11 min-w-11 bg-transparent px-2 text-15 font-medium text-ink-soft"
+        >
+          スポットを編集
+        </button>
       </div>
 
       <div className="scrollbar-hidden flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-y-contain px-5 pb-safe-detail pt-1">
@@ -131,6 +156,12 @@ export function SpotDetailScreen({
           <InfoTile
             label="自宅からの距離（片道）"
             value={spot.distanceKm === '' ? NOT_ENTERED : `約 ${spot.distanceKm} km`}
+          />
+          {/* Full width: IC names get long (AC47). Shown as entered, without で降りる. */}
+          <InfoTile
+            label="降りるIC"
+            value={spot.exitInterchange === '' ? NOT_ENTERED : spot.exitInterchange}
+            wide
           />
           <InfoTile label="おすすめ時期" value={spot.season === '' ? NOT_ENTERED : spot.season} wide />
         </dl>

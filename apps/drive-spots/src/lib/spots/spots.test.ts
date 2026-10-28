@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_NEXT_ID } from './storage'
 import {
   addSpot,
   countByTab,
   filterSpots,
   removeSpot,
+  spotToInput,
   toggleDone,
   updateMemo,
+  updateSpot,
   validateSpotInput,
 } from './spots'
 import type { Spot, SpotInput, SpotsData } from './types'
@@ -19,6 +22,7 @@ function makeSpot(overrides: Partial<Spot> & Pick<Spot, 'id'>): Spot {
     region: '神奈川',
     category: '峠',
     distanceKm: '',
+    exitInterchange: '',
     season: '',
     memo: '',
     done: false,
@@ -27,7 +31,7 @@ function makeSpot(overrides: Partial<Spot> & Pick<Spot, 'id'>): Spot {
 }
 
 function makeData(spots: Spot[], nextId: number): SpotsData {
-  return { version: 1, nextId, spots }
+  return { version: 2, nextId, spots }
 }
 
 function makeInput(overrides: Partial<SpotInput> = {}): SpotInput {
@@ -36,11 +40,15 @@ function makeInput(overrides: Partial<SpotInput> = {}): SpotInput {
     region: '神奈川',
     category: '絶景ロード',
     distanceKm: '',
+    exitInterchange: '',
     season: '',
     memo: '',
     ...overrides,
   }
 }
+
+/** The 9 fields a saved spot has, no more and no fewer (AC12, AC43, AC46). */
+const SPOT_KEYS: (keyof Spot)[] = ['id', 'name', 'region', 'category', 'distanceKm', 'exitInterchange', 'season', 'memo', 'done']
 
 // Freezing makes any in-place mutation throw (ES modules run in strict mode).
 function deepFreeze<Value>(value: Value): Value {
@@ -84,7 +92,7 @@ describe('addSpot', () => {
 
     expect(result.spots[0].id).toBe(6)
     expect(result.nextId).toBe(7)
-    expect(result.version).toBe(1)
+    expect(result.version).toBe(2)
   })
 
   it('AC12: adds the new spot as not done (行きたい)', () => {
@@ -101,6 +109,7 @@ describe('addSpot', () => {
         region: '千葉',
         category: '海沿い',
         distanceKm: '60',
+        exitInterchange: '銚子IC',
         season: '夏の夕方',
         memo: '灯台に寄る',
       }),
@@ -112,6 +121,7 @@ describe('addSpot', () => {
       region: '千葉',
       category: '海沿い',
       distanceKm: '60',
+      exitInterchange: '銚子IC',
       season: '夏の夕方',
       memo: '灯台に寄る',
       done: false,
@@ -145,6 +155,28 @@ describe('addSpot', () => {
     expect(result.spots[0].memo).toBe('一行目\n二行目')
   })
 
+  it.each([
+    ['half-width spaces', '  小田原西IC  '],
+    ['full-width spaces', '　小田原西IC　'],
+    ['tabs and line breaks', '\t小田原西IC\n'],
+  ])('AC47: trims %s around 降りるIC (%j)', (_description, rawExitInterchange) => {
+    const result = addSpot(makeSampleData(), makeInput({ exitInterchange: rawExitInterchange }))
+
+    expect(result.spots[0].exitInterchange).toBe('小田原西IC')
+  })
+
+  it('AC47: keeps a space inside 降りるIC', () => {
+    const result = addSpot(makeSampleData(), makeInput({ exitInterchange: ' 東名高速 大井松田IC ' }))
+
+    expect(result.spots[0].exitInterchange).toBe('東名高速 大井松田IC')
+  })
+
+  it.each(['', '   ', '　', '\t\n'])('AC47: a blank 降りるIC %j is saved as empty (not entered, no error)', (blankExitInterchange) => {
+    const result = addSpot(makeSampleData(), makeInput({ exitInterchange: blankExitInterchange }))
+
+    expect(result.spots[0].exitInterchange).toBe('')
+  })
+
   it.each(['', '   ', '　'])("AC12: sets region to '未入力' when the region is %j", (blankRegion) => {
     const result = addSpot(makeSampleData(), makeInput({ region: blankRegion }))
 
@@ -174,6 +206,20 @@ describe('addSpot', () => {
     expect(result.spots).not.toBe(data.spots)
     expect(data).toEqual(dataSnapshot)
     expect(input).toEqual(inputSnapshot)
+  })
+
+  it('AC12/AC16: an input that also carries id, done and an extra key cannot set them (security)', () => {
+    // id 1 is already used, so taking it from the input would give two spots the same id (AC16).
+    const hostileInput = { ...makeInput({ name: '大観山' }), id: 1, done: true, isAdmin: true } as unknown as SpotInput
+
+    const result = addSpot(makeSampleData(), hostileInput)
+
+    const addedSpot = result.spots[0]
+    expect(addedSpot).toEqual({ id: 6, ...makeInput({ name: '大観山' }), done: false })
+    expect(Object.keys(addedSpot).sort()).toEqual([...SPOT_KEYS].sort())
+    expect(Object.getPrototypeOf(addedSpot)).toBe(Object.prototype)
+    expect(result.nextId).toBe(7)
+    expect(result.spots.map((spot) => spot.id)).toEqual([6, 1, 2, 3, 4, 5])
   })
 
   describe('at the nextId cap (AC16, MAX_NEXT_ID = 1,000,000,000)', () => {
@@ -262,7 +308,7 @@ describe('toggleDone', () => {
     )
     expect(result.spots[3]).toEqual({ ...data.spots[3], done: true })
     expect(result.nextId).toBe(6)
-    expect(result.version).toBe(1)
+    expect(result.version).toBe(2)
   })
 
   it('leaves the spots unchanged for an unknown id', () => {
@@ -296,7 +342,7 @@ describe('removeSpot', () => {
     const result = removeSpot(makeSampleData(), 5)
 
     expect(result.nextId).toBe(6)
-    expect(result.version).toBe(1)
+    expect(result.version).toBe(2)
   })
 
   it('AC16: a spot added after deleting the newest spot does not reuse the deleted id', () => {
@@ -316,7 +362,7 @@ describe('removeSpot', () => {
       data = removeSpot(data, spot.id)
     }
 
-    expect(data).toEqual({ version: 1, nextId: 6, spots: [] })
+    expect(data).toEqual({ version: 2, nextId: 6, spots: [] })
   })
 
   it('leaves the spots unchanged for an unknown id', () => {
@@ -350,6 +396,7 @@ describe('updateMemo', () => {
           region: '東京',
           category: '峠',
           distanceKm: '45',
+          exitInterchange: '八王子IC',
           season: '新緑の頃',
           memo: '古いメモ',
           done: true,
@@ -414,7 +461,7 @@ describe('updateMemo', () => {
     const result = updateMemo(data, 7, '  新しいメモ  ')
 
     expect(result).toEqual({
-      version: 1,
+      version: 2,
       nextId: 30,
       spots: [{ ...data.spots[0], memo: '新しいメモ' }, data.spots[1], data.spots[2]],
     })
@@ -425,6 +472,7 @@ describe('updateMemo', () => {
       region: '東京',
       category: '峠',
       distanceKm: '45',
+      exitInterchange: '八王子IC',
       season: '新緑の頃',
       done: true,
     })
@@ -468,6 +516,314 @@ describe('updateMemo', () => {
     expect(result).not.toBe(data)
     expect(result.spots).not.toBe(data.spots)
     expect(data).toEqual(dataSnapshot)
+  })
+})
+
+describe('spotToInput (AC42)', () => {
+  const FILLED_SPOT: Spot = makeSpot({
+    id: 30,
+    name: '大観山',
+    region: '神奈川',
+    category: '絶景ロード',
+    distanceKm: '60',
+    exitInterchange: '小田原西IC',
+    season: '紅葉の季節',
+    memo: '一行目\n二行目',
+    done: true,
+  })
+
+  it('AC42: returns the 7 fields the form edits, exactly as saved', () => {
+    expect(spotToInput(FILLED_SPOT)).toEqual({
+      name: '大観山',
+      region: '神奈川',
+      category: '絶景ロード',
+      distanceKm: '60',
+      exitInterchange: '小田原西IC',
+      season: '紅葉の季節',
+      memo: '一行目\n二行目',
+    } satisfies SpotInput)
+  })
+
+  it('AC42: leaves out id and done (they are not edited)', () => {
+    expect(Object.keys(spotToInput(FILLED_SPOT)).sort()).toEqual(
+      ['category', 'distanceKm', 'exitInterchange', 'memo', 'name', 'region', 'season'].sort(),
+    )
+  })
+
+  it("AC42: a region of exactly '未入力' becomes an empty field", () => {
+    expect(spotToInput({ ...FILLED_SPOT, region: '未入力' }).region).toBe('')
+  })
+
+  it.each([
+    ['a region that only starts with 未入力', '未入力の峠'],
+    ['a region that only ends with 未入力', '県名未入力'],
+    ['未入力 with a trailing space', '未入力 '],
+    ['未入力 with a leading full-width space', '　未入力'],
+    ['an ordinary region', '静岡・神奈川'],
+  ])("AC42: %s (%j) is not exactly '未入力' and is kept as it is", (_description, region) => {
+    expect(spotToInput({ ...FILLED_SPOT, region }).region).toBe(region)
+  })
+
+  it("AC42: only the region is mapped: a name, season or memo of '未入力' stays", () => {
+    const input = spotToInput({ ...FILLED_SPOT, name: '未入力', season: '未入力', memo: '未入力', exitInterchange: '未入力' })
+
+    expect(input).toMatchObject({ name: '未入力', season: '未入力', memo: '未入力', exitInterchange: '未入力' })
+  })
+
+  it('AC42: empty fields stay empty (distance, 降りるIC, season, memo)', () => {
+    const input = spotToInput(makeSpot({ id: 1, name: 'ヤビツ峠' }))
+
+    expect(input).toEqual({
+      name: 'ヤビツ峠',
+      region: '神奈川',
+      category: '峠',
+      distanceKm: '',
+      exitInterchange: '',
+      season: '',
+      memo: '',
+    } satisfies SpotInput)
+  })
+
+  it('AC42: copies the other fields as they are (no trimming here; saving trims)', () => {
+    const input = spotToInput({ ...FILLED_SPOT, name: ' 大観山 ', memo: '\n一行目\n' })
+
+    expect(input.name).toBe(' 大観山 ')
+    expect(input.memo).toBe('\n一行目\n')
+  })
+
+  it('does not mutate the spot (returns a new object)', () => {
+    const spot = deepFreeze(structuredClone({ ...FILLED_SPOT, region: '未入力' }))
+    const spotSnapshot = structuredClone(spot)
+
+    const input = spotToInput(spot)
+
+    expect(input).not.toBe(spot)
+    expect(spot).toEqual(spotSnapshot)
+  })
+})
+
+describe('updateSpot (AC43, AC45)', () => {
+  // Non-sequential ids, a 行った spot in the middle and every field filled, so "only the 7 fields
+  // change" means something.
+  function makeEditData(): SpotsData {
+    return makeData(
+      [
+        makeSpot({ id: 12, name: '銚子ドーバーライン', region: '千葉', category: '海沿い', memo: '灯台に寄る' }),
+        makeSpot({
+          id: 7,
+          name: '奥多摩',
+          region: '東京',
+          category: '峠',
+          distanceKm: '45',
+          exitInterchange: '八王子IC',
+          season: '新緑の頃',
+          memo: '古いメモ',
+          done: true,
+        }),
+        makeSpot({ id: 3, name: '箱根ターンパイク', category: '絶景ロード' }),
+      ],
+      30,
+    )
+  }
+
+  const EDITED_INPUT: SpotInput = {
+    name: '奥多摩周遊道路',
+    region: '東京・山梨',
+    category: '絶景ロード',
+    distanceKm: '70',
+    exitInterchange: 'あきる野IC',
+    season: '紅葉の季節',
+    memo: '一行目\n二行目',
+  }
+
+  function findSpot(data: SpotsData, id: number): Spot | undefined {
+    return data.spots.find((spot) => spot.id === id)
+  }
+
+  it('AC43: changes the name, category, region, distance, 降りるIC, season and memo of that spot', () => {
+    const result = updateSpot(makeEditData(), 7, EDITED_INPUT)
+
+    expect(findSpot(result, 7)).toEqual({ id: 7, ...EDITED_INPUT, done: true })
+  })
+
+  it('AC43: keeps done, the id, the order, nextId and version', () => {
+    const data = makeEditData()
+
+    const result = updateSpot(data, 7, EDITED_INPUT)
+
+    expect(result.version).toBe(2)
+    expect(result.nextId).toBe(30)
+    expect(result.spots.map((spot) => spot.id)).toEqual([12, 7, 3])
+    expect(findSpot(result, 7)?.done).toBe(true)
+  })
+
+  it('AC43: a 行きたい spot stays 行きたい', () => {
+    const result = updateSpot(makeEditData(), 12, EDITED_INPUT)
+
+    expect(findSpot(result, 12)).toEqual({ id: 12, ...EDITED_INPUT, done: false })
+  })
+
+  it('AC43: leaves every other spot as it was', () => {
+    const data = makeEditData()
+
+    const result = updateSpot(data, 7, EDITED_INPUT)
+
+    expect(result.spots[0]).toEqual(data.spots[0])
+    expect(result.spots[2]).toEqual(data.spots[2])
+  })
+
+  it.each([
+    ['half-width spaces', (text: string) => `  ${text}  `],
+    ['full-width spaces', (text: string) => `　${text}　`],
+    ['tabs and line breaks', (text: string) => `\t\n${text}\n\t`],
+  ])('AC43: trims %s around every text field, like adding does (AC12)', (_description, surround) => {
+    const result = updateSpot(makeEditData(), 7, {
+      name: surround('奥多摩周遊道路'),
+      region: surround('東京・山梨'),
+      category: '絶景ロード',
+      distanceKm: surround('70'),
+      exitInterchange: surround('あきる野IC'),
+      season: surround('紅葉の季節'),
+      memo: surround('早朝に行く'),
+    })
+
+    expect(findSpot(result, 7)).toEqual({
+      id: 7,
+      name: '奥多摩周遊道路',
+      region: '東京・山梨',
+      category: '絶景ロード',
+      distanceKm: '70',
+      exitInterchange: 'あきる野IC',
+      season: '紅葉の季節',
+      memo: '早朝に行く',
+      done: true,
+    })
+  })
+
+  it.each(['', '   ', '　', '\t\n'])("AC43: a blank region %j becomes '未入力', like adding does (AC12)", (blankRegion) => {
+    const result = updateSpot(makeEditData(), 7, { ...EDITED_INPUT, region: blankRegion })
+
+    expect(findSpot(result, 7)?.region).toBe('未入力')
+  })
+
+  it('AC43/AC24: keeps line breaks and spaces inside the memo while trimming its ends', () => {
+    const result = updateSpot(makeEditData(), 7, { ...EDITED_INPUT, memo: '\n 一行目\n\n二行目 　三行目 \n' })
+
+    expect(findSpot(result, 7)?.memo).toBe('一行目\n\n二行目 　三行目')
+  })
+
+  it('AC43/AC47: blank distance, 降りるIC, season and memo empty those fields', () => {
+    const result = updateSpot(makeEditData(), 7, {
+      ...EDITED_INPUT,
+      distanceKm: ' ',
+      exitInterchange: '　',
+      season: '\t',
+      memo: '\n',
+    })
+
+    expect(findSpot(result, 7)).toMatchObject({ distanceKm: '', exitInterchange: '', season: '', memo: '' })
+  })
+
+  it('AC43: trims exactly like addSpot (the same input gives the same 7 fields)', () => {
+    const rawInput: SpotInput = {
+      name: ' 　奥多摩周遊道路\t',
+      region: '　',
+      category: 'サーキット',
+      distanceKm: ' 12.5 ',
+      exitInterchange: '\nあきる野IC　',
+      season: '  紅葉の季節',
+      memo: '\n 一行目\n二行目 \n',
+    }
+    const added = addSpot(makeEditData(), rawInput).spots[0]
+
+    const updated = findSpot(updateSpot(makeEditData(), 7, rawInput), 7)
+
+    expect(updated).toEqual({ ...added, id: 7, done: true })
+  })
+
+  it('AC42/AC43: saving spotToInput unchanged gives the same data (a region of 未入力 stays 未入力)', () => {
+    const data = makeData([makeSpot({ id: 5, name: '大観山', region: '未入力', exitInterchange: '小田原西IC' })], 9)
+
+    const result = updateSpot(data, 5, spotToInput(data.spots[0]))
+
+    expect(result).toEqual(data)
+  })
+
+  it('AC43: id and done never come from the input, even when a whole Spot is passed as the input', () => {
+    const otherSpot = makeSpot({ id: 99, name: '別のスポット', done: false })
+
+    const result = updateSpot(makeEditData(), 7, otherSpot)
+
+    expect(result.spots.map((spot) => spot.id)).toEqual([12, 7, 3])
+    expect(findSpot(result, 7)).toMatchObject({ id: 7, name: '別のスポット', done: true })
+    expect(Object.keys(findSpot(result, 7) ?? {}).sort()).toEqual(
+      ['category', 'distanceKm', 'done', 'exitInterchange', 'id', 'memo', 'name', 'region', 'season'].sort(),
+    )
+  })
+
+  it.each<[string, number, boolean, boolean]>([
+    ['a 行った spot, the input saying done false', 7, false, true],
+    ['a 行きたい spot, the input saying done true', 12, true, false],
+  ])(
+    'AC43: an input that also carries id, done and an extra key cannot set them (security; %s)',
+    (_description, editedId, inputDone, expectedDone) => {
+      // id 3 belongs to another spot, so taking it from the input would give two spots the same id (AC16).
+      const hostileInput = { ...EDITED_INPUT, id: 3, done: inputDone, isAdmin: true } as unknown as SpotInput
+      const data = makeEditData()
+
+      const result = updateSpot(data, editedId, hostileInput)
+
+      const editedSpot = findSpot(result, editedId)
+      expect(editedSpot).toEqual({ id: editedId, ...EDITED_INPUT, done: expectedDone })
+      expect(Object.keys(editedSpot ?? {}).sort()).toEqual([...SPOT_KEYS].sort())
+      expect(Object.getPrototypeOf(editedSpot)).toBe(Object.prototype)
+      expect(result.spots.map((spot) => spot.id)).toEqual([12, 7, 3])
+      expect(findSpot(result, 3)).toEqual(findSpot(data, 3))
+      expect(result.nextId).toBe(30)
+    },
+  )
+
+  it('AC45/AC27: leaves the content unchanged for an unknown id (no spot is created) and returns a new object', () => {
+    const data = makeEditData()
+
+    const result = updateSpot(data, 999, EDITED_INPUT)
+
+    expect(result).toEqual(data)
+    expect(result).not.toBe(data)
+    expect(result.spots.map((spot) => spot.name)).not.toContain(EDITED_INPUT.name)
+  })
+
+  it('AC45/AC27: does not bring back a spot that has been removed', () => {
+    const afterRemove = removeSpot(makeEditData(), 7)
+
+    const result = updateSpot(afterRemove, 7, EDITED_INPUT)
+
+    expect(result).toEqual(afterRemove)
+    expect(result.spots.map((spot) => spot.id)).toEqual([12, 3])
+    expect(result.nextId).toBe(30)
+  })
+
+  it('AC16/AC43: still edits when nextId is at the cap (editing adds nothing, so the cap does not apply)', () => {
+    const data = makeData([makeSpot({ id: MAX_NEXT_ID - 1, name: '細工したファイルのスポット' })], MAX_NEXT_ID)
+
+    const result = updateSpot(data, MAX_NEXT_ID - 1, EDITED_INPUT)
+
+    expect(result.nextId).toBe(MAX_NEXT_ID)
+    expect(result.spots).toEqual([{ id: MAX_NEXT_ID - 1, ...EDITED_INPUT, done: false }])
+  })
+
+  it('does not mutate the data or the input (returns a new object)', () => {
+    const data = deepFreeze(makeEditData())
+    const input = deepFreeze({ ...EDITED_INPUT, name: '  奥多摩周遊道路  ', region: '' })
+    const dataSnapshot = structuredClone(data)
+    const inputSnapshot = structuredClone(input)
+
+    const result = updateSpot(data, 7, input)
+
+    expect(result).not.toBe(data)
+    expect(result.spots).not.toBe(data.spots)
+    expect(data).toEqual(dataSnapshot)
+    expect(input).toEqual(inputSnapshot)
   })
 })
 
