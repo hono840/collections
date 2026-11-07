@@ -1,0 +1,64 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API (synthetic test fixture)",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-01T00:00:00Z",
+    "copyright": "Synthetic test data. Not OpenStreetMap data."
+  },
+  "elements": [
+    {
+      "type": "way",
+      "id": 301,
+      "nodes": [
+        61,
+        62,
+        63
+      ],
+      "geometry": [
+        {
+          "lat": 35.02,
+          "lon": 139
+        },
+        {
+          "lat": 35.022,
+          "lon": 139
+        },
+        {
+          "lat": 35.024,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "tertiary",
+        "name": "見本峠線"
+      }
+    },
+    {
+      "type": "way",
+      "id": 302,
+      "nodes": [
+        64,
+        65,
+        66
+      ],
+      "geometry": [
+        {
+          "lat": 35.026,
+          "lon": 139
+        },
+        {
+          "lat": 35.028,
+          "lon": 139
+        },
+        {
+          "lat": 35.03,
+          "lon": 139
+        }
+      ],
+      "tags": {
+        "highway": "tertiary",
+        "name": "見本峠線"
+      }
+    }
+  ]
+}

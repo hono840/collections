@@ -1,0 +1,41 @@
+{
+  "geometrySchemaVersion": 1,
+  "id": "mihon-kaigan-road",
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "osm": {
+    "dataTimestamp": "2026-10-10T04:13:00Z"
+  },
+  "toleranceM": 15,
+  "lengthM": 2600,
+  "bbox": [
+    34.89,
+    138.792,
+    34.91,
+    138.808
+  ],
+  "lines": [
+    [
+      [
+        34.89,
+        138.792
+      ],
+      [
+        34.895,
+        138.796
+      ],
+      [
+        34.9,
+        138.8
+      ],
+      [
+        34.905,
+        138.804
+      ],
+      [
+        34.91,
+        138.808
+      ]
+    ]
+  ]
+}

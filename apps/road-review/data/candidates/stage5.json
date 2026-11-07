@@ -1,0 +1,243 @@
+{
+  "catalogSchemaVersion": 1,
+  "catalogVersion": "2026-10-10.1",
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "roads": [
+    {
+      "id": "hakone-skyline",
+      "status": "draft",
+      "name": "箱根スカイライン",
+      "reading": "はこねすかいらいん",
+      "aliases": [],
+      "roadType": "skyline",
+      "prefectureCodes": [
+        22
+      ],
+      "rank": 1,
+      "section": {
+        "from": "湖尻峠",
+        "to": "長尾峠"
+      },
+      "representativePoint": {
+        "lat": 35.24215,
+        "lng": 138.97431
+      },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": {
+        "twoWheelBanned": false,
+        "safetyCaution": false
+      },
+      "osm": {
+        "relations": [
+          12639322
+        ],
+        "cutFrom": {
+          "lat": 35.23091,
+          "lng": 138.9787
+        },
+        "cutTo": {
+          "lat": 35.25873,
+          "lng": 138.97337
+        },
+        "expectedLengthKm": 5
+      },
+      "sources": [
+        {
+          "title": "箱根スカイライン - Wikipedia",
+          "url": "https://ja.wikipedia.org/wiki/%E7%AE%B1%E6%A0%B9%E3%82%B9%E3%82%AB%E3%82%A4%E3%83%A9%E3%82%A4%E3%83%B3",
+          "checkedOn": "2026-10-10"
+        }
+      ]
+    },
+    {
+      "id": "yabitsu-toge",
+      "status": "draft",
+      "name": "ヤビツ峠",
+      "reading": "やびつとうげ",
+      "aliases": [
+        {
+          "name": "神奈川県道70号",
+          "kind": "route"
+        },
+        {
+          "name": "秦野清川線",
+          "kind": "official"
+        }
+      ],
+      "roadType": "pass",
+      "prefectureCodes": [
+        14
+      ],
+      "rank": 2,
+      "section": {
+        "from": "名古木",
+        "to": "峠の北約5km"
+      },
+      "elevationM": 761,
+      "representativePoint": {
+        "lat": 35.42782,
+        "lng": 139.21934
+      },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": {
+        "twoWheelBanned": false,
+        "safetyCaution": true
+      },
+      "osm": {
+        "ways": [
+          131561915,
+          131562395,
+          205174028,
+          226864669,
+          226864670,
+          254266927,
+          254266932,
+          254270311,
+          254280015,
+          254280016,
+          369697473,
+          369697478,
+          369697479,
+          369697480,
+          369697481,
+          369697482,
+          369868070,
+          369868081,
+          369868082,
+          369868083,
+          371207664,
+          371207665,
+          371207666,
+          371207667,
+          371207668,
+          371207669,
+          371207670,
+          371207671,
+          371207672,
+          371207673,
+          371207674,
+          371207675,
+          371207676,
+          371207677,
+          372717475,
+          372717476,
+          372717477,
+          372717478,
+          372717479,
+          372717480,
+          488626602,
+          488626612,
+          568247906,
+          587160852,
+          587160860,
+          587598742,
+          587598743,
+          678962133,
+          678962134,
+          954208389,
+          954208390,
+          958834731,
+          958834732,
+          958834733,
+          958834734,
+          958834735,
+          958834736,
+          973484513,
+          973484514,
+          1011047308,
+          1029980984,
+          1030250107,
+          1352811638,
+          1352811639,
+          1368579928,
+          1368579929
+        ],
+        "cutFrom": {
+          "lat": 35.38408,
+          "lng": 139.23779
+        },
+        "cutTo": {
+          "lat": 35.47596,
+          "lng": 139.21028
+        }
+      },
+      "sources": [
+        {
+          "title": "ヤビツ峠 - Wikipedia",
+          "url": "https://ja.wikipedia.org/wiki/%E3%83%A4%E3%83%93%E3%83%84%E5%B3%A0",
+          "checkedOn": "2026-10-10"
+        },
+        {
+          "title": "神奈川県道70号秦野清川線 - Wikipedia",
+          "url": "https://ja.wikipedia.org/wiki/%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C%E9%81%9370%E5%8F%B7%E7%A7%A6%E9%87%8E%E6%B8%85%E5%B7%9D%E7%B7%9A",
+          "checkedOn": "2026-10-10"
+        }
+      ]
+    },
+    {
+      "id": "nishi-izu-skyline",
+      "status": "draft",
+      "name": "西伊豆スカイライン",
+      "reading": "にしいずすかいらいん",
+      "aliases": [
+        {
+          "name": "静岡県道127号",
+          "kind": "route"
+        },
+        {
+          "name": "船原西浦高原線",
+          "kind": "official"
+        }
+      ],
+      "roadType": "skyline",
+      "prefectureCodes": [
+        22
+      ],
+      "rank": 3,
+      "section": {
+        "from": "戸田峠",
+        "to": "土肥峠"
+      },
+      "representativePoint": {
+        "lat": 34.94632,
+        "lng": 138.83839
+      },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": {
+        "twoWheelBanned": false,
+        "safetyCaution": false
+      },
+      "osm": {
+        "nameQuery": {
+          "name": "船原西浦高原線",
+          "bbox": [
+            34.85,
+            138.75,
+            35,
+            138.9
+          ]
+        },
+        "cutFrom": {
+          "lat": 34.97136,
+          "lng": 138.83669
+        },
+        "cutTo": {
+          "lat": 34.92222,
+          "lng": 138.84131
+        },
+        "expectedLengthKm": 10.8
+      },
+      "sources": [
+        {
+          "title": "西伊豆スカイライン - Wikipedia",
+          "url": "https://ja.wikipedia.org/wiki/%E8%A5%BF%E4%BC%8A%E8%B1%86%E3%82%B9%E3%82%AB%E3%82%A4%E3%83%A9%E3%82%A4%E3%83%B3",
+          "checkedOn": "2026-10-10"
+        }
+      ]
+    }
+  ]
+}

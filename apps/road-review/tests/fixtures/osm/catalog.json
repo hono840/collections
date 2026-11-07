@@ -1,0 +1,70 @@
+{
+  "catalogSchemaVersion": 1,
+  "catalogVersion": "2026-10-01.1",
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors",
+  "roads": [
+    {
+      "id": "mihon-linear-road",
+      "status": "draft",
+      "name": "見本線",
+      "reading": "みほんせん",
+      "aliases": [],
+      "roadType": "other",
+      "prefectureCodes": [14],
+      "rank": 1,
+      "representativePoint": { "lat": 35.006, "lng": 139.0002 },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": { "twoWheelBanned": false, "safetyCaution": false },
+      "osm": {
+        "ways": [101, 102, 103],
+        "cutFrom": { "lat": 35.0001, "lng": 139.0001 },
+        "cutTo": { "lat": 35.0119, "lng": 139.0001 },
+        "expectedLengthKm": 1.35
+      },
+      "sources": [{ "title": "見本の出典", "url": "https://example.com/mihon-linear", "checkedOn": "2026-10-01" }]
+    },
+    {
+      "id": "mihon-dual-road",
+      "status": "draft",
+      "name": "見本二車線",
+      "reading": "みほんにしゃせん",
+      "aliases": [],
+      "roadType": "other",
+      "prefectureCodes": [14],
+      "rank": 2,
+      "representativePoint": { "lat": 35.004, "lng": 139.001 },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": { "twoWheelBanned": false, "safetyCaution": false },
+      "osm": {
+        "relations": [9000001],
+        "cutFrom": { "lat": 35.0001, "lng": 139.0001 },
+        "cutTo": { "lat": 35.0079, "lng": 139.0001 },
+        "excludeWays": [206]
+      },
+      "sources": [{ "title": "見本の出典", "url": "https://example.com/mihon-dual", "checkedOn": "2026-10-01" }]
+    },
+    {
+      "id": "mihon-gap-road",
+      "status": "draft",
+      "name": "見本峠線",
+      "reading": "みほんとうげせん",
+      "aliases": [],
+      "roadType": "pass",
+      "prefectureCodes": [14],
+      "rank": 3,
+      "representativePoint": { "lat": 35.025, "lng": 139.0 },
+      "restrictionsChecked": false,
+      "notes": [],
+      "flags": { "twoWheelBanned": false, "safetyCaution": false },
+      "osm": {
+        "nameQuery": { "name": "見本峠線", "bbox": [35.01, 138.99, 35.04, 139.01] },
+        "cutFrom": { "lat": 35.0201, "lng": 139.0001 },
+        "cutTo": { "lat": 35.0299, "lng": 139.0001 }
+      },
+      "sources": [{ "title": "見本の出典", "url": "https://example.com/mihon-gap", "checkedOn": "2026-10-01" }]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# ============================================================
+# サプライチェーン防御設定 (pnpm supply-chain-security)
+# 参照: https://pnpm.io/supply-chain-security / https://pnpm.io/settings
+# ============================================================
+
+# --- インストール時 cooldown（受動防御の本命） ---
+# minimumReleaseAge: バージョン公開から指定「分」が経過するまでインストールしない。
+#   10080分 = 7日。
+#   shai-hulud / chalk・debug 事件はどちらも公開から検知まで数時間〜12hだったため、
+#   1日(1440)でも大半をブロックできるが、安全側に倒して7日 cooldown を採用。
+#   緊急パッチが必要な場合のみ下記 minimumReleaseAgeExclude で個別に除外する。
+minimumReleaseAge: 10080
+
+# minimumReleaseAgeStrict: false
+#   false = cooldown 未経過の最新版は使わず、条件を満たす「古い適合版」にフォールバックする
+#          （開発を止めない）。
+#   true  = 適合版が cooldown 内にしか無い場合にインストールを失敗させる（厳格・開発停止あり）。
+minimumReleaseAgeStrict: false
+
+# minimumReleaseAgeExclude: cooldown を免除するパッケージのリスト（緊急セキュリティパッチ用）。
+#   脆弱性開示を確認し、パッチが正規であることを検証した上でのみ追加すること。
+#   `pnpm audit --fix` は各アドバイザリの最小修正版をここへ自動追記する。
+#   初期は空。除外が必要になったら下記テンプレートのコメントを外して使う。
+# minimumReleaseAgeExclude:
+#   - "example-package"            # 例: 全バージョンを cooldown 免除
+#   - "example-package@1.2.3"      # 例: 特定バージョンのみ cooldown 免除
+
+# --- ライフサイクルスクリプト方針 ---
+# pnpm 10 既定では、依存パッケージの postinstall 等のビルドスクリプトは
+# 自動実行されない（許可制）。ビルドが必要な依存のみ onlyBuiltDependencies に
+# 明示追加して許可する。
+#   shai-hulud は postinstall で増殖するため、この「許可リスト方式」を維持することが最重要。
+#   現状ビルド許可が必要な依存は無い（sharp / unrs-resolver は下記 ignoredBuiltDependencies で
+#   明示的にビルドを無視している）。許可リストを増やす場合は supply-chain-auditor のレビューを必須とする。
+# onlyBuiltDependencies:
+#   - "example-needs-build"
+
+# ignoredBuiltDependencies: ビルドスクリプトを実行しないことを明示する依存（既存設定を維持）。
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
