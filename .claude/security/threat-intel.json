@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-09-22T09:13:19.591Z",
+  "updated_at": "2026-11-13T23:23:38.005Z",
   "updated_by": "threat-intel-refresh",
   "note": "サプライチェーン脅威インテリジェンス。malicious_packages はインストール即ブロック対象（誤検知でビルドを壊さないため、確実に悪質なものだけを列挙）。実データは .github/workflows/threat-intel-refresh.yml が GitHub malware advisory 等から日次で自動投入する。indicators / campaigns は文字列・ファイル痕跡で、ワークフロー注入スキャンや supply-chain-auditor が参照する（インストールブロックには使わない）。",
   "policy": {
@@ -27,851 +27,1093 @@
     }
   ],
   "malicious_packages": {
-    "@asdfaskdjfksadhfkasf/nadaver2": {
+    "@jelou/cli-win32-x64": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-p368-v58m-82vj",
-      "ghsa": "GHSA-p368-v58m-82vj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-q78g-75cg-hwq6",
+      "ghsa": "GHSA-q78g-75cg-hwq6",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@asenfotech/unplugin-element-plus": {
+    "dowload_ebok_a_sally_lockhart_mystery_1_the_ruby_in_the_smoke_by_philip_pullman_mb9cv": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j296-5jqh-9cxv",
-      "ghsa": "GHSA-j296-5jqh-9cxv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-59p4-3p5q-mx6r",
+      "ghsa": "GHSA-59p4-3p5q-mx6r",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@baanx/abis": {
+    "dowload_ebok_alice_nel_paese_delle_meraviglie_by_lewis_carroll_x9gkl": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r554-rpx4-qw24",
-      "ghsa": "GHSA-r554-rpx4-qw24",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-9fvj-64r8-7p4j",
+      "ghsa": "GHSA-9fvj-64r8-7p4j",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@baanx/blockchain-config": {
+    "dowload_ebok_atlas_der_umweltmigration_by_dina_ionesco_daria_mokhnacheva_francois_gemenne_z0kn1": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-7cc3-jjqj-wrm5",
-      "ghsa": "GHSA-7cc3-jjqj-wrm5",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-4vf9-9cgw-r864",
+      "ghsa": "GHSA-4vf9-9cgw-r864",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@baanx/solana-lib": {
+    "dowload_ebok_aws_lambda_in_action_by_danilo_poccia_o3xgh": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-pvh9-27rp-6282",
-      "ghsa": "GHSA-pvh9-27rp-6282",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-w4x5-gcvx-77p7",
+      "ghsa": "GHSA-w4x5-gcvx-77p7",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@dbbhk/ui-components": {
+    "dowload_ebok_bound_to_surrender_a_doms_of_genesis_novella_by_jenna_jacob_qisab": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-hwx5-436m-736q",
-      "ghsa": "GHSA-hwx5-436m-736q",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-h4mw-qwpp-h362",
+      "ghsa": "GHSA-h4mw-qwpp-h362",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@insiderintelligence/componentlibrary": {
+    "dowload_ebok_caveman_by_jo_raven_krxnj": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5h4w-mvwx-ff8q",
-      "ghsa": "GHSA-5h4w-mvwx-ff8q",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-8pqv-jjgv-h2qc",
+      "ghsa": "GHSA-8pqv-jjgv-h2qc",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@insiderintelligence/googleadmanager": {
+    "dowload_ebok_ciceron_oeuvres_completes_by_cicero_vgejh": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-76rx-jxhm-vhww",
-      "ghsa": "GHSA-76rx-jxhm-vhww",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-hj3j-wfhh-ff4j",
+      "ghsa": "GHSA-hj3j-wfhh-ff4j",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@nimbsuedge3/xar": {
+    "dowload_ebok_closed_for_winter_by_jorn_lier_horst_1gxow": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-rg8r-9wp3-7jrg",
-      "ghsa": "GHSA-rg8r-9wp3-7jrg",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-gr2g-vw4r-8g72",
+      "ghsa": "GHSA-gr2g-vw4r-8g72",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@nimbusedge2/auth": {
+    "dowload_ebok_conspiraciones_by_jesus_cintora_rjkui": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9hmg-mp2c-g9wr",
-      "ghsa": "GHSA-9hmg-mp2c-g9wr",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-rjcj-386c-wwjf",
+      "ghsa": "GHSA-rjcj-386c-wwjf",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@nimbusedge2/authxsas": {
+    "dowload_ebok_consulting_by_mohan_kancharla_alqda": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-8mrv-jcm6-9rv3",
-      "ghsa": "GHSA-8mrv-jcm6-9rv3",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-g8wf-fw82-r73q",
+      "ghsa": "GHSA-g8wf-fw82-r73q",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@nimbusedge2/authxsas1": {
+    "dowload_ebok_cycling_climbs_of_the_midlands_by_simon_warren_ay0u7": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-92qm-hjm8-mp6j",
-      "ghsa": "GHSA-92qm-hjm8-mp6j",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-74w4-49fc-8q55",
+      "ghsa": "GHSA-74w4-49fc-8q55",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@nimbusedge2/x": {
+    "dowload_ebok_de_eerste_vrouw_by_susan_smit_h20y6": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-488m-x4jr-5x75",
-      "ghsa": "GHSA-488m-x4jr-5x75",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-hm2v-2v7g-cx9x",
+      "ghsa": "GHSA-hm2v-2v7g-cx9x",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@nimbusedge2/xa": {
+    "dowload_ebok_death_march_to_the_parallel_world_rhapsody_vol_1_by_hiro_ainana_w4s1c": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-m4pg-jjmc-xgr9",
-      "ghsa": "GHSA-m4pg-jjmc-xgr9",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-8xmw-xgv7-3h2p",
+      "ghsa": "GHSA-8xmw-xgv7-3h2p",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@pwaplatform/module-sso-integration": {
+    "dowload_ebok_decadence_by_michel_onfray_cpbyr": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-26h7-cmv3-wgv6",
-      "ghsa": "GHSA-26h7-cmv3-wgv6",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5x5h-j56q-jxc4",
+      "ghsa": "GHSA-5x5h-j56q-jxc4",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@shared-runtime/modules": {
+    "dowload_ebok_deichmord_by_katharina_peters_dllxm": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-g85c-jph7-8q4r",
-      "ghsa": "GHSA-g85c-jph7-8q4r",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-pgmf-vhv9-48cj",
+      "ghsa": "GHSA-pgmf-vhv9-48cj",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@shared-web/assets": {
+    "dowload_ebok_dein_verlangen_gehort_mir_05_by_ai_hibiki_cwd7x": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-vmr9-5w3x-4v98",
-      "ghsa": "GHSA-vmr9-5w3x-4v98",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-vwqq-rfwx-7qq6",
+      "ghsa": "GHSA-vwqq-rfwx-7qq6",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@shared-web/utils": {
+    "dowload_ebok_delitto_con_inganno_by_franco_matteucci_xpw6r": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-29f7-pqf4-c94j",
-      "ghsa": "GHSA-29f7-pqf4-c94j",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-vwqj-mwv2-xp2p",
+      "ghsa": "GHSA-vwqj-mwv2-xp2p",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@siriusbeyond/auth": {
+    "dowload_ebok_desert_star_volume_2_by_enrico_marini_stephen_desberg_5cvyz": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5x48-2mvx-rc23",
-      "ghsa": "GHSA-5x48-2mvx-rc23",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-qqqh-3pgv-p656",
+      "ghsa": "GHSA-qqqh-3pgv-p656",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@siriusbeyond/ui": {
+    "dowload_ebok_die_din_en_iso_9001_2015_verstehen_by_simone_brugger_gebhardt_dg4ii": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-vw2m-5qq2-7qwg",
-      "ghsa": "GHSA-vw2m-5qq2-7qwg",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-gpw4-xfrj-225x",
+      "ghsa": "GHSA-gpw4-xfrj-225x",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@siriusbeyond/utils": {
+    "dowload_ebok_die_pantelides_dynastie_3_teilige_serie_by_maya_blake_glcqq": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-446r-4pr8-w423",
-      "ghsa": "GHSA-446r-4pr8-w423",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-4q25-67vm-x363",
+      "ghsa": "GHSA-4q25-67vm-x363",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@uh-platform/cloud": {
+    "dowload_ebok_distopia_mexicana_by_lorenzo_meyer_r5yi0": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-g4jv-48fc-mhh2",
-      "ghsa": "GHSA-g4jv-48fc-mhh2",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-7rwq-mmf7-4xrj",
+      "ghsa": "GHSA-7rwq-mmf7-4xrj",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@uh-platform/domain-widget": {
+    "dowload_ebok_dominion_by_peter_mclean_vz0td": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-xh82-8x4m-9w6c",
-      "ghsa": "GHSA-xh82-8x4m-9w6c",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-652q-fq4h-c3p3",
+      "ghsa": "GHSA-652q-fq4h-c3p3",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@uh-platform/nadaver": {
+    "dowload_ebok_dorothy_debe_morir_by_danielle_paige_4802q": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5r3f-92qc-25rr",
-      "ghsa": "GHSA-5r3f-92qc-25rr",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-8q25-wxxp-pv39",
+      "ghsa": "GHSA-8q25-wxxp-pv39",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@uh-platform/nadaver2": {
+    "dowload_ebok_dunenfluch_by_sven_koch_66l2o": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-99r3-9hc2-372p",
-      "ghsa": "GHSA-99r3-9hc2-372p",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5p78-jmjf-pfv2",
+      "ghsa": "GHSA-5p78-jmjf-pfv2",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@uh-platform/webcard": {
+    "dowload_ebok_eat_live_go_fresh_food_fast_by_donal_skehan_cgi6g": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5h99-j25f-5q62",
-      "ghsa": "GHSA-5h99-j25f-5q62",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-pqvj-wf39-3hgj",
+      "ghsa": "GHSA-pqvj-wf39-3hgj",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@uol-afiliados/affiliated-config-lib": {
+    "dowload_ebok_ecchi_gallery_by_takumi_kobayashi_c8fuf": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-mh6g-473c-fvhx",
-      "ghsa": "GHSA-mh6g-473c-fvhx",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-6p5c-33pm-w6g4",
+      "ghsa": "GHSA-6p5c-33pm-w6g4",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@vite-mcp/vite-type": {
+    "dowload_ebok_exploring_swift_playgrounds_by_jesse_feiler_rdm74": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-mqf9-3wx8-45cj",
-      "ghsa": "GHSA-mqf9-3wx8-45cj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5h77-g354-j6vw",
+      "ghsa": "GHSA-5h77-g354-j6vw",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@vite-pro/vite-ui": {
+    "dowload_ebok_finding_you_by_jo_watson_x3k81": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-phpx-wpr2-26pv",
-      "ghsa": "GHSA-phpx-wpr2-26pv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-47mg-q52g-hwwr",
+      "ghsa": "GHSA-47mg-q52g-hwwr",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@vite-tab/tab": {
+    "dowload_ebok_for_jeg_forsvinder_by_paul_kalanithi_r3v5o": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-74pv-97c8-9hfp",
-      "ghsa": "GHSA-74pv-97c8-9hfp",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-vwp2-9cff-775x",
+      "ghsa": "GHSA-vwp2-9cff-775x",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@vite-tab/tabui": {
+    "dowload_ebok_frostblood_by_elly_blake_o3rkc": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-q5h9-3mvh-45cf",
-      "ghsa": "GHSA-q5h9-3mvh-45cf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-575r-96pm-932c",
+      "ghsa": "GHSA-575r-96pm-932c",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@vite-ts/vite-ui": {
+    "dowload_ebok_frostblood_the_epic_new_york_times_bestseller_by_elly_blake_l7itq": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-jm6h-xxm2-2mr3",
-      "ghsa": "GHSA-jm6h-xxm2-2mr3",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-hpxv-8vrw-3qw3",
+      "ghsa": "GHSA-hpxv-8vrw-3qw3",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@vitets/vite-ts": {
+    "dowload_ebok_garden_of_thorns_by_amber_mitchell_01wxc": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-733v-wc48-f65r",
-      "ghsa": "GHSA-733v-wc48-f65r",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-3xj7-wpr9-xgqq",
+      "ghsa": "GHSA-3xj7-wpr9-xgqq",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@woodpecker-web-shared/components": {
+    "dowload_ebok_gatherings_by_flora_shedden_oybwg": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-8hq6-gvg5-x8wq",
-      "ghsa": "GHSA-8hq6-gvg5-x8wq",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-m482-f8wm-cvh3",
+      "ghsa": "GHSA-m482-f8wm-cvh3",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "@zig-design-system/react": {
+    "dowload_ebok_guadalcanal_diary_by_richard_tregaskis_0b02s": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-rqjq-px4f-2m8r",
-      "ghsa": "GHSA-rqjq-px4f-2m8r",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-wr63-x384-x9gc",
+      "ghsa": "GHSA-wr63-x384-x9gc",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "action-slack-message-root": {
+    "dowload_ebok_hbr_guide_to_buying_a_small_business_by_richard_s_ruback_royce_yudkoff_0gmgu": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-48hx-h7cw-h342",
-      "ghsa": "GHSA-48hx-h7cw-h342",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-v5rg-fr44-xwrf",
+      "ghsa": "GHSA-v5rg-fr44-xwrf",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "better-envforge": {
+    "dowload_ebok_he_is_a_beast_t03_by_saki_aikawa_cxuth": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9x97-m747-42gc",
-      "ghsa": "GHSA-9x97-m747-42gc",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-rw35-pccg-hr87",
+      "ghsa": "GHSA-rw35-pccg-hr87",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "blue-string-formatter-utilss": {
+    "dowload_ebok_het_tienerbrein_by_jelle_jolles_0fic2": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4g26-86h7-34h3",
-      "ghsa": "GHSA-4g26-86h7-34h3",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-f6m3-r6m6-rhpw",
+      "ghsa": "GHSA-f6m3-r6m6-rhpw",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "bnppf-flag-icons": {
+    "dowload_ebok_historia_de_un_oso_by_gabriel_osorio_antonia_herrera_ti9e1": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r56f-8237-82ch",
-      "ghsa": "GHSA-r56f-8237-82ch",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-85g8-v5g6-v986",
+      "ghsa": "GHSA-85g8-v5g6-v986",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "bulk-add-sdk": {
+    "dowload_ebok_honey_so_sweet_vol_5_by_amu_meguro_6vbdo": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j7qr-p7vp-jvhx",
-      "ghsa": "GHSA-j7qr-p7vp-jvhx",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-pq73-ph36-cv8h",
+      "ghsa": "GHSA-pq73-ph36-cv8h",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "byted-commerce-materials": {
+    "dowload_ebok_how_to_exit_vim_by_chris_worfolk_3nkxo": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j9hx-j6cf-phx5",
-      "ghsa": "GHSA-j9hx-j6cf-phx5",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-4wm6-gm7f-w542",
+      "ghsa": "GHSA-4wm6-gm7f-w542",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "bytepack-probe-a7x3": {
+    "dowload_ebok_i_giorni_del_sacro_by_franco_cardini_jbda6": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-pjjj-2389-rwj6",
-      "ghsa": "GHSA-pjjj-2389-rwj6",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-pcqv-6hp5-xm6v",
+      "ghsa": "GHSA-pcqv-6hp5-xm6v",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "catwrestlingbird": {
+    "dowload_ebok_iced_under_by_barbara_ross_vbch7": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-48qc-pw85-j8gf",
-      "ghsa": "GHSA-48qc-pw85-j8gf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-7v5p-3f8c-f8ph",
+      "ghsa": "GHSA-7v5p-3f8c-f8ph",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "catwrestlinghuman": {
+    "dowload_ebok_il_caso_mattei_by_calia_vincenzo_sabrina_pisu_3ti3o": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-6p69-rvw3-pvrv",
-      "ghsa": "GHSA-6p69-rvw3-pvrv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-47c5-x9cw-x639",
+      "ghsa": "GHSA-47c5-x9cw-x639",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "chai-as-indexed": {
+    "dowload_ebok_il_libro_dei_medium_by_allan_kardec_es9tx": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-727r-6hg5-947x",
-      "ghsa": "GHSA-727r-6hg5-947x",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-cv77-8wf4-prvq",
+      "ghsa": "GHSA-cv77-8wf4-prvq",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "chai-as-viem": {
+    "dowload_ebok_il_simposio_by_platone_elt49": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-c67f-wr24-prw9",
-      "ghsa": "GHSA-c67f-wr24-prw9",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-c5r2-9f5x-99x3",
+      "ghsa": "GHSA-c5r2-9f5x-99x3",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "chai-testing": {
+    "dowload_ebok_irena_s_children_by_tilar_j_mazzeo_s4ksn": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-5jvh-cf7p-qx9w",
-      "ghsa": "GHSA-5jvh-cf7p-qx9w",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-34x5-m2wr-m8m3",
+      "ghsa": "GHSA-34x5-m2wr-m8m3",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "chat-adapter-matrix": {
+    "dowload_ebok_kosten_und_leistungsrechnung_fur_dummies_by_michael_griga_b29bg": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2rg8-m9rx-gfhf",
-      "ghsa": "GHSA-2rg8-m9rx-gfhf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-j96h-3gpr-89wg",
+      "ghsa": "GHSA-j96h-3gpr-89wg",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "commerce-materials": {
+    "dowload_ebok_l_arabie_saoudite_en_100_questions_by_fatiha_dazi_heni_yznj8": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-79cv-pg4c-wmph",
-      "ghsa": "GHSA-79cv-pg4c-wmph",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-7grf-4q2m-xfpf",
+      "ghsa": "GHSA-7grf-4q2m-xfpf",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "de-morgan": {
+    "dowload_ebok_la_bible_les_recits_fondateurs_t04_by_frederic_boyer_serge_bloch_51793": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2vc2-gwg3-2gpx",
-      "ghsa": "GHSA-2vc2-gwg3-2gpx",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-3ppg-fmwf-8p6p",
+      "ghsa": "GHSA-3ppg-fmwf-8p6p",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "element-plus-vite-cli": {
+    "dowload_ebok_la_dieta_della_longevita_by_valter_d_longo_en71f": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2w5j-q26r-6m9w",
-      "ghsa": "GHSA-2w5j-q26r-6m9w",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-qmhw-ffwc-m564",
+      "ghsa": "GHSA-qmhw-ffwc-m564",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "emoji-prints-fancy": {
+    "dowload_ebok_la_esclavitud_del_miedo_by_rodrigo_fica_perez_7fayr": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-m523-mggx-3fgr",
-      "ghsa": "GHSA-m523-mggx-3fgr",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-9qmp-x256-wf2m",
+      "ghsa": "GHSA-9qmp-x256-wf2m",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "feed-widget-helper": {
+    "dowload_ebok_la_sed_harry_hole_11_by_jo_nesbo_pznny": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fgrp-3g95-g56v",
-      "ghsa": "GHSA-fgrp-3g95-g56v",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-692h-g3mp-g8mx",
+      "ghsa": "GHSA-692h-g3mp-g8mx",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "gemini-computer-use": {
+    "dowload_ebok_ldk_t13_by_ayu_watanabe_x27d0": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4cwr-c4gf-f9r4",
-      "ghsa": "GHSA-4cwr-c4gf-f9r4",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-2f94-hq8v-53h8",
+      "ghsa": "GHSA-2f94-hq8v-53h8",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "hardhat-base": {
+    "dowload_ebok_le_livre_du_hygge_by_meik_wiking_8ia8u": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-g59v-28j4-2r85",
-      "ghsa": "GHSA-g59v-28j4-2r85",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-jq4p-3p6x-2r3h",
+      "ghsa": "GHSA-jq4p-3p6x-2r3h",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "hardhat-devkit": {
+    "dowload_ebok_legenden_der_schattenjager_akademie_by_cassandra_clare_sarah_rees_brennan_maureen_johns_d6wf2": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-2wmg-qp72-3736",
-      "ghsa": "GHSA-2wmg-qp72-3736",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-xfv8-2q24-32xw",
+      "ghsa": "GHSA-xfv8-2q24-32xw",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "homestack-cheer": {
+    "dowload_ebok_les_7_habitudes_de_ceux_qui_reussissent_tout_ce_qu_by_stephen_r_covey_ff8dk": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fqjq-jxmv-48qv",
-      "ghsa": "GHSA-fqjq-jxmv-48qv",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-32wc-h96q-9cqh",
+      "ghsa": "GHSA-32wc-h96q-9cqh",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "internallib_v949": {
+    "dowload_ebok_les_heritiers_by_pierre_bourdieu_jean_claude_passeron_7aha3": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4qw5-jqr6-c4fj",
-      "ghsa": "GHSA-4qw5-jqr6-c4fj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-5hgc-87fp-mx54",
+      "ghsa": "GHSA-5hgc-87fp-mx54",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "keroeltop": {
+    "dowload_ebok_lettre_a_ma_fille_by_maya_angelou_gt68h": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-gg5m-rqpp-c9xf",
-      "ghsa": "GHSA-gg5m-rqpp-c9xf",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-wvg3-r8gq-qwp5",
+      "ghsa": "GHSA-wvg3-r8gq-qwp5",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "keroeltopgg": {
+    "dowload_ebok_lustiges_taschenbuch_ostern_01_ecomic_sonderausg_by_walt_disney_edt9x": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-p3m2-65cv-vjqj",
-      "ghsa": "GHSA-p3m2-65cv-vjqj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-9hwq-vhmp-7c92",
+      "ghsa": "GHSA-9hwq-vhmp-7c92",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "keroeltopkk": {
+    "dowload_ebok_maailman_ympari_80_paivassa_by_jules_verne_gp0bq": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-gr8g-435h-492g",
-      "ghsa": "GHSA-gr8g-435h-492g",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-f7vm-rh3w-xfxm",
+      "ghsa": "GHSA-f7vm-rh3w-xfxm",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "keroeltopkkk": {
+    "dowload_ebok_manual_de_gastronomia_molecular_by_mariana_koppmann_e4ksx": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4cvc-3pxq-6v5f",
-      "ghsa": "GHSA-4cvc-3pxq-6v5f",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-73v8-m29v-234q",
+      "ghsa": "GHSA-73v8-m29v-234q",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "math-universe": {
+    "dowload_ebok_marion_duval_integrale_tome_01_by_yvan_pommaux_nicole_pommaux_msvgc": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-97cg-r346-fg22",
-      "ghsa": "GHSA-97cg-r346-fg22",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-mfp9-fj5w-rmpr",
+      "ghsa": "GHSA-mfp9-fj5w-rmpr",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "mathmain": {
+    "dowload_ebok_maximiliano_emperador_de_mexico_by_carlos_tello_diaz_ql02i": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-v6mx-2p6p-3628",
-      "ghsa": "GHSA-v6mx-2p6p-3628",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-79wc-qj45-jh85",
+      "ghsa": "GHSA-79wc-qj45-jh85",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "mathsbase": {
+    "dowload_ebok_my_z_jedwabnego_by_anna_bikont_wjhvk": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-v4cx-64j6-84xm",
-      "ghsa": "GHSA-v4cx-64j6-84xm",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-47x7-4pj7-3h9f",
+      "ghsa": "GHSA-47x7-4pj7-3h9f",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "my-cdn-script": {
+    "dowload_ebok_no_dejes_de_mirarme_by_lina_galan_2gouu": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r55v-7qcq-fvr9",
-      "ghsa": "GHSA-r55v-7qcq-fvr9",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-h2wx-v879-9m2h",
+      "ghsa": "GHSA-h2wx-v879-9m2h",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "my-ctf-helper-script-9921": {
+    "dowload_ebok_omega_by_ruediger_dahlke_veit_lindau_wndky": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-qhgh-m36j-h879",
-      "ghsa": "GHSA-qhgh-m36j-h879",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-2q4v-rjr3-h65r",
+      "ghsa": "GHSA-2q4v-rjr3-h65r",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "npmscript_tesstalert_unpkg": {
+    "dowload_ebok_park_avenue_prince_by_louise_bay_cqoxd": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-r2rm-wm4f-f55p",
-      "ghsa": "GHSA-r2rm-wm4f-f55p",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-ggj4-qh5c-f66f",
+      "ghsa": "GHSA-ggj4-qh5c-f66f",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "npx-test-ma980": {
+    "dowload_ebok_priestdaddy_by_patricia_lockwood_cdh21": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9vj4-6r95-2p6w",
-      "ghsa": "GHSA-9vj4-6r95-2p6w",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-52qf-wxg6-h9c2",
+      "ghsa": "GHSA-52qf-wxg6-h9c2",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "openmct-heatmap": {
+    "dowload_ebok_puppy_love_by_rachel_renee_russell_7ae7c": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-qx52-2xq4-3x3v",
-      "ghsa": "GHSA-qx52-2xq4-3x3v",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-cv7j-v76g-6272",
+      "ghsa": "GHSA-cv7j-v76g-6272",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "pf23727": {
+    "dowload_ebok_refugium_by_stephan_berndt_8wh19": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-cm8q-25x5-5426",
-      "ghsa": "GHSA-cm8q-25x5-5426",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-qq8v-36qx-4gcg",
+      "ghsa": "GHSA-qq8v-36qx-4gcg",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "pf25133": {
+    "dowload_ebok_rogue_heroes_by_ben_macintyre_o8fbf": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-prrp-f648-8673",
-      "ghsa": "GHSA-prrp-f648-8673",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-x328-h6fp-4x8f",
+      "ghsa": "GHSA-x328-h6fp-4x8f",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "pf25262": {
+    "dowload_ebok_sas_76_putsch_a_ouagadougou_by_gerard_de_villiers_pcjag": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-w55g-75g8-c4wj",
-      "ghsa": "GHSA-w55g-75g8-c4wj",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-7qpx-v9qg-pr86",
+      "ghsa": "GHSA-7qpx-v9qg-pr86",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "pflag14570": {
+    "dowload_ebok_satisfaction_by_lexi_blake_ys40v": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-j2x3-5g59-p27j",
-      "ghsa": "GHSA-j2x3-5g59-p27j",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-pq32-6qr7-mhq3",
+      "ghsa": "GHSA-pq32-6qr7-mhq3",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "pflag29424": {
+    "dowload_ebok_schwesterherz_by_kristina_ohlsson_92eey": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-rmcq-vcrh-wjpw",
-      "ghsa": "GHSA-rmcq-vcrh-wjpw",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-8ghx-vwhc-59fg",
+      "ghsa": "GHSA-8ghx-vwhc-59fg",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "radio-player-theme": {
+    "dowload_ebok_secret_elements_3_im_auge_des_orkans_by_johanna_danninger_tpm1o": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-3rj7-hf4w-jh5c",
-      "ghsa": "GHSA-3rj7-hf4w-jh5c",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-3cv3-mm9j-wcgm",
+      "ghsa": "GHSA-3cv3-mm9j-wcgm",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
-    "react-context-form-tdsss": {
+    "dowload_ebok_shattered_destiny_episode_five_by_odette_c_bell_u4e8s": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-pg33-6m24-4p63",
-      "ghsa": "GHSA-pg33-6m24-4p63",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-vg8p-qccg-q557",
+      "ghsa": "GHSA-vg8p-qccg-q557",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_smiley_by_laurann_dohner_7okd1": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-jf7m-mpq5-99pq",
+      "ghsa": "GHSA-jf7m-mpq5-99pq",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_stop_fixing_women_by_catherine_fox_y3l0z": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-5jgx-7jv5-x4fh",
+      "ghsa": "GHSA-5jgx-7jv5-x4fh",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_strengthening_my_recovery_by_aca_wso_inc_vjfsr": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-9r7p-g9q9-c5gx",
+      "ghsa": "GHSA-9r7p-g9q9-c5gx",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_superior_spider_man_4_marvel_collection_by_dan_slott_60isu": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-hx6f-mjr7-h9j4",
+      "ghsa": "GHSA-hx6f-mjr7-h9j4",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_the_duke_s_secret_heir_by_sarah_mallory_w476t": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-jfm5-p2px-mqwh",
+      "ghsa": "GHSA-jfm5-p2px-mqwh",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_the_power_of_when_by_michael_breus_pj2mk": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-qp9h-xw8w-c46m",
+      "ghsa": "GHSA-qp9h-xw8w-c46m",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_the_quick_and_easy_way_to_effective_speaking_by_dale_carnegie_0ley1": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-mg69-77m8-rxpc",
+      "ghsa": "GHSA-mg69-77m8-rxpc",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_the_son_of_neptune_the_graphic_novel_heroes_of_o_by_rick_riordan_xx97z": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-3vmh-q7c9-p6fw",
+      "ghsa": "GHSA-3vmh-q7c9-p6fw",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_the_way_of_the_superior_man_by_david_deida_df8yi": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-984w-2c2r-9jrr",
+      "ghsa": "GHSA-984w-2c2r-9jrr",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_tiques_et_maladies_a_tiques_by_karen_d_mccoy_nathalie_boulanger_191kq": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-cfcg-6p23-7cj4",
+      "ghsa": "GHSA-cfcg-6p23-7cj4",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_tmux_2_by_brian_p_hogan_htnfo": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-r6gg-jr65-v8cr",
+      "ghsa": "GHSA-r6gg-jr65-v8cr",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_to_kill_and_kill_again_by_john_coston_id159": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-rc56-p7rg-hx63",
+      "ghsa": "GHSA-rc56-p7rg-hx63",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_trummerkind_by_mechtild_borrmann_moqf9": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-g9m8-5q5h-g326",
+      "ghsa": "GHSA-g9m8-5q5h-g326",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_velferd_pa_avveie_by_tore_nyseter_1z2n5": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-jxm9-jf6p-jq4x",
+      "ghsa": "GHSA-jxm9-jf6p-jq4x",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_visioning_new_and_minority_religions_by_eugene_v_gallagher_n9z7a": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-w8hh-g9q2-2qj8",
+      "ghsa": "GHSA-w8hh-g9q2-2qj8",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_walking_the_americas_by_levison_wood_lkum4": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-xf6h-jgp7-xqp9",
+      "ghsa": "GHSA-xf6h-jgp7-xqp9",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_weber_s_barbecue_bible_by_jamie_purviance_tggf4": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-vrgp-w6q9-89xf",
+      "ghsa": "GHSA-vrgp-w6q9-89xf",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "dowload_ebok_zulajka_opent_haar_ogen_by_guzel_jachina_0zzc7": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-2g9q-mwv9-88f5",
+      "ghsa": "GHSA-2g9q-mwv9-88f5",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "exploring_the_nikon_z6ii_z7ii_a_complete_digital_by_katherin_stuessy_2fszs": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-6jp9-xjqf-2v68",
+      "ghsa": "GHSA-6jp9-xjqf-2v68",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "le_guide_incroyablement_facile_de_l_iphone_14_et_d_by_scott_la_counte_gaztr": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-6763-v22q-83g5",
+      "ghsa": "GHSA-6763-v22q-83g5",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "ramses_the_battle_of_kadesh_volume_iii_by_christian_jacq_9xuaw": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-55h7-vr6g-6v6p",
+      "ghsa": "GHSA-55h7-vr6g-6v6p",
+      "added": "2026-11-13",
+      "source": "github-advisory"
+    },
+    "rush-mfa": {
+      "versions": [
+        "*"
+      ],
+      "campaign": "npm-malware",
+      "severity": "critical",
+      "reference": "https://github.com/advisories/GHSA-j4f5-mgch-g6xr",
+      "ghsa": "GHSA-j4f5-mgch-g6xr",
+      "added": "2026-11-13",
       "source": "github-advisory"
     },
     "shai-hulud-test-sentinel": {
@@ -884,246 +1126,15 @@
       "added": "2026-06-06",
       "source": "seed"
     },
-    "siriusbeyond": {
+    "the_shaolin_workout_by_shi_yan_ming_r43vx": {
       "versions": [
         "*"
       ],
       "campaign": "npm-malware",
       "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-4pq9-9r53-4chh",
-      "ghsa": "GHSA-4pq9-9r53-4chh",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "sorrawit-dev-helper": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-6rc9-cghh-frwr",
-      "ghsa": "GHSA-6rc9-cghh-frwr",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "starbucks-sdk": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-6m74-h462-fr23",
-      "ghsa": "GHSA-6m74-h462-fr23",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "tailwindcss-forms-ui": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fc5q-m33g-rp9c",
-      "ghsa": "GHSA-fc5q-m33g-rp9c",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test-react-app-in": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-wm2w-4m2r-mv73",
-      "ghsa": "GHSA-wm2w-4m2r-mv73",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test-react-app-out": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-vx3p-fwmg-p7g8",
-      "ghsa": "GHSA-vx3p-fwmg-p7g8",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test-react-app-way": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-264w-9h55-v637",
-      "ghsa": "GHSA-264w-9h55-v637",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test12vv36": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-7f39-795r-gxj4",
-      "ghsa": "GHSA-7f39-795r-gxj4",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test1df23": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-78p9-g7q9-mcjw",
-      "ghsa": "GHSA-78p9-g7q9-mcjw",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test1gg234": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-w7fw-w5xv-5p8v",
-      "ghsa": "GHSA-w7fw-w5xv-5p8v",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test1hh235": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-qrfc-3762-c24w",
-      "ghsa": "GHSA-qrfc-3762-c24w",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test1ro": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-8rr3-xrmc-xvjf",
-      "ghsa": "GHSA-8rr3-xrmc-xvjf",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test1sdsd2": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-9mc8-mrvr-f664",
-      "ghsa": "GHSA-9mc8-mrvr-f664",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test89-auth": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-7868-hxr7-g8r6",
-      "ghsa": "GHSA-7868-hxr7-g8r6",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test890-auth": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-xvpv-wq7p-548c",
-      "ghsa": "GHSA-xvpv-wq7p-548c",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test899-auth": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-jf2q-w77c-99vv",
-      "ghsa": "GHSA-jf2q-w77c-99vv",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "test8999-auth": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-25wf-vfrc-2r82",
-      "ghsa": "GHSA-25wf-vfrc-2r82",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "testmgkregme": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-hc49-rwm2-p2w7",
-      "ghsa": "GHSA-hc49-rwm2-p2w7",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "transform-es2015-unicode-regex": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-jcxm-5v55-599q",
-      "ghsa": "GHSA-jcxm-5v55-599q",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "wos-library": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-mfwv-9gcf-2mww",
-      "ghsa": "GHSA-mfwv-9gcf-2mww",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "wos-library-ui": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-wh36-rj36-m3ff",
-      "ghsa": "GHSA-wh36-rj36-m3ff",
-      "added": "2026-09-22",
-      "source": "github-advisory"
-    },
-    "x509-escaping": {
-      "versions": [
-        "*"
-      ],
-      "campaign": "npm-malware",
-      "severity": "critical",
-      "reference": "https://github.com/advisories/GHSA-fq85-7xqm-cgj9",
-      "ghsa": "GHSA-fq85-7xqm-cgj9",
-      "added": "2026-09-22",
+      "reference": "https://github.com/advisories/GHSA-r29f-hcc3-523r",
+      "ghsa": "GHSA-r29f-hcc3-523r",
+      "added": "2026-11-13",
       "source": "github-advisory"
     }
   },
@@ -1164,8 +1175,8 @@
     }
   },
   "stats": {
-    "malicious_packages": 100,
-    "from_advisories": 112,
+    "malicious_packages": 101,
+    "from_advisories": 100,
     "preserved_manual": 1,
     "window_days": 180
   }
